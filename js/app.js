@@ -40,7 +40,7 @@ class ShelterAccessApp {
             accessibilityDistanceValue: document.getElementById('accessibilityDistanceValue'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
-            includePlannedCheckbox: document.getElementById('includePlanned'),
+            analyzePlannedCheckbox: document.getElementById('analyzePlanned'),
             basemapControl: document.querySelector('.basemap-control'),
             basemapRadios: document.querySelectorAll('input[name="basemap"]'),
             themeToggle: document.getElementById('themeToggle'),
@@ -78,11 +78,16 @@ class ShelterAccessApp {
             // Set initial attribution
             this.updateAttribution();
             
-            // Initialize planned analysis section visibility
+            // Initialize planned analysis section and legend visibility
             const plannedAnalysisDiv = document.getElementById('plannedAnalysis');
-            const includePlannedChecked = this.elements.includePlannedCheckbox.checked;
+            const replaceableLegend = document.querySelector('.replaceable-legend');
+            const analyzePlannedChecked = this.elements.analyzePlannedCheckbox.checked;
+            
             if (plannedAnalysisDiv) {
-                plannedAnalysisDiv.style.display = includePlannedChecked ? 'none' : 'block';
+                plannedAnalysisDiv.style.display = analyzePlannedChecked ? 'block' : 'none';
+            }
+            if (replaceableLegend) {
+                replaceableLegend.style.display = analyzePlannedChecked ? 'flex' : 'none';
             }
             
             // Initial analysis
@@ -131,9 +136,12 @@ class ShelterAccessApp {
             await this.updateOptimalLocations();
         });
         
-        // Planned shelters checkbox
-        this.elements.includePlannedCheckbox.addEventListener('change', async (e) => {
-            const maxShelters = await this.spatialAnalyzer.setIncludePlannedShelters(e.target.checked);
+        // Analyze planned shelters checkbox
+        this.elements.analyzePlannedCheckbox.addEventListener('change', async (e) => {
+            // When checked: analyze planned shelters (treat them as not existing for optimization)
+            // When unchecked: show planned shelters normally (treat them as existing, don't analyze)
+            const includePlannedAsExisting = !e.target.checked;
+            const maxShelters = await this.spatialAnalyzer.setIncludePlannedShelters(includePlannedAsExisting);
             this.maxShelters = maxShelters;
             
             // Update slider max
@@ -144,14 +152,18 @@ class ShelterAccessApp {
                 this.elements.newSheltersValue.textContent = this.maxShelters;
             }
             
-            // Show/hide planned analysis section
+            // Show/hide planned analysis section and legend item
             const plannedAnalysisDiv = document.getElementById('plannedAnalysis');
+            const replaceableLegend = document.querySelector('.replaceable-legend');
+            
             if (e.target.checked) {
-                // Hide planned analysis when planned shelters are included as existing
-                plannedAnalysisDiv.style.display = 'none';
-            } else {
-                // Show planned analysis when planned shelters are not included
+                // Show planned analysis and replaceable legend when analyzing
                 plannedAnalysisDiv.style.display = 'block';
+                if (replaceableLegend) replaceableLegend.style.display = 'flex';
+            } else {
+                // Hide planned analysis and replaceable legend when not analyzing
+                plannedAnalysisDiv.style.display = 'none';
+                if (replaceableLegend) replaceableLegend.style.display = 'none';
             }
             
             // Reset analysis when toggling planned shelters
@@ -279,51 +291,66 @@ class ShelterAccessApp {
             }));
         }
         
-        // === PLANNED SHELTERS (Orange/Red Warning) ===
-        if (!this.spatialAnalyzer.includePlannedShelters) {
-            const plannedShelters = currentData.shelters.features.filter(shelter => 
-                shelter.properties && shelter.properties.status === 'Planned'
-            );
+        // === PLANNED SHELTERS (Always show, Orange/Red when analyzed) ===
+        // Always show planned shelters, but analyze them only when checkbox is checked
+        const plannedShelters = currentData.shelters.features.filter(shelter => 
+            shelter.properties && shelter.properties.status === 'Planned'
+        );
+        
+        if (plannedShelters.length > 0) {
+            // Check if we should analyze planned shelters (when checkbox is checked)
+            const shouldAnalyzePlanned = this.elements.analyzePlannedCheckbox.checked;
             
-            if (plannedShelters.length > 0) {
-                // Coverage circles for planned shelters
-                layers.push(new deck.GeoJsonLayer({
-                    id: 'planned-coverage',
-                    data: this.createCoverageCircles(plannedShelters, this.coverageRadius),
-                    pickable: false,
-                    stroked: true,
-                    filled: true,
-                    lineWidthMinPixels: 2,
-                    getFillColor: [255, 165, 0, 80], // More visible orange
-                    getLineColor: [255, 165, 0, 120],
-                    getLineWidth: 2
-                }));
-                
-                // Planned shelter points
-                layers.push(new deck.ScatterplotLayer({
-                    id: 'planned-shelters',
-                    data: plannedShelters,
-                    pickable: true,
-                    opacity: 0.9,
-                    stroked: true,
-                    filled: true,
-                    radiusScale: 1,
-                    radiusMinPixels: 8,
-                    radiusMaxPixels: 15,
-                    lineWidthMinPixels: 2,
-                    getPosition: d => d.geometry.coordinates,
-                    getRadius: 12,
-                    getFillColor: d => {
-                        // Red warning for replaceable planned shelters
-                        if (replaceableIds.has(d.properties.shelter_id)) {
-                            return [220, 53, 69, 255]; // Red warning
-                        }
-                        return [255, 165, 0, 255]; // Bright orange for planned
-                    },
-                    getLineColor: [255, 255, 255, 255]
-                }));
-                
-                // Warning symbols for replaceable planned shelters
+            // Coverage circles for planned shelters
+            layers.push(new deck.GeoJsonLayer({
+                id: 'planned-coverage',
+                data: this.createCoverageCircles(plannedShelters, this.coverageRadius),
+                pickable: false,
+                stroked: true,
+                filled: true,
+                lineWidthMinPixels: 2,
+                getFillColor: [255, 165, 0, 80], // More visible orange
+                getLineColor: [255, 165, 0, 120],
+                getLineWidth: 2
+            }));
+            
+            // Get replaceable shelter IDs if analyzing
+            let replaceableIds = new Set();
+            if (shouldAnalyzePlanned && this.proposedShelters.length > 0) {
+                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
+                if (plannedEval && plannedEval.pairedShelters) {
+                    replaceableIds = new Set(plannedEval.pairedShelters.map(pair => 
+                        pair.planned.properties ? pair.planned.properties.shelter_id : null
+                    ).filter(id => id !== null));
+                }
+            }
+            
+            // Planned shelter points
+            layers.push(new deck.ScatterplotLayer({
+                id: 'planned-shelters',
+                data: plannedShelters,
+                pickable: true,
+                opacity: 0.9,
+                stroked: true,
+                filled: true,
+                radiusScale: 1,
+                radiusMinPixels: 8,
+                radiusMaxPixels: 15,
+                lineWidthMinPixels: 2,
+                getPosition: d => d.geometry.coordinates,
+                getRadius: 12,
+                getFillColor: d => {
+                    // Red warning for replaceable planned shelters (only when analyzing)
+                    if (shouldAnalyzePlanned && replaceableIds.has(d.properties.shelter_id)) {
+                        return [220, 53, 69, 255]; // Red warning
+                    }
+                    return [255, 165, 0, 255]; // Bright orange for planned
+                },
+                getLineColor: [255, 255, 255, 255]
+            }));
+            
+            // Warning symbols for replaceable planned shelters (only when analyzing)
+            if (shouldAnalyzePlanned) {
                 const replaceableShelters = plannedShelters.filter(shelter => 
                     replaceableIds.has(shelter.properties.shelter_id)
                 );
