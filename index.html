@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Negev Shelter Access Analysis</title>
+    
+    <!-- deck.gl (no Mapbox dependency) -->
+    <script src="https://unpkg.com/deck.gl@^9.0.0/dist.min.js"></script>
+    
+    <!-- Turf.js for spatial analysis -->
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <h1>🏠 Negev Shelter Access Analysis</h1>
+            <p>Optimizing shelter placement for Bedouin communities</p>
+        </header>
+        
+        <div class="main-container">
+            <!-- Left Control Panel -->
+            <div class="control-panel left-panel">
+                <div class="control-section">
+                    <h3>📏 Accessibility Distance</h3>
+                    <div class="input-group">
+                        <label for="accessibilityDistance">Distance</label>
+                        <input type="range" id="accessibilityDistance" min="100" max="300" step="50" value="100">
+                        <span id="accessibilityDistanceValue">100m</span>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>🏗️ Planned Shelters</h3>
+                    <div class="input-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includePlanned">
+                            Include planned shelters as existing (106 approved)
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>➕ New Shelters</h3>
+                    <div class="input-group">
+                        <label for="newShelters">Number of new shelters</label>
+                        <input type="range" id="newShelters" min="1" max="150" value="10" step="1">
+                        <span id="newSheltersValue">10</span>
+                    </div>
+                </div>
+                
+
+            </div>
+            
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="map"></div>
+                
+                <!-- Basemap Control (floating on map) -->
+                <div class="basemap-control">
+                    <label for="basemapSelect">🗺️ Map Style</label>
+                    <select id="basemapSelect">
+                        <option value="satellite" selected>🛰️ Satellite</option>
+                        <option value="light">☀️ Light</option>
+                        <option value="dark">🌙 Dark</option>
+                    </select>
+                </div>
+                
+                <div id="loading" class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <p>Loading spatial data...</p>
+                </div>
+                <div id="tooltip" class="tooltip"></div>
+                <div id="attribution" class="map-attribution"></div>
+            </div>
+            
+            <!-- Right Legend Panel -->
+            <div class="legend-panel right-panel">
+                <h3>📊 Coverage Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-label">Current Coverage</div>
+                        <div class="stat-value" id="currentCoverage">--%</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">With New Shelters</div>
+                        <div class="stat-value" id="newCoverage">--%</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Buildings Covered</div>
+                        <div class="stat-value" id="buildingsCovered">--</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Additional People</div>
+                        <div class="stat-value" id="additionalPeople">--</div>
+                    </div>
+                </div>
+                
+                <!-- Planned Shelter Analysis (only shown when planned shelters not included) -->
+                <div id="plannedAnalysis" class="planned-analysis" style="display: none;">
+                    <h4>🔍 Planned Shelter Analysis</h4>
+                    <div class="stats-grid">
+                        <div class="stat">
+                            <div class="stat-label">Suboptimal Planned</div>
+                            <div class="stat-value" id="suboptimalPlanned">--</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">People Underserved</div>
+                            <div class="stat-value" id="underservedPeople">--</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Color Legend -->
+                <div class="color-legend">
+                    <h4>🎨 Map Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color existing-shelter"></div>
+                        <span>Existing Shelters</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color proposed-shelter"></div>
+                        <span>Proposed Shelters</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color planned-shelter"></div>
+                        <span>Planned Shelters</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color suboptimal-shelter"></div>
+                        <span>⚠️ Suboptimal Planned</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color coverage-area"></div>
+                        <span>Coverage Areas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Application JavaScript -->
+            <script src="js/spatial-analysis-simple.js"></script>
+        <script src="js/app.js"></script>
+</body>
+</html> 

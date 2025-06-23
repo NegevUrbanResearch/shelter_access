@@ -1,0 +1,258 @@
+/**
+ * Simple Spatial Analysis Module - Loads Precomputed Optimal Shelter Locations
+ * Uses precalculated data from shelter_optimizer.py DBSCAN + Greedy algorithm
+ */
+
+class SimpleSpatialAnalyzer {
+    constructor() {
+        this.buildings = null;
+        this.shelters = null;
+        this.optimalData = new Map(); // Cache for precomputed data
+        this.coverageRadius = 100;
+        this.includePlannedShelters = false;
+        
+        // Constants
+        this.ACCESSIBILITY_OPTIONS = [100, 150, 200, 250, 300];
+        this.MAX_SHELTERS = 150;
+        this.PEOPLE_PER_BUILDING = 7;
+    }
+    
+    /**
+     * Load spatial data (buildings and shelters)
+     */
+    async loadData() {
+        console.log('Loading spatial data...');
+        
+        try {
+            const [buildingResponse, shelterResponse] = await Promise.all([
+                fetch('data/buildings_light.geojson'),
+                fetch('data/shelters.geojson')
+            ]);
+            
+            this.buildings = await buildingResponse.json();
+            this.shelters = await shelterResponse.json();
+            
+            console.log(`✓ Loaded ${this.buildings.features.length} buildings and ${this.shelters.features.length} shelters`);
+            
+            // Load default optimal data
+            await this.loadOptimalData(this.coverageRadius, this.includePlannedShelters);
+            
+            return true;
+        } catch (error) {
+            console.error('Error loading spatial data:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Load precomputed optimal shelter data
+     */
+    async loadOptimalData(radius, includePlanned) {
+        const scenario = includePlanned ? "with_planned" : "without_planned";
+        const cacheKey = `${scenario}_${radius}m`;
+        
+        if (this.optimalData.has(cacheKey)) {
+            return this.optimalData.get(cacheKey);
+        }
+        
+        try {
+            console.log(`Loading optimal data: ${cacheKey}...`);
+            const response = await fetch(`data/optimal_locations/optimal_shelters_${cacheKey}.json`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            this.optimalData.set(cacheKey, data);
+            
+            console.log(`✓ Loaded ${data.optimal_locations.length} optimal locations for ${cacheKey}`);
+            
+            return data;
+        } catch (error) {
+            console.error(`Error loading ${cacheKey}:`, error);
+            return { optimal_locations: [], existing_shelters: [], statistics: {} };
+        }
+    }
+    
+    /**
+     * Set coverage radius
+     */
+    async setCoverageRadius(radius) {
+        this.coverageRadius = radius;
+        await this.loadOptimalData(radius, this.includePlannedShelters);
+        return this.MAX_SHELTERS;
+    }
+    
+    /**
+     * Set whether to include planned shelters
+     */
+    async setIncludePlannedShelters(includePlanned) {
+        this.includePlannedShelters = includePlanned;
+        await this.loadOptimalData(this.coverageRadius, includePlanned);
+        return this.MAX_SHELTERS;
+    }
+    
+    /**
+     * Get top N optimal shelter locations
+     */
+    async getOptimalLocations(numShelters) {
+        const data = await this.loadOptimalData(this.coverageRadius, this.includePlannedShelters);
+        
+        // Return top N locations (they're already sorted by quality)
+        const maxShelters = Math.min(numShelters, this.MAX_SHELTERS, data.optimal_locations.length);
+        return data.optimal_locations.slice(0, maxShelters);
+    }
+    
+    /**
+     * Get planned shelter evaluation (suboptimal analysis)
+     */
+    getPlannedShelterEvaluation() {
+        if (this.includePlannedShelters) return null;
+        
+        const cacheKey = `without_planned_${this.coverageRadius}m`;
+        const data = this.optimalData.get(cacheKey);
+        
+        if (!data || !data.existing_shelters) return null;
+        
+        // Get planned shelters
+        const plannedShelters = data.existing_shelters.filter(shelter => 
+            shelter.properties && shelter.properties.status === "Planned"
+        );
+        
+        if (plannedShelters.length === 0) return null;
+        
+        // Simple evaluation: planned shelters are suboptimal if they have low coverage
+        const suboptimalPlanned = plannedShelters.filter(shelter => 
+            (shelter.people_covered || 0) < 100 // Threshold for "suboptimal"
+        );
+        
+        const totalUnderservedPeople = suboptimalPlanned.reduce((sum, shelter) => 
+            sum + Math.max(0, 100 - (shelter.people_covered || 0)), 0
+        );
+        
+        return {
+            suboptimalPlanned,
+            totalSuboptimal: suboptimalPlanned.length,
+            totalUnderservedPeople
+        };
+    }
+    
+    /**
+     * Calculate coverage statistics
+     */
+    calculateCoverageStats(proposedShelters = null) {
+        const cacheKey = `${this.includePlannedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
+        const data = this.optimalData.get(cacheKey);
+        
+        if (!data || !data.statistics) {
+            return {
+                currentCoverage: 0,
+                newCoverage: 0,
+                totalCoverage: 0,
+                buildingsCovered: 0,
+                totalBuildings: 0,
+                peopleCovered: 0,
+                totalPeople: 0,
+                coveragePercent: 0
+            };
+        }
+        
+        const stats = data.statistics;
+        const numSelected = proposedShelters ? proposedShelters.length : 0;
+        
+        // Calculate coverage for selected shelters
+        const selectedOptimal = data.optimal_locations.slice(0, numSelected);
+        const newPeopleCovered = selectedOptimal.reduce((sum, loc) => sum + (loc.people_covered || 0), 0);
+        const newBuildingsCovered = selectedOptimal.reduce((sum, loc) => sum + (loc.buildings_covered || 0), 0);
+        
+        // Existing coverage (total - new from all optimal locations)
+        const existingCoverage = (stats.total_people_covered || 0) - (stats.new_people_covered || 0);
+        const totalCoverage = existingCoverage + newPeopleCovered;
+        
+        return {
+            currentCoverage: Math.max(0, existingCoverage),
+            newCoverage: newPeopleCovered,
+            totalCoverage: totalCoverage,
+            buildingsCovered: newBuildingsCovered,
+            totalBuildings: stats.total_buildings || 0,
+            peopleCovered: totalCoverage,
+            totalPeople: stats.total_people || 0,
+            coveragePercent: stats.total_people > 0 ? (totalCoverage / stats.total_people) * 100 : 0
+        };
+    }
+    
+    /**
+     * Get active shelters for visualization
+     */
+    getActiveShelters() {
+        if (!this.shelters) return [];
+        
+        return this.shelters.features.filter(shelter => {
+            if (!shelter.properties) return false;
+            
+            if (this.includePlannedShelters) {
+                // Include both active and planned
+                return shelter.properties.status === 'Active' || shelter.properties.status === 'Planned';
+            } else {
+                // Only active shelters
+                return shelter.properties.status === 'Active';
+            }
+        });
+    }
+    
+    /**
+     * Get planned shelters for visualization
+     */
+    getPlannedShelters() {
+        if (!this.shelters || this.includePlannedShelters) return [];
+        
+        return this.shelters.features.filter(shelter => 
+            shelter.properties && shelter.properties.status === 'Planned'
+        );
+    }
+    
+    /**
+     * Get data bounds for map initialization
+     */
+    getDataBounds() {
+        return {
+            west: 34.5,
+            east: 35.5,
+            south: 30.5,
+            north: 32.0
+        };
+    }
+    
+    /**
+     * Get current data for visualization
+     */
+    getCurrentData() {
+        return {
+            buildings: this.buildings,
+            shelters: this.shelters,
+            coverageRadius: this.coverageRadius,
+            includePlannedShelters: this.includePlannedShelters
+        };
+    }
+    
+    /**
+     * Get accessibility options
+     */
+    getAccessibilityOptions() {
+        return this.ACCESSIBILITY_OPTIONS.map(distance => ({
+            value: distance,
+            label: `${distance}m`
+        }));
+    }
+    
+    /**
+     * Validate that all required data is loaded
+     */
+    isDataReady() {
+        return this.buildings !== null && this.shelters !== null;
+    }
+}
+
+// Export for use in main application
+window.SimpleSpatialAnalyzer = SimpleSpatialAnalyzer; 
