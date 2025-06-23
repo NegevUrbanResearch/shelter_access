@@ -58,7 +58,7 @@
                     <h3>➕ New Shelters</h3>
                     <div class="input-group">
                         <label for="newShelters">Number of new shelters</label>
-                        <input type="range" id="newShelters" min="1" max="150" value="10" step="1">
+                        <input type="range" id="newShelters" min="0" max="150" value="10" step="1">
                         <span id="newSheltersValue">10</span>
                     </div>
                 </div>
@@ -129,7 +129,7 @@
                     <h4>🔍 Planned Shelter Analysis</h4>
                     <div class="stats-grid">
                         <div class="stat">
-                            <div class="stat-label">Replaceable Planned</div>
+                            <div class="stat-label">Suboptimal Planned</div>
                             <div class="stat-value" id="suboptimalPlanned">--</div>
                         </div>
                         <div class="stat">
@@ -156,7 +156,7 @@
                     </div>
                     <div class="legend-item replaceable-legend" style="display: none;">
                         <div class="legend-color replaceable-shelter"></div>
-                        <span>⚠️ Replaceable Planned (Red)</span>
+                        <span>⚠️ Suboptimal Planned (Red)</span>
                     </div>
                 </div>
             </div>
