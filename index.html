@@ -16,10 +16,21 @@
 </head>
 <body>
     <div id="app">
-        <header class="header">
-            <h1>🏠 Negev Shelter Access Analysis</h1>
-            <p>Optimizing shelter placement for Bedouin communities</p>
-        </header>
+        <!-- Top Navigation Bar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <img src="data/Nur-Logo_3x-_1_.svg" alt="Nur Logo" class="logo">
+                <div class="brand-text">
+                    <h1>Negev Shelter Access Analysis</h1>
+                    <p>Optimizing shelter placement for Bedouin communities</p>
+                </div>
+            </div>
+            <div class="navbar-controls">
+                <button id="themeToggle" class="theme-toggle" title="Toggle dark/light mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+        </nav>
         
         <div class="main-container">
             <!-- Left Control Panel -->
@@ -59,14 +70,21 @@
             <div class="map-container">
                 <div id="map"></div>
                 
-                <!-- Basemap Control (floating on map) -->
-                <div class="basemap-control">
-                    <label for="basemapSelect">🗺️ Map Style</label>
-                    <select id="basemapSelect">
-                        <option value="satellite" selected>🛰️ Satellite</option>
-                        <option value="light">☀️ Light</option>
-                        <option value="dark">🌙 Dark</option>
-                    </select>
+                <!-- Updated Basemap Control (more subtle) -->
+                <div class="map-controls">
+                    <div class="basemap-selector">
+                        <div class="basemap-options">
+                            <button class="basemap-btn active" data-basemap="satellite" title="Satellite View">
+                                <span class="basemap-icon">🛰️</span>
+                            </button>
+                            <button class="basemap-btn" data-basemap="light" title="Light Mode">
+                                <span class="basemap-icon">☀️</span>
+                            </button>
+                            <button class="basemap-btn" data-basemap="dark" title="Dark Mode">
+                                <span class="basemap-icon">🌙</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="loading" class="loading-overlay">
@@ -143,7 +161,7 @@
     </div>
     
     <!-- Application JavaScript -->
-            <script src="js/spatial-analysis-simple.js"></script>
-        <script src="js/app.js"></script>
+    <script src="js/spatial-analysis-simple.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html> 

@@ -41,7 +41,8 @@ class ShelterAccessApp {
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
             includePlannedCheckbox: document.getElementById('includePlanned'),
-            basemapSelect: document.getElementById('basemapSelect'),
+            basemapBtns: document.querySelectorAll('.basemap-btn'),
+            themeToggle: document.getElementById('themeToggle'),
             loading: document.getElementById('loading'),
             tooltip: document.getElementById('tooltip'),
             attribution: document.getElementById('attribution'),
@@ -52,8 +53,6 @@ class ShelterAccessApp {
             suboptimalPlanned: document.getElementById('suboptimalPlanned'),
             underservedPeople: document.getElementById('underservedPeople')
         };
-        
-        this.initializeApp();
     }
     
     /**
@@ -62,6 +61,9 @@ class ShelterAccessApp {
     async initializeApp() {
         try {
             console.log('🚀 Initializing Shelter Access Analysis App...');
+            
+            // Load theme preference
+            this.loadThemePreference();
             
             // Initialize UI controls
             this.setupEventListeners();
@@ -156,9 +158,21 @@ class ShelterAccessApp {
             await this.updateOptimalLocations();
         });
         
-        // Basemap selection
-        this.elements.basemapSelect.addEventListener('change', (e) => {
-            this.changeBasemap(e.target.value);
+        // Basemap button selection
+        this.elements.basemapBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const basemap = e.currentTarget.dataset.basemap;
+                this.changeBasemap(basemap);
+                
+                // Update active state
+                this.elements.basemapBtns.forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+            });
+        });
+        
+        // Theme toggle
+        this.elements.themeToggle.addEventListener('click', () => {
+            this.toggleTheme();
         });
         
         // Initial load of optimal locations
@@ -759,6 +773,39 @@ class ShelterAccessApp {
         if (this.elements.attribution) {
             this.elements.attribution.innerHTML = this.basemaps[this.currentBasemap].attribution;
         }
+    }
+    
+    /**
+     * Toggle between light and dark themes
+     */
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        
+        // Update theme toggle icon
+        const themeIcon = this.elements.themeToggle.querySelector('.theme-icon');
+        themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        
+        // Store preference in localStorage
+        localStorage.setItem('theme', newTheme);
+        
+        console.log(`🎨 Theme switched to ${newTheme} mode`);
+    }
+    
+    /**
+     * Load saved theme preference or set default
+     */
+    loadThemePreference() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Update theme toggle icon
+        const themeIcon = this.elements.themeToggle.querySelector('.theme-icon');
+        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        
+        console.log(`🎨 Loaded ${savedTheme} theme`);
     }
 }
 

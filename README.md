@@ -6,19 +6,14 @@ A real-time web-based tool for analyzing and optimizing shelter accessibility fo
 ## 📊 Data & Analysis
 
 ### **Input Data**
-- **📍 Shelters**: 300 existing + 106 planned locations
-- **🏘️ Buildings**: 77,807 Bedouin building footprints
-- **📏 Coverage**: Multiple radii (100m, 150m, 200m, 250m, 300m)
-- **🗺️ Region**: Negev desert, Israel
+- **📍 Shelters**: existing + planned locations
+- **🏘️ Buildings**: Footprint data from MS Planetary Computer {https://planetarycomputer.microsoft.com/} 
 
-### **Precalculated Scenarios**
+### **Precalculated Parameters**
 - **5 radius options** × **2 scenarios** (with/without planned) = **10 optimization datasets**
-- **150 optimal locations** per scenario, ranked by effectiveness
-- **Coverage statistics** and planned shelter evaluations included
+- **150 optimal locations** per scenario, ranked by coverage statistics
+- **Population Estimates** currently set at 7 people per building (configurable assumption based on average pop. data)
 
-### **Population Estimates**
-- **7 people per building** (configurable assumption)
-- **Coverage statistics** show both buildings and estimated population impact
 
 ## 🛠️ Technical Architecture
 
