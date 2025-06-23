@@ -41,7 +41,8 @@ class ShelterAccessApp {
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
             includePlannedCheckbox: document.getElementById('includePlanned'),
-            basemapBtns: document.querySelectorAll('.basemap-btn'),
+            basemapControl: document.querySelector('.basemap-control'),
+            basemapRadios: document.querySelectorAll('input[name="basemap"]'),
             themeToggle: document.getElementById('themeToggle'),
             loading: document.getElementById('loading'),
             tooltip: document.getElementById('tooltip'),
@@ -158,15 +159,20 @@ class ShelterAccessApp {
             await this.updateOptimalLocations();
         });
         
-        // Basemap button selection
-        this.elements.basemapBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const basemap = e.currentTarget.dataset.basemap;
-                this.changeBasemap(basemap);
-                
-                // Update active state
-                this.elements.basemapBtns.forEach(b => b.classList.remove('active'));
-                e.currentTarget.classList.add('active');
+        // Basemap control - toggle menu
+        const basemapHeader = this.elements.basemapControl.querySelector('.basemap-header');
+        basemapHeader.addEventListener('click', () => {
+            this.elements.basemapControl.classList.toggle('expanded');
+        });
+        
+        // Basemap radio selection
+        this.elements.basemapRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.changeBasemap(e.target.value);
+                    // Close menu after selection
+                    this.elements.basemapControl.classList.remove('expanded');
+                }
             });
         });
         
@@ -248,10 +254,10 @@ class ShelterAccessApp {
                 pickable: false,
                 stroked: true,
                 filled: true,
-                lineWidthMinPixels: 1,
-                getFillColor: [52, 152, 219, 30], // Semi-transparent blue
-                getLineColor: [52, 152, 219, 60],
-                getLineWidth: 1
+                lineWidthMinPixels: 2,
+                getFillColor: [52, 152, 219, 80], // More visible blue
+                getLineColor: [52, 152, 219, 120],
+                getLineWidth: 2
             }));
             
             // Existing shelter points
@@ -287,10 +293,10 @@ class ShelterAccessApp {
                     pickable: false,
                     stroked: true,
                     filled: true,
-                    lineWidthMinPixels: 1,
-                    getFillColor: [255, 165, 0, 30], // Semi-transparent orange
-                    getLineColor: [255, 165, 0, 60],
-                    getLineWidth: 1
+                    lineWidthMinPixels: 2,
+                    getFillColor: [255, 165, 0, 80], // More visible orange
+                    getLineColor: [255, 165, 0, 120],
+                    getLineWidth: 2
                 }));
                 
                 // Planned shelter points
@@ -353,10 +359,10 @@ class ShelterAccessApp {
                 pickable: false,
                 stroked: true,
                 filled: true,
-                lineWidthMinPixels: 1,
-                getFillColor: [154, 205, 50, 30], // Semi-transparent yellow-green
-                getLineColor: [154, 205, 50, 60],
-                getLineWidth: 1
+                lineWidthMinPixels: 2,
+                getFillColor: [154, 205, 50, 80], // More visible yellow-green
+                getLineColor: [154, 205, 50, 120],
+                getLineWidth: 2
             }));
             
             // Proposed shelter points with quality-based coloring

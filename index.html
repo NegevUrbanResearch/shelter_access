@@ -70,19 +70,26 @@
             <div class="map-container">
                 <div id="map"></div>
                 
-                <!-- Updated Basemap Control (more subtle) -->
+                <!-- Basemap Control (low-key single box) -->
                 <div class="map-controls">
-                    <div class="basemap-selector">
-                        <div class="basemap-options">
-                            <button class="basemap-btn active" data-basemap="satellite" title="Satellite View">
-                                <span class="basemap-icon">🛰️</span>
-                            </button>
-                            <button class="basemap-btn" data-basemap="light" title="Light Mode">
-                                <span class="basemap-icon">☀️</span>
-                            </button>
-                            <button class="basemap-btn" data-basemap="dark" title="Dark Mode">
-                                <span class="basemap-icon">🌙</span>
-                            </button>
+                    <div class="basemap-control">
+                        <div class="basemap-header">
+                            <span class="basemap-title">Layers</span>
+                            <span class="basemap-toggle">⌄</span>
+                        </div>
+                        <div class="basemap-menu">
+                            <label class="basemap-option">
+                                <input type="radio" name="basemap" value="satellite" checked>
+                                <span class="basemap-label">Satellite</span>
+                            </label>
+                            <label class="basemap-option">
+                                <input type="radio" name="basemap" value="light">
+                                <span class="basemap-label">Light</span>
+                            </label>
+                            <label class="basemap-option">
+                                <input type="radio" name="basemap" value="dark">
+                                <span class="basemap-label">Dark</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -136,12 +143,12 @@
                 <div class="color-legend">
                     <h4>🎨 Map Legend</h4>
                     <div class="legend-item">
-                        <div class="legend-color existing-shelter"></div>
-                        <span>Existing Shelters (Blue)</span>
+                        <div class="legend-color optimal-shelter"></div>
+                        <span>New Sites (Yellow-Green)</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color optimal-shelter"></div>
-                        <span>Optimal New Sites (Yellow-Green)</span>
+                        <div class="legend-color existing-shelter"></div>
+                        <span>Existing Shelters (Blue)</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color planned-shelter"></div>
@@ -150,10 +157,6 @@
                     <div class="legend-item">
                         <div class="legend-color replaceable-shelter"></div>
                         <span>⚠️ Replaceable Planned (Red)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color coverage-area"></div>
-                        <span>Coverage Areas</span>
                     </div>
                 </div>
             </div>
