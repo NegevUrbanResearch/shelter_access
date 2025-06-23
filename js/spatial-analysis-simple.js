@@ -107,7 +107,7 @@ class SimpleSpatialAnalyzer {
     /**
      * Get planned shelter evaluation with specific pairing to optimal locations
      */
-    getPlannedShelterEvaluation() {
+    getPlannedShelterEvaluation(numNewShelters = 0) {
         if (this.includePlannedShelters) return null;
         
         const cacheKey = `without_planned_${this.coverageRadius}m`;
@@ -122,20 +122,29 @@ class SimpleSpatialAnalyzer {
         
         if (plannedShelters.length === 0) return null;
         
+        // We can only replace as many planned shelters as we're building new ones
+        const maxReplacements = Math.min(numNewShelters, plannedShelters.length);
+        
+        if (maxReplacements === 0) {
+            return {
+                pairedShelters: [],
+                totalPairs: 0,
+                totalImprovement: 0,
+                totalPlanned: plannedShelters.length
+            };
+        }
+        
         // Sort planned shelters by coverage (worst first)
         const sortedPlanned = [...plannedShelters].sort((a, b) => 
             (a.people_covered || 0) - (b.people_covered || 0)
         );
         
-        // Get the same number of optimal locations as we would build
-        const optimalLocations = data.optimal_locations.slice(0, Math.min(
-            sortedPlanned.length, 
-            this.MAX_SHELTERS
-        ));
+        // Get the top N optimal locations we're actually building
+        const optimalLocations = data.optimal_locations.slice(0, numNewShelters);
         
-        // Pair worst planned with best optimal
+        // Pair worst planned with best optimal, but only up to the number we're building
         const pairedShelters = [];
-        for (let i = 0; i < Math.min(sortedPlanned.length, optimalLocations.length); i++) {
+        for (let i = 0; i < maxReplacements; i++) {
             const planned = sortedPlanned[i];
             const optimal = optimalLocations[i];
             
@@ -150,8 +159,8 @@ class SimpleSpatialAnalyzer {
                     improvement: improvement,
                     plannedCoverage: plannedCoverage,
                     optimalCoverage: optimalCoverage,
-                    plannedRank: i + 1, // Rank among planned (1 = worst)
-                    optimalRank: i + 1  // Rank among optimal (1 = best)
+                    plannedRank: i + 1, // Rank among worst planned (1 = worst)
+                    optimalRank: i + 1  // Rank among selected optimal (1 = best)
                 });
             }
         }

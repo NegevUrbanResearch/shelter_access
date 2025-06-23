@@ -209,7 +209,7 @@ class ShelterAccessApp {
         if (!currentData.shelters) return layers;
         
         // Get planned shelter evaluation for pairing analysis
-        const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation();
+        const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
         
         // Create lookup for shelters that should be marked as replaceable
         const replaceableIds = new Set();
@@ -484,7 +484,7 @@ class ShelterAccessApp {
     updateCoverageAnalysis() {
         const cacheKey = `${this.spatialAnalyzer.includePlannedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
         const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-        const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation();
+        const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
         
         if (!data || !data.statistics) return;
         
@@ -577,7 +577,7 @@ class ShelterAccessApp {
                 const cacheKey = `without_planned_${this.coverageRadius}m`;
                 const data = this.spatialAnalyzer.optimalData.get(cacheKey);
                 const shelterId = object.properties.shelter_id;
-                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation();
+                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
                 
                 let buildingsCovered = 0;
                 let peopleCovered = 0;
@@ -633,7 +633,7 @@ class ShelterAccessApp {
             } else if (info.layer.id === 'replaceable-markers') {
                 // Same as planned-shelters but focus on replacement
                 const shelterId = object.properties.shelter_id;
-                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation();
+                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
                 
                 if (plannedEval && plannedEval.pairedShelters) {
                     const pairing = plannedEval.pairedShelters.find(pair => 
