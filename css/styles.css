@@ -424,10 +424,10 @@ button:focus {
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.existing-shelter { background: #e74c3c; }
-.proposed-shelter { background: #f39c12; }
-.planned-shelter { background: #3498db; }
-.suboptimal-shelter { background: #e67e22; }
+.existing-shelter { background: #3498db; }
+.optimal-shelter { background: #9acd32; }
+.planned-shelter { background: #ffa500; }
+.replaceable-shelter { background: #dc3545; }
 .covered-building { background: #27ae60; }
 .uncovered-building { background: #95a5a6; }
 .coverage-area { background: rgba(52, 152, 219, 0.3); } 

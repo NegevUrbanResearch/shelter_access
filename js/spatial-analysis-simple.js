@@ -105,7 +105,7 @@ class SimpleSpatialAnalyzer {
     }
     
     /**
-     * Get planned shelter evaluation (suboptimal analysis)
+     * Get planned shelter evaluation with specific pairing to optimal locations
      */
     getPlannedShelterEvaluation() {
         if (this.includePlannedShelters) return null;
@@ -113,7 +113,7 @@ class SimpleSpatialAnalyzer {
         const cacheKey = `without_planned_${this.coverageRadius}m`;
         const data = this.optimalData.get(cacheKey);
         
-        if (!data || !data.existing_shelters) return null;
+        if (!data || !data.existing_shelters || !data.optimal_locations) return null;
         
         // Get planned shelters
         const plannedShelters = data.existing_shelters.filter(shelter => 
@@ -122,19 +122,47 @@ class SimpleSpatialAnalyzer {
         
         if (plannedShelters.length === 0) return null;
         
-        // Simple evaluation: planned shelters are suboptimal if they have low coverage
-        const suboptimalPlanned = plannedShelters.filter(shelter => 
-            (shelter.people_covered || 0) < 100 // Threshold for "suboptimal"
+        // Sort planned shelters by coverage (worst first)
+        const sortedPlanned = [...plannedShelters].sort((a, b) => 
+            (a.people_covered || 0) - (b.people_covered || 0)
         );
         
-        const totalUnderservedPeople = suboptimalPlanned.reduce((sum, shelter) => 
-            sum + Math.max(0, 100 - (shelter.people_covered || 0)), 0
-        );
+        // Get the same number of optimal locations as we would build
+        const optimalLocations = data.optimal_locations.slice(0, Math.min(
+            sortedPlanned.length, 
+            this.MAX_SHELTERS
+        ));
+        
+        // Pair worst planned with best optimal
+        const pairedShelters = [];
+        for (let i = 0; i < Math.min(sortedPlanned.length, optimalLocations.length); i++) {
+            const planned = sortedPlanned[i];
+            const optimal = optimalLocations[i];
+            
+            const plannedCoverage = planned.people_covered || 0;
+            const optimalCoverage = optimal.people_covered || 0;
+            const improvement = optimalCoverage - plannedCoverage;
+            
+            if (improvement > 0) {
+                pairedShelters.push({
+                    planned: planned,
+                    optimal: optimal,
+                    improvement: improvement,
+                    plannedCoverage: plannedCoverage,
+                    optimalCoverage: optimalCoverage,
+                    plannedRank: i + 1, // Rank among planned (1 = worst)
+                    optimalRank: i + 1  // Rank among optimal (1 = best)
+                });
+            }
+        }
+        
+        const totalImprovement = pairedShelters.reduce((sum, pair) => sum + pair.improvement, 0);
         
         return {
-            suboptimalPlanned,
-            totalSuboptimal: suboptimalPlanned.length,
-            totalUnderservedPeople
+            pairedShelters,
+            totalPairs: pairedShelters.length,
+            totalImprovement,
+            totalPlanned: plannedShelters.length
         };
     }
     
