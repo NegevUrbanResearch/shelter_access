@@ -26,18 +26,18 @@ class EnhancedShelterOptimizer:
         self.RADII_TO_TEST = [100, 150, 200, 250, 300]
         self.MIN_BUILDINGS_PER_CLUSTER = 5
         self.N_RUNS_PER_RADIUS = 1  # Single run since DBSCAN is deterministic
-        self.N_KMEANS_SEEDS = 3  # Multiple K-means random seeds
+        self.N_KMEANS_SEEDS = 2  # Multiple K-means random seeds
         
         # DBSCAN parameters to test (eps should be <= coverage radius for optimal results)
-        self.DBSCAN_EPS_MULTIPLIERS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]  # Multipliers of coverage radius
-        self.DBSCAN_MIN_SAMPLES = [3, 5, 7, 10]
+        self.DBSCAN_EPS_MULTIPLIERS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]  # 10 multipliers from 0.1 to 1.0
+        self.DBSCAN_MIN_SAMPLES = [10]  # Single min_samples parameter
         
         # K-means parameters (simplified)
         self.KMEANS_K_VALUES = [750, 1500]  # Just two reasonable k values
         
         # Multithreading settings
         self.USE_MULTITHREADING = True  # Set to False to disable
-        self.MAX_WORKERS = 4  # Number of parallel DBSCAN processes
+        self.MAX_WORKERS = 5  # Number of parallel DBSCAN processes
         
     def load_geojson(self, filepath):
         """Load GeoJSON and extract coordinates"""

@@ -4,1204 +4,1054 @@
   "scenario": "with_planned",
   "optimal_locations": [
     {
-      "lat": 31.24558236731703,
-      "lon": 35.092777742929705,
-      "buildings_covered": 145,
-      "people_covered": 1015,
-      "cluster_id": 138,
-      "cluster_size": 2975
+      "lat": 31.20144220360085,
+      "lon": 34.84321336725324,
+      "buildings_covered": 250,
+      "method": "dbscan_centroid_eps0.2_min10",
+      "cluster_size": 445
     },
     {
-      "lat": 31.1567294051546,
-      "lon": 35.01133923571432,
-      "buildings_covered": 138,
-      "people_covered": 966,
-      "cluster_id": 117,
-      "cluster_size": 1385
+      "lat": 31.202277830722288,
+      "lon": 34.835860357591315,
+      "buildings_covered": 203,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
     },
     {
-      "lat": 31.344388893918218,
-      "lon": 34.7402603655442,
+      "lat": 31.20779606104746,
+      "lon": 34.92151362819549,
+      "buildings_covered": 186,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 35
+    },
+    {
+      "lat": 31.327434300424237,
+      "lon": 34.87495255074593,
+      "buildings_covered": 185,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 39
+    },
+    {
+      "lat": 31.239541547305766,
+      "lon": 35.093897009024275,
+      "buildings_covered": 182,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 19
+    },
+    {
+      "lat": 31.24555014286956,
+      "lon": 35.09444008907052,
+      "buildings_covered": 179,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 31
+    },
+    {
+      "lat": 31.191484703248108,
+      "lon": 34.833102080364185,
+      "buildings_covered": 176,
+      "method": "dbscan_medoid_eps0.2_min10",
+      "cluster_size": 78
+    },
+    {
+      "lat": 31.31445980169937,
+      "lon": 34.85311984859302,
+      "buildings_covered": 173,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 17
+    },
+    {
+      "lat": 31.197588092140528,
+      "lon": 34.84124997959239,
+      "buildings_covered": 170,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.245475536979733,
+      "lon": 35.09831221417322,
+      "buildings_covered": 167,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 43
+    },
+    {
+      "lat": 31.16046048025115,
+      "lon": 35.0100555451207,
+      "buildings_covered": 167,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 25
+    },
+    {
+      "lat": 31.20532083586157,
+      "lon": 34.838372478692484,
+      "buildings_covered": 167,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 16
+    },
+    {
+      "lat": 31.370731482675783,
+      "lon": 34.71607259052222,
+      "buildings_covered": 164,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 177
+    },
+    {
+      "lat": 31.16175344167523,
+      "lon": 35.02847736476178,
+      "buildings_covered": 162,
+      "method": "dbscan_medoid_eps0.2_min10",
+      "cluster_size": 19
+    },
+    {
+      "lat": 31.284339245655257,
+      "lon": 34.92978835610432,
+      "buildings_covered": 162,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 176
+    },
+    {
+      "lat": 31.313450541398094,
+      "lon": 34.85774319777305,
+      "buildings_covered": 161,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 29
+    },
+    {
+      "lat": 31.323263484963096,
+      "lon": 34.88058615608993,
+      "buildings_covered": 160,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 18
+    },
+    {
+      "lat": 31.206650611059743,
+      "lon": 34.92836810975644,
+      "buildings_covered": 155,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 37
+    },
+    {
+      "lat": 31.330985054536026,
+      "lon": 34.87206863025155,
+      "buildings_covered": 155,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 248
+    },
+    {
+      "lat": 31.161333352657646,
+      "lon": 35.03582407639264,
+      "buildings_covered": 153,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 32
+    },
+    {
+      "lat": 31.249259836361443,
+      "lon": 35.09280674174666,
+      "buildings_covered": 148,
+      "method": "dbscan_medoid_eps0.2_min10",
+      "cluster_size": 31
+    },
+    {
+      "lat": 31.241827476800232,
+      "lon": 35.09703592442405,
+      "buildings_covered": 147,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 11
+    },
+    {
+      "lat": 31.317262381052252,
+      "lon": 34.85768133337885,
+      "buildings_covered": 144,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 202
+    },
+    {
+      "lat": 31.34417182789548,
+      "lon": 34.74003802267118,
+      "buildings_covered": 143,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 40
+    },
+    {
+      "lat": 31.156696836134085,
+      "lon": 35.010208064559315,
+      "buildings_covered": 142,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 19
+    },
+    {
+      "lat": 31.24596294997525,
+      "lon": 35.08577586555608,
+      "buildings_covered": 139,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.192253852948713,
+      "lon": 34.84332460589312,
       "buildings_covered": 137,
-      "people_covered": 959,
-      "cluster_id": 31,
-      "cluster_size": 1065
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 19
     },
     {
-      "lat": 31.324187854532283,
-      "lon": 35.027552099971444,
-      "buildings_covered": 129,
-      "people_covered": 903,
-      "cluster_id": 273,
-      "cluster_size": 256
+      "lat": 31.289983869010964,
+      "lon": 34.882870661629845,
+      "buildings_covered": 137,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 288
     },
     {
-      "lat": 31.281404080585048,
-      "lon": 35.16103734095885,
-      "buildings_covered": 129,
-      "people_covered": 903,
-      "cluster_id": 618,
-      "cluster_size": 207
+      "lat": 31.326650492380292,
+      "lon": 34.86400145845626,
+      "buildings_covered": 136,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 31
     },
     {
-      "lat": 31.196625380674874,
-      "lon": 34.83926293628587,
+      "lat": 31.249142322458866,
+      "lon": 35.08775569075922,
+      "buildings_covered": 136,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 22
+    },
+    {
+      "lat": 31.18958701587975,
+      "lon": 34.83685013581374,
+      "buildings_covered": 136,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 12
+    },
+    {
+      "lat": 31.15714491213139,
+      "lon": 35.017695531180344,
+      "buildings_covered": 135,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 31
+    },
+    {
+      "lat": 31.28059911319426,
+      "lon": 34.93203537615668,
+      "buildings_covered": 135,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 182
+    },
+    {
+      "lat": 31.28140558934445,
+      "lon": 35.161004118673226,
+      "buildings_covered": 133,
+      "method": "dbscan_centroid_eps0.4_min10",
+      "cluster_size": 204
+    },
+    {
+      "lat": 31.065078854338363,
+      "lon": 34.99477803991308,
+      "buildings_covered": 133,
+      "method": "dbscan_medoid_eps0.3_min10",
+      "cluster_size": 219
+    },
+    {
+      "lat": 31.32294640880098,
+      "lon": 34.87554021283684,
+      "buildings_covered": 133,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 124
+    },
+    {
+      "lat": 31.323991241629535,
+      "lon": 35.02780700520908,
+      "buildings_covered": 132,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 22
+    },
+    {
+      "lat": 31.031748724501913,
+      "lon": 34.7461597302993,
+      "buildings_covered": 132,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 310
+    },
+    {
+      "lat": 31.307418134504346,
+      "lon": 34.86847313194705,
+      "buildings_covered": 131,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 41
+    },
+    {
+      "lat": 31.12594938051923,
+      "lon": 34.96931891176702,
+      "buildings_covered": 131,
+      "method": "dbscan_medoid_eps0.5_min10",
+      "cluster_size": 204
+    },
+    {
+      "lat": 31.27613719215605,
+      "lon": 34.91715009520201,
+      "buildings_covered": 131,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 138
+    },
+    {
+      "lat": 31.280593715804212,
+      "lon": 34.87475900535001,
+      "buildings_covered": 131,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 198
+    },
+    {
+      "lat": 31.283267450573977,
+      "lon": 34.90769129177113,
+      "buildings_covered": 130,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 215
+    },
+    {
+      "lat": 31.32182050203452,
+      "lon": 34.858285961863224,
+      "buildings_covered": 128,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 16
+    },
+    {
+      "lat": 31.32727589862769,
+      "lon": 34.871149819887435,
+      "buildings_covered": 128,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 25
+    },
+    {
+      "lat": 31.201527295755486,
+      "lon": 34.804649780983965,
+      "buildings_covered": 128,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.319197095977305,
+      "lon": 34.862033982371024,
+      "buildings_covered": 128,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 14
+    },
+    {
+      "lat": 31.155451283891097,
+      "lon": 34.80935605777624,
+      "buildings_covered": 128,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 22
+    },
+    {
+      "lat": 31.255178687185634,
+      "lon": 34.967880993459566,
+      "buildings_covered": 127,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 44
+    },
+    {
+      "lat": 31.32014305429344,
+      "lon": 34.8544383432889,
+      "buildings_covered": 127,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 182
+    },
+    {
+      "lat": 31.28835379357976,
+      "lon": 34.92290281353716,
+      "buildings_covered": 126,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 136
+    },
+    {
+      "lat": 31.165473258038965,
+      "lon": 35.03934152916977,
+      "buildings_covered": 125,
+      "method": "dbscan_centroid_eps0.2_min10",
+      "cluster_size": 13
+    },
+    {
+      "lat": 31.200765271969164,
+      "lon": 34.8393209923979,
+      "buildings_covered": 125,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 243
+    },
+    {
+      "lat": 31.16306267492629,
+      "lon": 34.823247231598366,
       "buildings_covered": 121,
-      "people_covered": 847,
-      "cluster_id": 42,
-      "cluster_size": 3378
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 21
+    },
+    {
+      "lat": 31.193892662957374,
+      "lon": 34.83954470646138,
+      "buildings_covered": 121,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.33573210905424,
+      "lon": 34.860430508766946,
+      "buildings_covered": 121,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 22
+    },
+    {
+      "lat": 31.315703712789514,
+      "lon": 34.86097541758454,
+      "buildings_covered": 121,
+      "method": "dbscan_centroid_eps0.2_min10",
+      "cluster_size": 11
+    },
+    {
+      "lat": 31.15248827432089,
+      "lon": 35.00879547915933,
+      "buildings_covered": 120,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 11
+    },
+    {
+      "lat": 31.246483139331826,
+      "lon": 35.081191831437366,
+      "buildings_covered": 119,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 14
+    },
+    {
+      "lat": 31.34403416096308,
+      "lon": 34.750286248487186,
+      "buildings_covered": 119,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 29
+    },
+    {
+      "lat": 31.33512355279615,
+      "lon": 34.89557431648164,
+      "buildings_covered": 119,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 155
+    },
+    {
+      "lat": 31.27572424046272,
+      "lon": 34.88537530087199,
+      "buildings_covered": 119,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 101
+    },
+    {
+      "lat": 31.162834261226962,
+      "lon": 34.81459036505377,
+      "buildings_covered": 118,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 16
+    },
+    {
+      "lat": 31.20753478458374,
+      "lon": 34.81739811106222,
+      "buildings_covered": 118,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 396
+    },
+    {
+      "lat": 31.200105035335795,
+      "lon": 34.928272885281686,
+      "buildings_covered": 117,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 150
     },
     {
       "lat": 31.325544891927613,
       "lon": 35.12073541993786,
       "buildings_covered": 116,
-      "people_covered": 812,
-      "cluster_id": 343,
+      "method": "original_dbscan_centroid",
       "cluster_size": 127
     },
     {
-      "lat": 31.064897303626744,
-      "lon": 34.99618353012893,
+      "lat": 31.07676613521562,
+      "lon": 34.986819928147064,
+      "buildings_covered": 116,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.296505375370124,
+      "lon": 34.857139225537686,
+      "buildings_covered": 116,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 132
+    },
+    {
+      "lat": 31.241389764760317,
+      "lon": 35.10078439483254,
+      "buildings_covered": 114,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 17
+    },
+    {
+      "lat": 31.32086040090474,
+      "lon": 34.88330825168966,
+      "buildings_covered": 114,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 13
+    },
+    {
+      "lat": 31.130418009070073,
+      "lon": 34.816628399564,
+      "buildings_covered": 114,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.182141382872516,
+      "lon": 34.93760134840888,
+      "buildings_covered": 113,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 17
+    },
+    {
+      "lat": 31.284188333308443,
+      "lon": 34.874138673091636,
+      "buildings_covered": 113,
+      "method": "dbscan_best_eps0.3_min10",
+      "cluster_size": 8
+    },
+    {
+      "lat": 31.26324280997062,
+      "lon": 34.884080779078694,
+      "buildings_covered": 112,
+      "method": "dbscan_medoid_eps0.5_min10",
+      "cluster_size": 364
+    },
+    {
+      "lat": 31.273393681675618,
+      "lon": 34.91387143240346,
+      "buildings_covered": 111,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 13
+    },
+    {
+      "lat": 31.363167813752263,
+      "lon": 34.716423714471745,
+      "buildings_covered": 111,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 115
+    },
+    {
+      "lat": 31.215577496676964,
+      "lon": 34.87152944671354,
+      "buildings_covered": 111,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 109
+    },
+    {
+      "lat": 31.31116636395268,
+      "lon": 35.12130736020023,
+      "buildings_covered": 111,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 143
+    },
+    {
+      "lat": 31.282147284161113,
+      "lon": 34.9134170932051,
+      "buildings_covered": 111,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 108
+    },
+    {
+      "lat": 31.335326291710107,
+      "lon": 34.91908214315287,
       "buildings_covered": 110,
-      "people_covered": 770,
-      "cluster_id": 113,
-      "cluster_size": 326
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 9
+    },
+    {
+      "lat": 31.251294216886343,
+      "lon": 35.116356163653194,
+      "buildings_covered": 110,
+      "method": "dbscan_medoid_eps0.4_min10",
+      "cluster_size": 150
+    },
+    {
+      "lat": 31.28672630900684,
+      "lon": 34.91098903302281,
+      "buildings_covered": 110,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 156
+    },
+    {
+      "lat": 31.186895448727064,
+      "lon": 34.8395286617753,
+      "buildings_covered": 109,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 102
+    },
+    {
+      "lat": 31.24098762206082,
+      "lon": 34.71237138196272,
+      "buildings_covered": 108,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 125
+    },
+    {
+      "lat": 31.15844219945077,
+      "lon": 34.850247424172174,
+      "buildings_covered": 106,
+      "method": "dbscan_medoid_eps0.4_min10",
+      "cluster_size": 121
+    },
+    {
+      "lat": 31.082736473539125,
+      "lon": 34.97875214928033,
+      "buildings_covered": 105,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 15
+    },
+    {
+      "lat": 31.197370030406276,
+      "lon": 34.81564184899255,
+      "buildings_covered": 105,
+      "method": "dbscan_centroid_eps0.4_min10",
+      "cluster_size": 172
+    },
+    {
+      "lat": 31.271775297253424,
+      "lon": 34.88316132836603,
+      "buildings_covered": 105,
+      "method": "dbscan_medoid_eps0.3_min10",
+      "cluster_size": 100
+    },
+    {
+      "lat": 31.028356796120747,
+      "lon": 34.737320344381914,
+      "buildings_covered": 105,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 114
+    },
+    {
+      "lat": 31.21277481461045,
+      "lon": 34.87454695013972,
+      "buildings_covered": 104,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 24
+    },
+    {
+      "lat": 31.247997750143778,
+      "lon": 34.954725537549905,
+      "buildings_covered": 104,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 17
+    },
+    {
+      "lat": 31.251887294673683,
+      "lon": 34.96178661320477,
+      "buildings_covered": 104,
+      "method": "dbscan_medoid_eps0.3_min10",
+      "cluster_size": 100
     },
     {
       "lat": 31.23115493945514,
       "lon": 35.04706534653548,
       "buildings_covered": 103,
-      "people_covered": 721,
-      "cluster_id": 310,
+      "method": "original_dbscan_centroid",
       "cluster_size": 107
     },
     {
-      "lat": 31.31138617703112,
-      "lon": 35.12074946646987,
-      "buildings_covered": 102,
-      "people_covered": 714,
-      "cluster_id": 238,
-      "cluster_size": 189
-    },
-    {
-      "lat": 31.366318580471315,
-      "lon": 34.862295508288526,
-      "buildings_covered": 101,
-      "people_covered": 707,
-      "cluster_id": 11,
-      "cluster_size": 111
-    },
-    {
-      "lat": 31.160933860764352,
-      "lon": 35.03354268487213,
-      "buildings_covered": 98,
-      "people_covered": 686,
-      "cluster_id": 121,
-      "cluster_size": 1682
-    },
-    {
-      "lat": 31.15880907033355,
-      "lon": 34.85078182619465,
-      "buildings_covered": 97,
-      "people_covered": 679,
-      "cluster_id": 50,
-      "cluster_size": 287
-    },
-    {
-      "lat": 31.163026877619004,
-      "lon": 34.815378909410484,
-      "buildings_covered": 94,
-      "people_covered": 658,
-      "cluster_id": 37,
-      "cluster_size": 2506
-    },
-    {
-      "lat": 31.300779271552155,
-      "lon": 35.075624549510664,
-      "buildings_covered": 92,
-      "people_covered": 644,
-      "cluster_id": 136,
-      "cluster_size": 185
-    },
-    {
-      "lat": 31.197403035242026,
-      "lon": 34.958153715383986,
-      "buildings_covered": 87,
-      "people_covered": 609,
-      "cluster_id": 267,
-      "cluster_size": 178
-    },
-    {
-      "lat": 31.08883652779229,
-      "lon": 34.99294256628296,
-      "buildings_covered": 85,
-      "people_covered": 595,
-      "cluster_id": 112,
-      "cluster_size": 104
-    },
-    {
-      "lat": 31.231413256153747,
-      "lon": 35.053425030777134,
-      "buildings_covered": 85,
-      "people_covered": 595,
-      "cluster_id": 129,
-      "cluster_size": 87
-    },
-    {
-      "lat": 31.241905961300006,
-      "lon": 35.031091317583304,
-      "buildings_covered": 85,
-      "people_covered": 595,
-      "cluster_id": 213,
-      "cluster_size": 115
-    },
-    {
-      "lat": 31.21593745283089,
-      "lon": 34.912938187316556,
-      "buildings_covered": 84,
-      "people_covered": 588,
-      "cluster_id": 264,
-      "cluster_size": 90
-    },
-    {
-      "lat": 31.355486865365265,
-      "lon": 35.0695689222781,
-      "buildings_covered": 82,
-      "people_covered": 574,
-      "cluster_id": 13,
+      "lat": 31.2489451211825,
+      "lon": 34.915343759991934,
+      "buildings_covered": 103,
+      "method": "dbscan_centroid_eps0.3_min10",
       "cluster_size": 161
     },
     {
-      "lat": 31.414105718308015,
-      "lon": 34.74400639474896,
-      "buildings_covered": 81,
-      "people_covered": 567,
-      "cluster_id": 1,
-      "cluster_size": 295
+      "lat": 31.127188891904265,
+      "lon": 34.811433241525165,
+      "buildings_covered": 103,
+      "method": "dbscan_medoid_eps0.3_min10",
+      "cluster_size": 97
     },
     {
-      "lat": 31.412915525314933,
-      "lon": 34.823122158760945,
-      "buildings_covered": 81,
-      "people_covered": 567,
-      "cluster_id": 6,
-      "cluster_size": 407
+      "lat": 31.36647653727741,
+      "lon": 34.862459852030426,
+      "buildings_covered": 102,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 12
     },
     {
-      "lat": 31.254690743455114,
-      "lon": 35.08292891536325,
-      "buildings_covered": 81,
-      "people_covered": 567,
-      "cluster_id": 143,
-      "cluster_size": 103
+      "lat": 31.23819166108746,
+      "lon": 35.06325526925166,
+      "buildings_covered": 102,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 18
     },
     {
-      "lat": 31.240728668227966,
-      "lon": 35.01537637866983,
-      "buildings_covered": 77,
-      "people_covered": 539,
-      "cluster_id": 118,
-      "cluster_size": 368
+      "lat": 31.41464845965571,
+      "lon": 34.820336729811004,
+      "buildings_covered": 102,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 135
     },
     {
-      "lat": 31.214104828798348,
-      "lon": 34.87305380504216,
-      "buildings_covered": 76,
-      "people_covered": 532,
-      "cluster_id": 166,
-      "cluster_size": 246
+      "lat": 31.20131164731698,
+      "lon": 34.821742030287815,
+      "buildings_covered": 102,
+      "method": "dbscan_best_eps0.3_min10",
+      "cluster_size": 15
     },
     {
-      "lat": 31.291362203062608,
-      "lon": 35.14487685980447,
-      "buildings_covered": 76,
-      "people_covered": 532,
-      "cluster_id": 242,
-      "cluster_size": 243
+      "lat": 31.289832472128104,
+      "lon": 34.854263917179736,
+      "buildings_covered": 102,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 24
     },
     {
-      "lat": 31.15700709986885,
-      "lon": 34.836113489395984,
-      "buildings_covered": 74,
-      "people_covered": 518,
-      "cluster_id": 43,
-      "cluster_size": 80
+      "lat": 31.184854377053806,
+      "lon": 34.93450267422741,
+      "buildings_covered": 101,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 13
     },
     {
-      "lat": 31.27450346569696,
-      "lon": 34.916846589662,
-      "buildings_covered": 74,
-      "people_covered": 518,
-      "cluster_id": 72,
-      "cluster_size": 3728
-    },
-    {
-      "lat": 31.194529766445708,
-      "lon": 34.94374307566234,
-      "buildings_covered": 74,
-      "people_covered": 518,
-      "cluster_id": 84,
-      "cluster_size": 140
-    },
-    {
-      "lat": 31.203785059185385,
-      "lon": 34.862379533449406,
-      "buildings_covered": 73,
-      "people_covered": 511,
-      "cluster_id": 256,
-      "cluster_size": 157
-    },
-    {
-      "lat": 31.269238818653676,
-      "lon": 35.0202383899672,
-      "buildings_covered": 73,
-      "people_covered": 511,
-      "cluster_id": 272,
-      "cluster_size": 118
-    },
-    {
-      "lat": 31.23969683581816,
-      "lon": 34.71351238288919,
-      "buildings_covered": 71,
-      "people_covered": 497,
-      "cluster_id": 28,
-      "cluster_size": 363
-    },
-    {
-      "lat": 31.124109332176076,
-      "lon": 34.96966016444697,
-      "buildings_covered": 71,
-      "people_covered": 497,
-      "cluster_id": 102,
-      "cluster_size": 294
-    },
-    {
-      "lat": 31.290337476842964,
-      "lon": 35.15054434157731,
-      "buildings_covered": 71,
-      "people_covered": 497,
-      "cluster_id": 368,
-      "cluster_size": 73
-    },
-    {
-      "lat": 31.302980633219484,
-      "lon": 34.974547151656154,
-      "buildings_covered": 71,
-      "people_covered": 497,
-      "cluster_id": 420,
-      "cluster_size": 74
-    },
-    {
-      "lat": 31.226704877040508,
-      "lon": 35.18490775734376,
-      "buildings_covered": 71,
-      "people_covered": 497,
-      "cluster_id": 639,
-      "cluster_size": 82
-    },
-    {
-      "lat": 31.29469299574683,
-      "lon": 34.90130067304226,
-      "buildings_covered": 70,
-      "people_covered": 490,
-      "cluster_id": 65,
-      "cluster_size": 219
-    },
-    {
-      "lat": 31.169569983479686,
-      "lon": 34.90371795111411,
-      "buildings_covered": 70,
-      "people_covered": 490,
-      "cluster_id": 70,
-      "cluster_size": 81
-    },
-    {
-      "lat": 31.315069569153877,
-      "lon": 34.86936117768952,
-      "buildings_covered": 69,
-      "people_covered": 483,
-      "cluster_id": 55,
-      "cluster_size": 79
-    },
-    {
-      "lat": 31.222259428171583,
-      "lon": 35.15516547736266,
-      "buildings_covered": 69,
-      "people_covered": 483,
-      "cluster_id": 414,
-      "cluster_size": 88
-    },
-    {
-      "lat": 31.02902645811791,
-      "lon": 34.97657217403261,
-      "buildings_covered": 68,
-      "people_covered": 476,
-      "cluster_id": 195,
-      "cluster_size": 82
-    },
-    {
-      "lat": 31.230955481491538,
-      "lon": 35.06391373786355,
-      "buildings_covered": 68,
-      "people_covered": 476,
-      "cluster_id": 222,
-      "cluster_size": 136
-    },
-    {
-      "lat": 31.19919332610443,
-      "lon": 35.09751824902107,
-      "buildings_covered": 68,
-      "people_covered": 476,
-      "cluster_id": 235,
+      "lat": 31.27861594112446,
+      "lon": 34.87052456011402,
+      "buildings_covered": 99,
+      "method": "dbscan_medoid_eps0.3_min10",
       "cluster_size": 98
     },
     {
-      "lat": 31.278630768778886,
-      "lon": 34.88192631024501,
-      "buildings_covered": 67,
-      "people_covered": 469,
-      "cluster_id": 56,
-      "cluster_size": 2752
+      "lat": 31.288713060628623,
+      "lon": 34.90534991160115,
+      "buildings_covered": 99,
+      "method": "dbscan_medoid_eps0.3_min10",
+      "cluster_size": 104
     },
     {
-      "lat": 31.20526261024118,
-      "lon": 34.87424681995124,
-      "buildings_covered": 67,
-      "people_covered": 469,
-      "cluster_id": 58,
-      "cluster_size": 213
+      "lat": 31.200894112595265,
+      "lon": 34.90062997071225,
+      "buildings_covered": 98,
+      "method": "dbscan_centroid_eps0.4_min10",
+      "cluster_size": 118
     },
     {
-      "lat": 31.08181884261526,
-      "lon": 34.98288088678682,
-      "buildings_covered": 67,
-      "people_covered": 469,
-      "cluster_id": 103,
-      "cluster_size": 1182
-    },
-    {
-      "lat": 31.147001196429922,
-      "lon": 34.96584309958895,
-      "buildings_covered": 67,
-      "people_covered": 469,
-      "cluster_id": 297,
-      "cluster_size": 205
-    },
-    {
-      "lat": 31.20405057210622,
-      "lon": 34.95529886042775,
-      "buildings_covered": 66,
-      "people_covered": 462,
-      "cluster_id": 92,
-      "cluster_size": 76
-    },
-    {
-      "lat": 31.260081064960172,
-      "lon": 34.98957245241995,
-      "buildings_covered": 66,
-      "people_covered": 462,
-      "cluster_id": 109,
-      "cluster_size": 225
-    },
-    {
-      "lat": 31.248431730841745,
-      "lon": 35.03890176436322,
-      "buildings_covered": 66,
-      "people_covered": 462,
-      "cluster_id": 125,
-      "cluster_size": 66
-    },
-    {
-      "lat": 31.114888339469204,
-      "lon": 34.981604980558146,
-      "buildings_covered": 66,
-      "people_covered": 462,
-      "cluster_id": 197,
-      "cluster_size": 91
-    },
-    {
-      "lat": 31.20136671117285,
-      "lon": 34.89944594129131,
-      "buildings_covered": 65,
-      "people_covered": 455,
-      "cluster_id": 71,
-      "cluster_size": 354
-    },
-    {
-      "lat": 31.20175539580829,
-      "lon": 34.94688833467944,
-      "buildings_covered": 65,
-      "people_covered": 455,
-      "cluster_id": 86,
-      "cluster_size": 393
-    },
-    {
-      "lat": 31.186052245060672,
-      "lon": 34.87838174260285,
-      "buildings_covered": 65,
-      "people_covered": 455,
-      "cluster_id": 168,
-      "cluster_size": 150
-    },
-    {
-      "lat": 31.31673894584962,
-      "lon": 34.99716263907344,
-      "buildings_covered": 65,
-      "people_covered": 455,
-      "cluster_id": 206,
-      "cluster_size": 79
-    },
-    {
-      "lat": 31.342727754189035,
-      "lon": 35.10117681682761,
-      "buildings_covered": 65,
-      "people_covered": 455,
-      "cluster_id": 388,
-      "cluster_size": 93
-    },
-    {
-      "lat": 31.164621548398973,
-      "lon": 34.868504294965476,
-      "buildings_covered": 64,
-      "people_covered": 448,
-      "cluster_id": 53,
-      "cluster_size": 101
-    },
-    {
-      "lat": 31.228317048844474,
-      "lon": 35.03535628210635,
-      "buildings_covered": 64,
-      "people_covered": 448,
-      "cluster_id": 124,
-      "cluster_size": 75
-    },
-    {
-      "lat": 31.20800185031088,
-      "lon": 34.91188978783257,
-      "buildings_covered": 64,
-      "people_covered": 448,
-      "cluster_id": 179,
-      "cluster_size": 77
-    },
-    {
-      "lat": 31.225368235652073,
-      "lon": 35.21665999401414,
-      "buildings_covered": 64,
-      "people_covered": 448,
-      "cluster_id": 633,
-      "cluster_size": 111
-    },
-    {
-      "lat": 31.356017607316787,
-      "lon": 34.75879290051353,
-      "buildings_covered": 63,
-      "people_covered": 441,
-      "cluster_id": 3,
-      "cluster_size": 221
-    },
-    {
-      "lat": 31.34776619744857,
-      "lon": 35.060582873980756,
-      "buildings_covered": 63,
-      "people_covered": 441,
-      "cluster_id": 276,
-      "cluster_size": 65
-    },
-    {
-      "lat": 31.04388771982461,
-      "lon": 34.72224109960732,
-      "buildings_covered": 62,
-      "people_covered": 434,
-      "cluster_id": 30,
-      "cluster_size": 347
-    },
-    {
-      "lat": 31.145813190300455,
-      "lon": 34.99289218210505,
-      "buildings_covered": 62,
-      "people_covered": 434,
-      "cluster_id": 201,
-      "cluster_size": 86
-    },
-    {
-      "lat": 31.336046385050896,
-      "lon": 34.72324498391283,
-      "buildings_covered": 62,
-      "people_covered": 434,
-      "cluster_id": 247,
-      "cluster_size": 63
-    },
-    {
-      "lat": 31.067402768253526,
-      "lon": 35.197662305176564,
-      "buildings_covered": 62,
-      "people_covered": 434,
-      "cluster_id": 626,
-      "cluster_size": 301
-    },
-    {
-      "lat": 31.113040791005467,
-      "lon": 34.9617565408056,
-      "buildings_covered": 61,
-      "people_covered": 427,
-      "cluster_id": 97,
-      "cluster_size": 203
-    },
-    {
-      "lat": 31.02837823564296,
-      "lon": 35.05080365144189,
-      "buildings_covered": 61,
-      "people_covered": 427,
-      "cluster_id": 218,
-      "cluster_size": 67
-    },
-    {
-      "lat": 31.202494744859848,
-      "lon": 34.96755768352516,
-      "buildings_covered": 60,
-      "people_covered": 420,
-      "cluster_id": 100,
-      "cluster_size": 64
-    },
-    {
-      "lat": 31.164872621817644,
-      "lon": 34.98039706608992,
-      "buildings_covered": 60,
-      "people_covered": 420,
-      "cluster_id": 106,
-      "cluster_size": 77
-    },
-    {
-      "lat": 31.121072107608033,
-      "lon": 34.96433823693664,
-      "buildings_covered": 60,
-      "people_covered": 420,
-      "cluster_id": 268,
-      "cluster_size": 70
-    },
-    {
-      "lat": 31.28220389336585,
-      "lon": 35.03898197869552,
-      "buildings_covered": 60,
-      "people_covered": 420,
-      "cluster_id": 275,
-      "cluster_size": 82
-    },
-    {
-      "lat": 31.272961465651232,
-      "lon": 34.952663653350676,
-      "buildings_covered": 59,
-      "people_covered": 413,
-      "cluster_id": 87,
-      "cluster_size": 203
-    },
-    {
-      "lat": 31.270618528932612,
-      "lon": 35.03312062598763,
-      "buildings_covered": 59,
-      "people_covered": 413,
-      "cluster_id": 215,
-      "cluster_size": 163
-    },
-    {
-      "lat": 31.254347760802048,
-      "lon": 35.002847716947024,
-      "buildings_covered": 59,
-      "people_covered": 413,
-      "cluster_id": 405,
-      "cluster_size": 59
-    },
-    {
-      "lat": 31.146155926139294,
-      "lon": 34.83248014163803,
-      "buildings_covered": 58,
-      "people_covered": 406,
-      "cluster_id": 41,
-      "cluster_size": 511
-    },
-    {
-      "lat": 31.208854245580138,
-      "lon": 34.890101229897326,
-      "buildings_covered": 58,
-      "people_covered": 406,
-      "cluster_id": 259,
-      "cluster_size": 137
-    },
-    {
-      "lat": 31.15024745760974,
-      "lon": 35.07950978506907,
-      "buildings_covered": 57,
-      "people_covered": 399,
-      "cluster_id": 142,
-      "cluster_size": 73
-    },
-    {
-      "lat": 31.196126036307422,
-      "lon": 34.881132836897926,
-      "buildings_covered": 56,
-      "people_covered": 392,
-      "cluster_id": 61,
-      "cluster_size": 148
-    },
-    {
-      "lat": 31.09661414797453,
-      "lon": 34.94300947995892,
-      "buildings_covered": 56,
-      "people_covered": 392,
-      "cluster_id": 81,
-      "cluster_size": 141
-    },
-    {
-      "lat": 31.08962352291839,
-      "lon": 34.9873317417761,
-      "buildings_covered": 56,
-      "people_covered": 392,
-      "cluster_id": 200,
-      "cluster_size": 60
-    },
-    {
-      "lat": 31.286772227413355,
-      "lon": 34.971291968319235,
-      "buildings_covered": 56,
-      "people_covered": 392,
-      "cluster_id": 269,
-      "cluster_size": 78
-    },
-    {
-      "lat": 31.029510356075765,
-      "lon": 34.71313563668397,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 27,
-      "cluster_size": 266
-    },
-    {
-      "lat": 31.12884809412857,
-      "lon": 34.98629080595571,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 108,
-      "cluster_size": 123
-    },
-    {
-      "lat": 31.230454173080684,
-      "lon": 34.99343745856432,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 202,
-      "cluster_size": 67
-    },
-    {
-      "lat": 31.25238160398468,
-      "lon": 35.06900811850934,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 223,
-      "cluster_size": 172
-    },
-    {
-      "lat": 31.31727857062671,
-      "lon": 34.76056599769284,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 321,
-      "cluster_size": 124
-    },
-    {
-      "lat": 31.303690260358184,
-      "lon": 34.877029176355464,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 349,
-      "cluster_size": 84
-    },
-    {
-      "lat": 31.213483673414274,
-      "lon": 35.207360522821425,
-      "buildings_covered": 55,
-      "people_covered": 385,
-      "cluster_id": 630,
-      "cluster_size": 70
-    },
-    {
-      "lat": 31.279820164380347,
-      "lon": 35.06805251126492,
-      "buildings_covered": 53,
-      "people_covered": 371,
-      "cluster_id": 134,
-      "cluster_size": 164
-    },
-    {
-      "lat": 31.299489257113205,
-      "lon": 35.122262679993064,
-      "buildings_covered": 53,
-      "people_covered": 371,
-      "cluster_id": 154,
+      "lat": 31.24738938451548,
+      "lon": 34.98103234556024,
+      "buildings_covered": 98,
+      "method": "dbscan_medoid_eps0.7_min10",
       "cluster_size": 329
     },
     {
-      "lat": 31.122695657764197,
-      "lon": 35.03380833106983,
-      "buildings_covered": 53,
-      "people_covered": 371,
-      "cluster_id": 214,
-      "cluster_size": 117
+      "lat": 31.17788685129099,
+      "lon": 34.816748458926845,
+      "buildings_covered": 97,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 17
     },
     {
-      "lat": 31.20293064786616,
-      "lon": 35.08200932801069,
-      "buildings_covered": 53,
-      "people_covered": 371,
-      "cluster_id": 280,
-      "cluster_size": 90
+      "lat": 31.299515014376617,
+      "lon": 34.89509068374194,
+      "buildings_covered": 97,
+      "method": "dbscan_medoid_eps0.5_min10",
+      "cluster_size": 120
     },
     {
-      "lat": 31.21708322585348,
-      "lon": 35.1048177231355,
-      "buildings_covered": 53,
-      "people_covered": 371,
-      "cluster_id": 389,
-      "cluster_size": 57
+      "lat": 31.035317568098506,
+      "lon": 34.74165918128219,
+      "buildings_covered": 97,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 225
     },
     {
-      "lat": 31.333106965362763,
-      "lon": 34.91863953199607,
-      "buildings_covered": 52,
-      "people_covered": 364,
-      "cluster_id": 181,
-      "cluster_size": 296
+      "lat": 31.198319016797146,
+      "lon": 34.93163297742924,
+      "buildings_covered": 97,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 113
     },
     {
-      "lat": 31.14231820198495,
-      "lon": 34.97470287866089,
-      "buildings_covered": 52,
-      "people_covered": 364,
-      "cluster_id": 192,
-      "cluster_size": 176
+      "lat": 31.196299085011233,
+      "lon": 34.958762712788584,
+      "buildings_covered": 97,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 112
     },
     {
-      "lat": 31.259435351621118,
-      "lon": 35.025252001633575,
-      "buildings_covered": 52,
-      "people_covered": 364,
-      "cluster_id": 212,
-      "cluster_size": 62
+      "lat": 31.204263571903784,
+      "lon": 34.87381601614486,
+      "buildings_covered": 96,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 30
     },
     {
-      "lat": 31.36531164966296,
-      "lon": 34.717535973769564,
-      "buildings_covered": 51,
-      "people_covered": 357,
-      "cluster_id": 0,
-      "cluster_size": 640
+      "lat": 31.244111958917248,
+      "lon": 35.12939495497059,
+      "buildings_covered": 96,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 39
     },
     {
-      "lat": 31.14562832973154,
-      "lon": 34.85612285883143,
-      "buildings_covered": 51,
-      "people_covered": 357,
-      "cluster_id": 164,
-      "cluster_size": 54
+      "lat": 31.28820339099632,
+      "lon": 34.91440670012785,
+      "buildings_covered": 96,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 11
     },
     {
-      "lat": 31.219392225901366,
-      "lon": 34.89712906769165,
-      "buildings_covered": 51,
-      "people_covered": 357,
-      "cluster_id": 261,
-      "cluster_size": 170
-    },
-    {
-      "lat": 31.361906406076486,
-      "lon": 34.90088286885576,
-      "buildings_covered": 50,
-      "people_covered": 350,
-      "cluster_id": 8,
-      "cluster_size": 50
-    },
-    {
-      "lat": 31.211404505958566,
-      "lon": 34.897112367585336,
-      "buildings_covered": 50,
-      "people_covered": 350,
-      "cluster_id": 69,
-      "cluster_size": 168
-    },
-    {
-      "lat": 31.24927123297648,
-      "lon": 35.156787558470256,
-      "buildings_covered": 50,
-      "people_covered": 350,
-      "cluster_id": 395,
-      "cluster_size": 228
-    },
-    {
-      "lat": 31.216301914527286,
-      "lon": 34.83060279814878,
-      "buildings_covered": 49,
-      "people_covered": 343,
-      "cluster_id": 251,
-      "cluster_size": 110
-    },
-    {
-      "lat": 31.213189520683045,
-      "lon": 34.865586962782224,
-      "buildings_covered": 49,
-      "people_covered": 343,
-      "cluster_id": 257,
-      "cluster_size": 75
-    },
-    {
-      "lat": 31.18302908146478,
-      "lon": 34.98030600927093,
-      "buildings_covered": 49,
-      "people_covered": 343,
-      "cluster_id": 300,
-      "cluster_size": 123
-    },
-    {
-      "lat": 31.172961268068704,
-      "lon": 35.06207126681184,
-      "buildings_covered": 49,
-      "people_covered": 343,
-      "cluster_id": 312,
-      "cluster_size": 50
-    },
-    {
-      "lat": 31.22883604370292,
-      "lon": 35.12567065935003,
-      "buildings_covered": 49,
-      "people_covered": 343,
-      "cluster_id": 443,
-      "cluster_size": 54
-    },
-    {
-      "lat": 31.100822812500038,
-      "lon": 34.84095453572658,
-      "buildings_covered": 48,
-      "people_covered": 336,
-      "cluster_id": 44,
-      "cluster_size": 189
-    },
-    {
-      "lat": 31.222473836522997,
-      "lon": 34.919637488939735,
-      "buildings_covered": 48,
-      "people_covered": 336,
-      "cluster_id": 75,
-      "cluster_size": 333
-    },
-    {
-      "lat": 31.2826994671892,
-      "lon": 34.9601766224859,
-      "buildings_covered": 48,
-      "people_covered": 336,
-      "cluster_id": 93,
-      "cluster_size": 91
-    },
-    {
-      "lat": 31.20267029880089,
-      "lon": 35.11526023424906,
-      "buildings_covered": 48,
-      "people_covered": 336,
-      "cluster_id": 151,
-      "cluster_size": 94
-    },
-    {
-      "lat": 31.15559691864015,
-      "lon": 34.88167410151818,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 60,
-      "cluster_size": 76
-    },
-    {
-      "lat": 31.25666544488898,
-      "lon": 34.965141185482686,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 95,
-      "cluster_size": 1455
-    },
-    {
-      "lat": 31.29301078814313,
-      "lon": 35.05753317279599,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 128,
-      "cluster_size": 424
-    },
-    {
-      "lat": 31.210479300611084,
-      "lon": 35.10339831432053,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 147,
-      "cluster_size": 58
-    },
-    {
-      "lat": 31.226359184493454,
-      "lon": 35.11892946582091,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 316,
-      "cluster_size": 53
-    },
-    {
-      "lat": 31.278864655723115,
-      "lon": 34.94423840653744,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 328,
-      "cluster_size": 90
-    },
-    {
-      "lat": 31.228586125365656,
-      "lon": 35.175559617509904,
-      "buildings_covered": 47,
-      "people_covered": 329,
-      "cluster_id": 638,
-      "cluster_size": 58
-    },
-    {
-      "lat": 31.032273503984335,
-      "lon": 34.740552218377694,
-      "buildings_covered": 46,
-      "people_covered": 322,
-      "cluster_id": 32,
-      "cluster_size": 1061
-    },
-    {
-      "lat": 31.332031402215044,
-      "lon": 34.89396112592154,
-      "buildings_covered": 46,
-      "people_covered": 322,
-      "cluster_id": 67,
-      "cluster_size": 563
-    },
-    {
-      "lat": 31.173182891167784,
-      "lon": 34.942713509463154,
-      "buildings_covered": 46,
-      "people_covered": 322,
-      "cluster_id": 83,
-      "cluster_size": 108
-    },
-    {
-      "lat": 31.21738966815512,
-      "lon": 35.09195507034415,
-      "buildings_covered": 46,
-      "people_covered": 322,
-      "cluster_id": 234,
-      "cluster_size": 219
-    },
-    {
-      "lat": 31.21317926382532,
-      "lon": 34.978746454003314,
-      "buildings_covered": 46,
-      "people_covered": 322,
-      "cluster_id": 270,
-      "cluster_size": 55
-    },
-    {
-      "lat": 31.20938301013795,
-      "lon": 35.153181298813,
-      "buildings_covered": 46,
-      "people_covered": 322,
-      "cluster_id": 369,
-      "cluster_size": 51
-    },
-    {
-      "lat": 31.32337648533389,
-      "lon": 34.714976856123535,
-      "buildings_covered": 45,
-      "people_covered": 315,
-      "cluster_id": 29,
-      "cluster_size": 85
-    },
-    {
-      "lat": 31.198084277592034,
-      "lon": 34.8680856720406,
-      "buildings_covered": 45,
-      "people_covered": 315,
-      "cluster_id": 165,
-      "cluster_size": 49
-    },
-    {
-      "lat": 31.22518703185529,
-      "lon": 35.169241452017346,
-      "buildings_covered": 45,
-      "people_covered": 315,
-      "cluster_id": 622,
-      "cluster_size": 99
-    },
-    {
-      "lat": 31.29435826791178,
-      "lon": 34.855000777671364,
-      "buildings_covered": 44,
-      "people_covered": 308,
-      "cluster_id": 49,
-      "cluster_size": 379
-    },
-    {
-      "lat": 31.160618401125806,
-      "lon": 34.9889208512073,
-      "buildings_covered": 44,
-      "people_covered": 308,
-      "cluster_id": 110,
-      "cluster_size": 44
-    },
-    {
-      "lat": 31.20948298568671,
-      "lon": 35.10855856634316,
-      "buildings_covered": 44,
-      "people_covered": 308,
-      "cluster_id": 149,
-      "cluster_size": 62
-    },
-    {
-      "lat": 31.175593916759993,
-      "lon": 34.96080302528543,
-      "buildings_covered": 44,
-      "people_covered": 308,
-      "cluster_id": 190,
-      "cluster_size": 45
-    },
-    {
-      "lat": 31.222839627849876,
-      "lon": 35.1125792142666,
-      "buildings_covered": 44,
-      "people_covered": 308,
-      "cluster_id": 366,
-      "cluster_size": 51
-    },
-    {
-      "lat": 31.262928202806208,
-      "lon": 35.07141568838092,
-      "buildings_covered": 43,
-      "people_covered": 301,
-      "cluster_id": 132,
-      "cluster_size": 273
-    },
-    {
-      "lat": 31.257606910179913,
-      "lon": 34.90397413167211,
-      "buildings_covered": 43,
-      "people_covered": 301,
-      "cluster_id": 176,
-      "cluster_size": 47
-    },
-    {
-      "lat": 31.12683074611821,
-      "lon": 34.95193102359184,
-      "buildings_covered": 43,
-      "people_covered": 301,
-      "cluster_id": 266,
+      "lat": 31.282314112620462,
+      "lon": 34.88490997466177,
+      "buildings_covered": 96,
+      "method": "dbscan_best_eps0.3_min10",
       "cluster_size": 46
     },
     {
-      "lat": 31.270587656453266,
-      "lon": 35.06955190609774,
-      "buildings_covered": 43,
-      "people_covered": 301,
-      "cluster_id": 277,
-      "cluster_size": 43
+      "lat": 31.273921401302488,
+      "lon": 34.95085511578902,
+      "buildings_covered": 96,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 108
     },
     {
-      "lat": 31.223605320536,
-      "lon": 35.027136392850544,
-      "buildings_covered": 42,
-      "people_covered": 294,
-      "cluster_id": 122,
-      "cluster_size": 42
+      "lat": 31.15576716088735,
+      "lon": 35.014220289434114,
+      "buildings_covered": 96,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 105
     },
     {
-      "lat": 31.25487716222485,
-      "lon": 35.04469699402049,
-      "buildings_covered": 42,
-      "people_covered": 294,
-      "cluster_id": 126,
-      "cluster_size": 45
+      "lat": 31.268781492522848,
+      "lon": 35.08904029195922,
+      "buildings_covered": 95,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 50
     },
     {
-      "lat": 31.30959852176714,
-      "lon": 35.110348232370235,
-      "buildings_covered": 42,
-      "people_covered": 294,
-      "cluster_id": 150,
-      "cluster_size": 74
+      "lat": 31.34458589312297,
+      "lon": 34.73533811971562,
+      "buildings_covered": 95,
+      "method": "dbscan_medoid_eps0.2_min10",
+      "cluster_size": 6
     },
     {
-      "lat": 31.230147796348334,
-      "lon": 34.948805381446306,
-      "buildings_covered": 42,
-      "people_covered": 294,
-      "cluster_id": 265,
-      "cluster_size": 65
+      "lat": 31.291983594305787,
+      "lon": 35.14543499541367,
+      "buildings_covered": 95,
+      "method": "dbscan_medoid_eps0.5_min10",
+      "cluster_size": 112
     },
     {
-      "lat": 31.246321640919405,
-      "lon": 35.06891924403163,
-      "buildings_covered": 42,
-      "people_covered": 294,
-      "cluster_id": 522,
-      "cluster_size": 42
+      "lat": 31.18412209398283,
+      "lon": 34.837074435900526,
+      "buildings_covered": 95,
+      "method": "dbscan_centroid_eps0.3_min10",
+      "cluster_size": 76
     },
     {
-      "lat": 31.169270061446674,
-      "lon": 34.89427607592743,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 66,
-      "cluster_size": 43
+      "lat": 31.24907872906831,
+      "lon": 35.096797517921715,
+      "buildings_covered": 95,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 117
     },
     {
-      "lat": 31.2377739511593,
-      "lon": 34.94052770135466,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 82,
-      "cluster_size": 198
+      "lat": 31.34782198833456,
+      "lon": 34.74189297829102,
+      "buildings_covered": 95,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 109
     },
     {
-      "lat": 31.101777922208107,
-      "lon": 34.95465501534764,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 88,
+      "lat": 31.331772841736857,
+      "lon": 34.88996771654981,
+      "buildings_covered": 95,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 105
+    },
+    {
+      "lat": 31.30080182498696,
+      "lon": 35.0756224969524,
+      "buildings_covered": 94,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 184
+    },
+    {
+      "lat": 31.41433814874261,
+      "lon": 34.74600256289171,
+      "buildings_covered": 94,
+      "method": "kmeans_k750_seed1",
       "cluster_size": 157
     },
     {
-      "lat": 31.233442326786957,
-      "lon": 34.96814267877448,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 101,
+      "lat": 31.186964103894564,
+      "lon": 34.93052351975787,
+      "buildings_covered": 94,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 115
+    },
+    {
+      "lat": 31.27884266354131,
+      "lon": 34.88268990507979,
+      "buildings_covered": 94,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 87
+    },
+    {
+      "lat": 31.202723304422147,
+      "lon": 34.94629026733226,
+      "buildings_covered": 93,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.167484634048368,
+      "lon": 34.81419853605417,
+      "buildings_covered": 93,
+      "method": "kmeans_k750_seed2",
+      "cluster_size": 175
+    },
+    {
+      "lat": 31.28865159207373,
+      "lon": 34.91928267697757,
+      "buildings_covered": 92,
+      "method": "dbscan_best_eps0.3_min10",
+      "cluster_size": 32
+    },
+    {
+      "lat": 31.113611755280576,
+      "lon": 34.963122199719905,
+      "buildings_covered": 91,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.196481305470755,
+      "lon": 34.845402659753404,
+      "buildings_covered": 91,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 10
+    },
+    {
+      "lat": 31.196465258289756,
+      "lon": 34.80609749760963,
+      "buildings_covered": 91,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 102
+    },
+    {
+      "lat": 31.330043599823178,
+      "lon": 34.89345991931108,
+      "buildings_covered": 91,
+      "method": "kmeans_k1500_seed2",
+      "cluster_size": 88
+    },
+    {
+      "lat": 31.187847748092402,
+      "lon": 34.808960996496204,
+      "buildings_covered": 90,
+      "method": "dbscan_best_eps0.4_min10",
+      "cluster_size": 42
+    },
+    {
+      "lat": 31.25975282603191,
+      "lon": 34.98868802393875,
+      "buildings_covered": 89,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 147
+    },
+    {
+      "lat": 31.297212387707596,
+      "lon": 35.11943398818379,
+      "buildings_covered": 89,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 115
+    },
+    {
+      "lat": 31.162609890765097,
+      "lon": 34.8075868501357,
+      "buildings_covered": 89,
+      "method": "dbscan_best_eps0.3_min10",
       "cluster_size": 48
     },
     {
-      "lat": 31.14666079302507,
-      "lon": 35.02292237573701,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 120,
-      "cluster_size": 200
+      "lat": 31.29174513818031,
+      "lon": 35.055026831516834,
+      "buildings_covered": 89,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 116
     },
     {
-      "lat": 31.34462341273246,
-      "lon": 34.85619403678029,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 254,
-      "cluster_size": 43
+      "lat": 31.286555586716478,
+      "lon": 35.108370004884925,
+      "buildings_covered": 88,
+      "method": "dbscan_centroid_eps0.5_min10",
+      "cluster_size": 97
     },
     {
-      "lat": 31.24839501019446,
-      "lon": 34.945004887695895,
-      "buildings_covered": 41,
-      "people_covered": 287,
-      "cluster_id": 296,
-      "cluster_size": 83
+      "lat": 31.183541793336122,
+      "lon": 34.96721815997891,
+      "buildings_covered": 88,
+      "method": "dbscan_centroid_eps0.7_min10",
+      "cluster_size": 108
+    },
+    {
+      "lat": 31.165202771259654,
+      "lon": 35.033015446127166,
+      "buildings_covered": 88,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 229
+    },
+    {
+      "lat": 31.241801159821712,
+      "lon": 35.03117777138829,
+      "buildings_covered": 88,
+      "method": "kmeans_k750_seed1",
+      "cluster_size": 118
+    },
+    {
+      "lat": 31.254499661428095,
+      "lon": 35.09582656515371,
+      "buildings_covered": 88,
+      "method": "kmeans_k1500_seed1",
+      "cluster_size": 104
+    },
+    {
+      "lat": 31.14889021604557,
+      "lon": 35.00913018257505,
+      "buildings_covered": 87,
+      "method": "dbscan_medoid_eps0.2_min10",
+      "cluster_size": 14
+    },
+    {
+      "lat": 31.23461105323878,
+      "lon": 35.13895738803461,
+      "buildings_covered": 87,
+      "method": "dbscan_medoid_eps0.5_min10",
+      "cluster_size": 90
+    },
+    {
+      "lat": 31.264674809501187,
+      "lon": 34.8781379885557,
+      "buildings_covered": 87,
+      "method": "dbscan_medoid_eps0.5_min10",
+      "cluster_size": 168
+    },
+    {
+      "lat": 31.24289605203814,
+      "lon": 34.91890683075579,
+      "buildings_covered": 87,
+      "method": "dbscan_medoid_eps0.4_min10",
+      "cluster_size": 107
+    },
+    {
+      "lat": 31.25235834407266,
+      "lon": 35.10676683994419,
+      "buildings_covered": 86,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 22
+    },
+    {
+      "lat": 31.250639766486604,
+      "lon": 35.15512843545436,
+      "buildings_covered": 86,
+      "method": "dbscan_best_eps0.2_min10",
+      "cluster_size": 22
     }
   ],
   "existing_shelters": [
@@ -6911,11 +6761,11 @@
     "total_buildings": 77807,
     "total_people": 544649,
     "shelters_selected": 150,
-    "new_buildings_covered": 9532,
-    "new_people_covered": 66724,
-    "total_buildings_covered": 10613,
-    "total_people_covered": 74291,
-    "coverage_percentage": 13.64,
-    "avg_buildings_per_new_shelter": 63.5
+    "new_buildings_covered": 17744,
+    "new_people_covered": 124208,
+    "total_buildings_covered": 18825,
+    "total_people_covered": 131775,
+    "coverage_percentage": 24.19,
+    "avg_buildings_per_new_shelter": 118.3
   }
 }
