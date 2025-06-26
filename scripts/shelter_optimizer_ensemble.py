@@ -962,24 +962,20 @@ class EnhancedShelterOptimizer:
         shelter_coords, shelter_features = self.load_geojson(shelters_file)
         print(f"    ✓ Loaded {len(shelter_features)} shelters")
         os.makedirs(output_dir, exist_ok=True)
-        total_scenarios = len(self.RADII_TO_TEST)  # Only one scenario per radius
-        scenario_count = 0
+        total_scenarios = len(self.RADII_TO_TEST)
         for radius_m in self.RADII_TO_TEST:
             print(f"\n🎯 RADIUS: {radius_m}m")
             print("=" * 50)
-            scenario_count += 1
-            scenario_name = "without_requested"
-            print(f"\n📊 Scenario {scenario_count}/{total_scenarios}: {scenario_name.replace('_', ' ').title()}")
             dbscan_steps = 1 + (len(self.DBSCAN_EPS_MULTIPLIERS) * len(self.DBSCAN_MIN_SAMPLES))
             kmeans_steps = len(self.KMEANS_K_VALUES) * self.N_KMEANS_SEEDS
             total_steps = dbscan_steps + kmeans_steps + 2
-            with tqdm(total=total_steps, desc=f"  {radius_m}m {scenario_name}") as pbar:
+            with tqdm(total=total_steps, desc=f"  {radius_m}m optimization") as pbar:
                 result = self.optimize_for_radius_and_scenario(
                     building_coords, building_features, shelter_features, 
                     radius_m, False, pbar
                 )
             if result:
-                filename = f"optimal_shelters_without_planned_{radius_m}m.json"
+                filename = f"optimal_shelters_{radius_m}m.json"
                 filepath = os.path.join(output_dir, filename)
                 with open(filepath, 'w') as f:
                     json.dump(result, f, indent=2)
@@ -987,7 +983,7 @@ class EnhancedShelterOptimizer:
                 shelters_count = result['statistics']['shelters_selected']
                 print(f"    💾 Saved: {filename} ({coverage_pct:.1f}% coverage, {shelters_count} shelters)")
             else:
-                print(f"    ❌ No result for {scenario_name} {radius_m}m")
+                print(f"    ❌ No result for radius {radius_m}m")
         print(f"\n🎉 Enhanced optimization completed!")
         print(f"📁 Results saved in: {output_dir}/")
 
