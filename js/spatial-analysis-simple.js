@@ -13,7 +13,7 @@ class SimpleSpatialAnalyzer {
         
         // Constants
         this.ACCESSIBILITY_OPTIONS = [100, 150, 200, 250, 300];
-        this.MAX_SHELTERS = 150;
+        this.MAX_SHELTERS = 500;
         this.PEOPLE_PER_BUILDING = 7;
     }
     
