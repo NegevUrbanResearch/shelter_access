@@ -6,14 +6,8 @@ A real-time web-based tool for analyzing and optimizing shelter accessibility fo
 ## 📊 Data & Analysis
 
 ### **Input Data**
-- **📍 Shelters**: existing + requested locations
+- **📍 Shelters**: existing + requested locations collected by Bimkom {https://bimkom.org/eng/home-mobile/}
 - **🏘️ Buildings**: Footprint data from MS Planetary Computer {https://planetarycomputer.microsoft.com/} 
-
-### **Precalculated Parameters**
-- **5 radius options** × **2 scenarios** (with/without requested) = **10 optimization datasets**
-- **150 optimal locations** per scenario, ranked by coverage statistics
-- **Population Estimates** currently set at 7 people per building (configurable assumption based on average pop. data)
-
 
 ## 🛠️ Technical Architecture
 
@@ -25,15 +19,17 @@ A real-time web-based tool for analyzing and optimizing shelter accessibility fo
 
 ### **Site Optimization Algorithm (Python)**
 ```python
-# DBSCAN + Greedy approach in shelter_optimizer.py
-1. DBSCAN clustering (eps=coverage_radius, min_samples=5)
-2. Calculate cluster centroids as candidate locations
-3. Greedy selection with non-overlapping constraint
-4. Generate statistics and coverage analysis
-```
+DBSCAN + Kmeans Ensemble in shelter_optimizer.py
 
-## Requested Deployment (Github Pages)
-TO-DO
+Algorithm:
+1. DBSCAN Clustering: Find natural building clusters using 10 eps values (0.1-1.0)
+2. K-means Clustering: Find systematic centroids using k=750,1500 with 2 seeds each
+3. Combined Analysis: Calculate centroids and coverage for each cluster
+4. Optimal Selection: Choose clusters with most that maximize coverage while ensuring clusters don't overlap
+
+```
+## Deployment 
+Deployed through Github Pages at https://negevurbanresearch.github.io/shelter_access/{https://negevurbanresearch.github.io/shelter_access/}
 
 ## 📁 Project Structure
 
@@ -49,7 +45,7 @@ shelter_access/
 │   ├── shelters.geojson               # Existing + requested shelter 
 │   └── optimal_locations/             # Precalculated optimization results
 ├── scripts/ # all scripts should be run only once and outputs are already stored in data folder, only use if needed to update data assets
-│   ├── shelter_optimizer.py           # DBSCAN + Greedy optimization
+│   ├── shelter_optimizer.py           # DBSCAN + KMeans Ensemble
 │   ├── convert_to_geojson.py         # Shapefile conversion 
 │   └── create_lightweight_data.py     # Data preprocessing
 └── README.md
