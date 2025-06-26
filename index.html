@@ -45,11 +45,11 @@
                 </div>
                 
                 <div class="control-section">
-                    <h3>🏗️ Planned Shelters</h3>
+                    <h3>🏗️ Requested Shelters</h3>
                     <div class="input-group">
                         <label class="checkbox-label">
-                            <input type="checkbox" id="analyzePlanned">
-                            Analyze planned shelters
+                            <input type="checkbox" id="analyzeRequested">
+                            Analyze requested shelters
                         </label>
                     </div>
                 </div>
@@ -70,8 +70,9 @@
             <div class="map-container">
                 <div id="map"></div>
                 
-                <!-- Basemap Control (low-key single box) -->
+                <!-- Map Controls -->
                 <div class="map-controls">
+                    <!-- Basemap Control -->
                     <div class="basemap-control">
                         <div class="basemap-header">
                             <span class="basemap-title">Base Maps</span>
@@ -91,6 +92,32 @@
                                 <span class="basemap-label">Dark</span>
                             </label>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Layer Visibility Control -->
+                <div class="layer-control">
+                    <div class="layer-header">
+                        <span class="layer-title">Data Layers</span>
+                        <span class="layer-toggle">⌄</span>
+                    </div>
+                    <div class="layer-menu">
+                        <label class="layer-option">
+                            <input type="checkbox" id="buildingsLayer">
+                            <span class="layer-label">Building Footprints</span>
+                        </label>
+                        <label class="layer-option">
+                            <input type="checkbox" id="existingSheltersLayer" checked>
+                            <span class="layer-label">Existing Shelters</span>
+                        </label>
+                        <label class="layer-option">
+                            <input type="checkbox" id="requestedSheltersLayer" checked>
+                            <span class="layer-label">Requested Shelters</span>
+                        </label>
+                        <label class="layer-option">
+                            <input type="checkbox" id="optimalSheltersLayer" checked>
+                            <span class="layer-label">Optimal Sites</span>
+                        </label>
                     </div>
                 </div>
                 
@@ -124,13 +151,13 @@
                     </div>
                 </div>
                 
-                <!-- Planned Shelter Analysis (only shown when planned shelters not included) -->
-                <div id="plannedAnalysis" class="planned-analysis" style="display: none;">
-                    <h4>🔍 Planned Shelter Analysis</h4>
+                <!-- Requested Shelter Analysis (only shown when requested shelters not included) -->
+                <div id="requestedAnalysis" class="requested-analysis" style="display: none;">
+                    <h4>🔍 Requested Shelter Analysis</h4>
                     <div class="stats-grid">
                         <div class="stat">
-                            <div class="stat-label">Suboptimal Planned</div>
-                            <div class="stat-value" id="suboptimalPlanned">--</div>
+                            <div class="stat-label">Suboptimal Requested</div>
+                            <div class="stat-value" id="suboptimalRequested">--</div>
                         </div>
                         <div class="stat">
                             <div class="stat-label">Potential Improvement</div>
@@ -151,12 +178,8 @@
                         <span>Existing Shelters (Blue)</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color planned-shelter"></div>
-                        <span>Planned Shelters (Orange)</span>
-                    </div>
-                    <div class="legend-item replaceable-legend" style="display: none;">
-                        <div class="legend-color replaceable-shelter"></div>
-                        <span>⚠️ Suboptimal Planned (Red)</span>
+                        <div class="legend-color requested-shelter"></div>
+                        <span>Requested Shelters (Orange)</span>
                     </div>
                 </div>
             </div>

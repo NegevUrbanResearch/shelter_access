@@ -14,6 +14,22 @@ class ShelterAccessApp {
         this.maxShelters = 150; // Updated to match script's TARGET_SHELTERS
         this.isAnalyzing = false;
         
+        // Add state for selected shelter and coverage highlighting
+        this.selectedShelter = null;
+        this.highlightedBuildings = [];
+        
+        // Add state for hover highlighting
+        this.hoveredShelter = null;
+        this.hoveredBuildings = [];
+        
+        // Layer visibility state
+        this.layerVisibility = {
+            buildings: false, // Off by default - only show when enabled
+            existingShelters: true,
+            requestedShelters: true,
+            optimalShelters: true
+        };
+        
         // Basemap configuration (satellite as default, like in hospital access app)
         this.currentBasemap = 'satellite';
         this.basemaps = {
@@ -40,9 +56,16 @@ class ShelterAccessApp {
             accessibilityDistanceValue: document.getElementById('accessibilityDistanceValue'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
-            analyzePlannedCheckbox: document.getElementById('analyzePlanned'),
+            analyzeRequestedCheckbox: document.getElementById('analyzeRequested'),
             basemapControl: document.querySelector('.basemap-control'),
+            basemapHeader: document.querySelector('.basemap-header'),
+            layerControl: document.querySelector('.layer-control'),
+            layerHeader: document.querySelector('.layer-header'),
             basemapRadios: document.querySelectorAll('input[name="basemap"]'),
+            buildingsLayer: document.getElementById('buildingsLayer'),
+            existingSheltersLayer: document.getElementById('existingSheltersLayer'),
+            requestedSheltersLayer: document.getElementById('requestedSheltersLayer'),
+            optimalSheltersLayer: document.getElementById('optimalSheltersLayer'),
             themeToggle: document.getElementById('themeToggle'),
             loading: document.getElementById('loading'),
             tooltip: document.getElementById('tooltip'),
@@ -51,7 +74,7 @@ class ShelterAccessApp {
             newCoverage: document.getElementById('newCoverage'),
             buildingsCovered: document.getElementById('buildingsCovered'),
             additionalPeople: document.getElementById('additionalPeople'),
-            suboptimalPlanned: document.getElementById('suboptimalPlanned'),
+            suboptimalRequested: document.getElementById('suboptimalRequested'),
             underservedPeople: document.getElementById('underservedPeople')
         };
     }
@@ -72,26 +95,33 @@ class ShelterAccessApp {
             // Load spatial data
             await this.spatialAnalyzer.loadData();
             
+            // Debug: Check shelter data
+            console.log('📊 Loaded shelters:', this.spatialAnalyzer.shelters?.features?.length || 0);
+            if (this.spatialAnalyzer.shelters?.features?.length > 0) {
+                const firstShelter = this.spatialAnalyzer.shelters.features[0];
+                console.log('🔍 First shelter status:', firstShelter.properties?.status);
+                console.log('🔍 First shelter coords:', firstShelter.geometry?.coordinates);
+            }
+            
             // Initialize map
             this.initializeMap();
             
             // Set initial attribution
             this.updateAttribution();
             
-            // Initialize planned analysis section and legend visibility
-            const plannedAnalysisDiv = document.getElementById('plannedAnalysis');
-            const replaceableLegend = document.querySelector('.replaceable-legend');
-            const analyzePlannedChecked = this.elements.analyzePlannedCheckbox.checked;
+            // Initialize requested analysis section and legend visibility
+            const requestedAnalysisDiv = document.getElementById('requestedAnalysis');
+            const analyzeRequestedChecked = this.elements.analyzeRequestedCheckbox.checked;
             
-            if (plannedAnalysisDiv) {
-                plannedAnalysisDiv.style.display = analyzePlannedChecked ? 'block' : 'none';
-            }
-            if (replaceableLegend) {
-                replaceableLegend.style.display = analyzePlannedChecked ? 'flex' : 'none';
+            if (requestedAnalysisDiv) {
+                requestedAnalysisDiv.style.display = analyzeRequestedChecked ? 'block' : 'none';
             }
             
             // Initial analysis
             this.updateCoverageAnalysis();
+            
+            // Debug coverage calculation
+            setTimeout(() => this.debugCoverageCalculation(), 1000);
             
             // Hide loading overlay
             this.hideLoading();
@@ -108,6 +138,13 @@ class ShelterAccessApp {
      * Setup event listeners for UI controls
      */
     setupEventListeners() {
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.clearShelterSelection();
+            }
+        });
+        
         // Accessibility distance slider
         this.elements.accessibilityDistance.addEventListener('input', async (e) => {
             this.coverageRadius = parseInt(e.target.value);
@@ -126,6 +163,7 @@ class ShelterAccessApp {
             
             // Clear previous analysis and update
             this.proposedShelters = [];
+            this.clearShelterSelection(); // Clear selection when radius changes
             await this.updateOptimalLocations();
         });
         
@@ -136,12 +174,12 @@ class ShelterAccessApp {
             await this.updateOptimalLocations();
         });
         
-        // Analyze planned shelters checkbox
-        this.elements.analyzePlannedCheckbox.addEventListener('change', async (e) => {
-            // When checked: analyze planned shelters (treat them as not existing for optimization)
-            // When unchecked: show planned shelters normally (treat them as existing, don't analyze)
-            const includePlannedAsExisting = !e.target.checked;
-            const maxShelters = await this.spatialAnalyzer.setIncludePlannedShelters(includePlannedAsExisting);
+        // Analyze requested shelters checkbox
+        this.elements.analyzeRequestedCheckbox.addEventListener('change', async (e) => {
+            // When checked: analyze requested shelters (treat them as not existing for optimization)
+            // When unchecked: show requested shelters normally (treat them as existing, don't analyze)
+            const includeRequestedAsExisting = !e.target.checked;
+            const maxShelters = await this.spatialAnalyzer.setIncludeRequestedShelters(includeRequestedAsExisting);
             this.maxShelters = maxShelters;
             
             // Update slider max
@@ -152,29 +190,31 @@ class ShelterAccessApp {
                 this.elements.newSheltersValue.textContent = this.maxShelters;
             }
             
-            // Show/hide planned analysis section and legend item
-            const plannedAnalysisDiv = document.getElementById('plannedAnalysis');
-            const replaceableLegend = document.querySelector('.replaceable-legend');
+            // Show/hide requested analysis section and legend item
+            const requestedAnalysisDiv = document.getElementById('requestedAnalysis');
             
             if (e.target.checked) {
-                // Show planned analysis and replaceable legend when analyzing
-                plannedAnalysisDiv.style.display = 'block';
-                if (replaceableLegend) replaceableLegend.style.display = 'flex';
+                // Show requested analysis and replaceable legend when analyzing
+                requestedAnalysisDiv.style.display = 'block';
             } else {
-                // Hide planned analysis and replaceable legend when not analyzing
-                plannedAnalysisDiv.style.display = 'none';
-                if (replaceableLegend) replaceableLegend.style.display = 'none';
+                // Hide requested analysis and replaceable legend when not analyzing
+                requestedAnalysisDiv.style.display = 'none';
             }
             
-            // Reset analysis when toggling planned shelters
+            // Reset analysis when toggling requested shelters
             this.proposedShelters = [];
+            this.clearShelterSelection();
             await this.updateOptimalLocations();
         });
         
         // Basemap control - toggle menu
-        const basemapHeader = this.elements.basemapControl.querySelector('.basemap-header');
-        basemapHeader.addEventListener('click', () => {
+        this.elements.basemapHeader.addEventListener('click', () => {
             this.elements.basemapControl.classList.toggle('expanded');
+        });
+        
+        // Layer control - toggle menu
+        this.elements.layerHeader.addEventListener('click', () => {
+            this.elements.layerControl.classList.toggle('expanded');
         });
         
         // Basemap radio selection
@@ -186,6 +226,27 @@ class ShelterAccessApp {
                     this.elements.basemapControl.classList.remove('expanded');
                 }
             });
+        });
+        
+        // Layer visibility toggles
+        this.elements.buildingsLayer.addEventListener('change', (e) => {
+            this.layerVisibility.buildings = e.target.checked;
+            this.updateVisualization();
+        });
+        
+        this.elements.existingSheltersLayer.addEventListener('change', (e) => {
+            this.layerVisibility.existingShelters = e.target.checked;
+            this.updateVisualization();
+        });
+        
+        this.elements.requestedSheltersLayer.addEventListener('change', (e) => {
+            this.layerVisibility.requestedShelters = e.target.checked;
+            this.updateVisualization();
+        });
+        
+        this.elements.optimalSheltersLayer.addEventListener('change', (e) => {
+            this.layerVisibility.optimalShelters = e.target.checked;
+            this.updateVisualization();
         });
         
         // Theme toggle
@@ -221,7 +282,9 @@ class ShelterAccessApp {
             controller: true,
             onHover: (info) => this.handleHover(info),
             onClick: (info) => this.handleClick(info),
-            onViewStateChange: ({viewState}) => this.handleViewStateChange(viewState)
+            onViewStateChange: ({viewState}) => this.handleViewStateChange(viewState),
+            // Add brush extension for better coverage visualization
+            extensions: [new deck.BrushingExtension()]
         });
         
         // Store initial zoom level
@@ -240,158 +303,271 @@ class ShelterAccessApp {
         
         if (!currentData.shelters) return layers;
         
-        // Get planned shelter evaluation for pairing analysis
-        const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
+        // Get requested shelter evaluation for pairing analysis
+        const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
         
         // Create lookup for shelters that should be marked as replaceable
         const replaceableIds = new Set();
-        if (plannedEval && plannedEval.pairedShelters) {
-            plannedEval.pairedShelters.forEach(pair => {
-                if (pair.planned.properties && pair.planned.properties.shelter_id) {
-                    replaceableIds.add(pair.planned.properties.shelter_id);
+        if (requestedEval && requestedEval.pairedShelters) {
+            requestedEval.pairedShelters.forEach(pair => {
+                if (pair.requested.properties && pair.requested.properties.shelter_id) {
+                    replaceableIds.add(pair.requested.properties.shelter_id);
                 }
             });
         }
         
-        // === EXISTING SHELTERS (Blue) ===
-        const existingShelters = currentData.shelters.features.filter(shelter => 
-            shelter.properties && shelter.properties.status === 'Active'
-        );
-        
-        // Coverage circles for existing shelters
-        if (existingShelters.length > 0) {
-            layers.push(new deck.GeoJsonLayer({
-                id: 'existing-coverage',
-                data: this.createCoverageCircles(existingShelters, this.coverageRadius),
-                pickable: false,
-                stroked: true,
-                filled: true,
-                lineWidthMinPixels: 2,
-                getFillColor: [52, 152, 219, 80], // More visible blue
-                getLineColor: [52, 152, 219, 120],
-                getLineWidth: 2
-            }));
+        // === BUILDINGS LAYER (Full polygon footprints) ===
+        if (currentData.buildings && currentData.buildings.features.length > 0) {
+            // Only show buildings if layer is enabled OR if we're hovering over a shelter
+            const shouldShowBuildings = this.layerVisibility.buildings || 
+                                      (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
+                                      (this.selectedShelter && this.highlightedBuildings.length > 0);
             
-            // Existing shelter points
-            layers.push(new deck.ScatterplotLayer({
-                id: 'existing-shelters',
-                data: existingShelters,
-                pickable: true,
-                opacity: 0.9,
-                stroked: true,
-                filled: true,
-                radiusScale: 1,
-                radiusMinPixels: 8,
-                radiusMaxPixels: 15,
-                lineWidthMinPixels: 2,
-                getPosition: d => d.geometry.coordinates,
-                getRadius: 12,
-                getFillColor: [52, 152, 219, 255], // Blue for existing
-                getLineColor: [255, 255, 255, 255]
-            }));
-        }
-        
-        // === PLANNED SHELTERS (Always show, Orange/Red when analyzed) ===
-        // Always show planned shelters, but analyze them only when checkbox is checked
-        const plannedShelters = currentData.shelters.features.filter(shelter => 
-            shelter.properties && shelter.properties.status === 'Planned'
-        );
-        
-        if (plannedShelters.length > 0) {
-            // Check if we should analyze planned shelters (when checkbox is checked)
-            const shouldAnalyzePlanned = this.elements.analyzePlannedCheckbox.checked;
-            
-            // Coverage circles for planned shelters
-            layers.push(new deck.GeoJsonLayer({
-                id: 'planned-coverage',
-                data: this.createCoverageCircles(plannedShelters, this.coverageRadius),
-                pickable: false,
-                stroked: true,
-                filled: true,
-                lineWidthMinPixels: 2,
-                getFillColor: [255, 165, 0, 80], // More visible orange
-                getLineColor: [255, 165, 0, 120],
-                getLineWidth: 2
-            }));
-            
-            // Get replaceable shelter IDs if analyzing
-            let replaceableIds = new Set();
-            if (shouldAnalyzePlanned && this.proposedShelters.length > 0) {
-                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
-                if (plannedEval && plannedEval.pairedShelters) {
-                    replaceableIds = new Set(plannedEval.pairedShelters.map(pair => 
-                        pair.planned.properties ? pair.planned.properties.shelter_id : null
-                    ).filter(id => id !== null));
+            if (shouldShowBuildings) {
+                // Determine which buildings to show
+                let buildingsToShow;
+                if (this.layerVisibility.buildings) {
+                    // Show all buildings when layer is enabled
+                    buildingsToShow = currentData.buildings.features;
+                } else {
+                    // Only show covered buildings when layer is disabled
+                    const coveredIndices = new Set([
+                        ...(this.hoveredShelter ? this.hoveredBuildings : []),
+                        ...(this.selectedShelter ? this.highlightedBuildings : [])
+                    ]);
+                    buildingsToShow = currentData.buildings.features.filter((_, index) => 
+                        coveredIndices.has(index)
+                    );
                 }
-            }
-            
-            // Planned shelter points
-            layers.push(new deck.ScatterplotLayer({
-                id: 'planned-shelters',
-                data: plannedShelters,
-                pickable: true,
-                opacity: 0.9,
-                stroked: true,
-                filled: true,
-                radiusScale: 1,
-                radiusMinPixels: 8,
-                radiusMaxPixels: 15,
-                lineWidthMinPixels: 2,
-                getPosition: d => d.geometry.coordinates,
-                getRadius: 12,
-                getFillColor: d => {
-                    // Red warning for replaceable planned shelters (only when analyzing)
-                    if (shouldAnalyzePlanned && replaceableIds.has(d.properties.shelter_id)) {
-                        return [220, 53, 69, 255]; // Red warning
-                    }
-                    return [255, 165, 0, 255]; // Bright orange for planned
-                },
-                getLineColor: [255, 255, 255, 255]
-            }));
-            
-            // Warning symbols for replaceable planned shelters (only when analyzing)
-            if (shouldAnalyzePlanned) {
-                const replaceableShelters = plannedShelters.filter(shelter => 
-                    replaceableIds.has(shelter.properties.shelter_id)
-                );
                 
-                if (replaceableShelters.length > 0) {
-                    layers.push(new deck.TextLayer({
-                        id: 'replaceable-markers',
-                        data: replaceableShelters,
-                        pickable: true,
-                        getPosition: d => d.geometry.coordinates,
-                        getText: '⚠️',
-                        getSize: 16,
-                        getAngle: 0,
-                        getTextAnchor: 'middle',
-                        getAlignmentBaseline: 'center',
-                        getColor: [220, 53, 69, 255] // Red for warnings
+                if (buildingsToShow.length > 0) {
+                    layers.push(new deck.GeoJsonLayer({
+                        id: 'buildings',
+                        data: buildingsToShow.map((feature, index) => ({
+                            ...feature,
+                            _index: index // Add array index for identification
+                        })),
+                        pickable: false,
+                        stroked: true,
+                        filled: true,
+                        lineWidthMinPixels: 1,
+                        lineWidthMaxPixels: 2,
+                        // Performance optimizations for large datasets
+                        _lighting: 'pbr',
+                        _useTerrainProjection: false,
+                        // Level of detail optimization
+                        parameters: {
+                            blend: true,
+                            blendFunc: [770, 771, 1, 0]
+                        },
+                        // New symbology logic
+                        getFillColor: d => {
+                            const buildingIndex = d._index || 0;
+                            
+                            // If buildings layer is enabled, show all buildings in red
+                            if (this.layerVisibility.buildings) {
+                                // Check if this building is covered by hovered shelter (turn green)
+                                if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                    return [0, 255, 0, 150]; // Bright green for hover coverage
+                                }
+                                // Check if this building is covered by selected shelter (turn green)
+                                if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                    return [0, 255, 0, 200]; // Bright green for selected coverage
+                                }
+                                return [255, 0, 0, 120]; // Red for all other buildings when layer is enabled
+                            } else {
+                                // Buildings layer is disabled - only show covered buildings in green
+                                return [0, 255, 0, 200]; // Bright green for covered buildings
+                            }
+                        },
+                        getLineColor: d => {
+                            const buildingIndex = d._index || 0;
+                            
+                            // If buildings layer is enabled, show all building outlines
+                            if (this.layerVisibility.buildings) {
+                                // Check if this building is covered by hovered shelter (turn green)
+                                if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                    return [0, 255, 0, 255]; // Bright green outline for hover
+                                }
+                                // Check if this building is covered by selected shelter (turn green)
+                                if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                    return [0, 255, 0, 255]; // Bright green outline for selected
+                                }
+                                return [255, 0, 0, 180]; // Red outline for all other buildings
+                            } else {
+                                // Buildings layer is disabled - only show covered building outlines in green
+                                return [0, 255, 0, 255]; // Bright green outline for covered buildings
+                            }
+                        },
+                        getLineWidth: d => {
+                            const buildingIndex = d._index || 0;
+                            
+                            // Thicker outline for highlighted buildings
+                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                return 3;
+                            }
+                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                return 2;
+                            }
+                            return 1;
+                        }
                     }));
                 }
             }
         }
         
+        // === COVERAGE BRUSH LAYER (for selected/hovered shelters) ===
+        if ((this.selectedShelter || this.hoveredShelter) && this.spatialAnalyzer.buildings) {
+            const activeShelter = this.selectedShelter || this.hoveredShelter;
+            const coveredBuildingIndices = this.selectedShelter ? this.highlightedBuildings : this.hoveredBuildings;
+            
+            if (coveredBuildingIndices.length > 0) {
+                // Create a brush layer to highlight covered buildings
+                const coveredBuildings = coveredBuildingIndices.map(index => 
+                    this.spatialAnalyzer.buildings.features[index]
+                ).filter(building => building); // Filter out any undefined buildings
+                
+                if (coveredBuildings.length > 0) {
+                    layers.push(new deck.GeoJsonLayer({
+                        id: 'coverage-brush',
+                        data: coveredBuildings,
+                        pickable: false,
+                        stroked: true,
+                        filled: true,
+                        lineWidthMinPixels: 2,
+                        lineWidthMaxPixels: 4,
+                        // Use brush extension for better visual effect
+                        extensions: [new deck.BrushingExtension()],
+                        // High opacity for coverage highlighting
+                        getFillColor: () => {
+                            if (this.selectedShelter) {
+                                return [0, 255, 0, 180]; // Bright green for selected coverage
+                            } else {
+                                return [0, 255, 0, 120]; // Lighter green for hover coverage
+                            }
+                        },
+                        getLineColor: () => {
+                            if (this.selectedShelter) {
+                                return [0, 200, 0, 255]; // Darker green outline for selected
+                            } else {
+                                return [0, 200, 0, 200]; // Lighter green outline for hover
+                            }
+                        },
+                        getLineWidth: () => {
+                            if (this.selectedShelter) {
+                                return 3; // Thicker for selected
+                            } else {
+                                return 2; // Thinner for hover
+                            }
+                        }
+                    }));
+                }
+            }
+        }
+        
+        // === EXISTING SHELTERS (Blue) ===
+        if (this.layerVisibility.existingShelters) {
+            const existingShelters = currentData.shelters.features.filter(shelter => 
+                shelter.properties && shelter.properties.status === 'Built'
+            );
+            
+            // Existing shelter points (no coverage circles for performance)
+            if (existingShelters.length > 0) {
+                layers.push(new deck.ScatterplotLayer({
+                    id: 'existing-shelters',
+                    data: existingShelters,
+                    pickable: true,
+                    opacity: 0.9,
+                    stroked: true,
+                    filled: true,
+                    radiusScale: 1,
+                    radiusMinPixels: 8,
+                    radiusMaxPixels: 15,
+                    lineWidthMinPixels: 2,
+                    getPosition: d => d.geometry.coordinates,
+                    getRadius: d => {
+                        // Make selected shelter larger
+                        if (this.selectedShelter && this.selectedShelter.properties && 
+                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
+                            return 18;
+                        }
+                        return 12;
+                    },
+                    getFillColor: d => {
+                        // Highlight selected shelter
+                        if (this.selectedShelter && this.selectedShelter.properties && 
+                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
+                            return [52, 152, 219, 255]; // Bright blue for selected
+                        }
+                        return [52, 152, 219, 255]; // Blue for existing
+                    },
+                    getLineColor: [255, 255, 255, 255]
+                }));
+            }
+        }
+        
+        // === PLANNED SHELTERS (Orange/Red when analyzed) ===
+        if (this.layerVisibility.requestedShelters) {
+            // Show requested shelters (status "Request")
+            const requestedShelters = currentData.shelters.features.filter(shelter => 
+                shelter.properties && shelter.properties.status === 'Request'
+            );
+            
+            if (requestedShelters.length > 0) {
+                // Check if we should analyze requested shelters (when checkbox is checked)
+                const shouldAnalyzeRequested = this.elements.analyzeRequestedCheckbox.checked;
+                
+                // Get replaceable shelter IDs if analyzing
+                let replaceableIds = new Set();
+                if (shouldAnalyzeRequested && this.proposedShelters.length > 0) {
+                    const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
+                    if (requestedEval && requestedEval.pairedShelters) {
+                        replaceableIds = new Set(requestedEval.pairedShelters.map(pair => 
+                            pair.requested.properties ? pair.requested.properties.shelter_id : null
+                        ).filter(id => id !== null));
+                    }
+                }
+                
+                // Requested shelter points
+                layers.push(new deck.ScatterplotLayer({
+                    id: 'requested-shelters',
+                    data: requestedShelters,
+                    pickable: true,
+                    opacity: 0.9,
+                    stroked: true,
+                    filled: true,
+                    radiusScale: 1,
+                    radiusMinPixels: 8,
+                    radiusMaxPixels: 15,
+                    lineWidthMinPixels: 2,
+                    getPosition: d => d.geometry.coordinates,
+                    getRadius: d => {
+                        // Make selected shelter larger
+                        if (this.selectedShelter && this.selectedShelter.properties && 
+                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
+                            return 18;
+                        }
+                        return 12;
+                    },
+                    getFillColor: d => {
+                        // Highlight selected shelter
+                        if (this.selectedShelter && this.selectedShelter.properties && 
+                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
+                            return [255, 165, 0, 255]; // Bright orange for selected
+                        }
+                        // Red warning for replaceable requested shelters (only when analyzing)
+                        if (shouldAnalyzeRequested && replaceableIds.has(d.properties.shelter_id)) {
+                            return [220, 53, 69, 255]; // Red warning
+                        }
+                        return [255, 165, 0, 255]; // Bright orange for requested
+                    },
+                    getLineColor: [255, 255, 255, 255]
+                }));
+            }
+        }
+        
         // === OPTIMAL NEW SHELTERS (Yellow-Green Gradient) ===
-        if (this.proposedShelters.length > 0) {
-            // Coverage circles for proposed shelters
-            const proposedCoverageData = this.proposedShelters.map(shelter => {
-                const center = [shelter.lon, shelter.lat];
-                return turf.buffer(turf.point(center), this.coverageRadius, { units: 'meters' });
-            });
-            
-            layers.push(new deck.GeoJsonLayer({
-                id: 'proposed-coverage',
-                data: turf.featureCollection(proposedCoverageData),
-                pickable: false,
-                stroked: true,
-                filled: true,
-                lineWidthMinPixels: 2,
-                getFillColor: [154, 205, 50, 80], // More visible yellow-green
-                getLineColor: [154, 205, 50, 120],
-                getLineWidth: 2
-            }));
-            
+        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
             // Proposed shelter points with quality-based coloring
             layers.push(new deck.ScatterplotLayer({
                 id: 'proposed-shelters',
@@ -409,8 +585,22 @@ class ShelterAccessApp {
                 radiusMaxPixels: 18,
                 lineWidthMinPixels: 2,
                 getPosition: d => d.coordinates,
-                getRadius: 14,
+                getRadius: d => {
+                    // Make selected shelter larger
+                    if (this.selectedShelter && this.selectedShelter.coordinates && 
+                        this.selectedShelter.coordinates[0] === d.coordinates[0] && 
+                        this.selectedShelter.coordinates[1] === d.coordinates[1]) {
+                        return 22;
+                    }
+                    return 14;
+                },
                 getFillColor: d => {
+                    // Highlight selected shelter
+                    if (this.selectedShelter && this.selectedShelter.coordinates && 
+                        this.selectedShelter.coordinates[0] === d.coordinates[0] && 
+                        this.selectedShelter.coordinates[1] === d.coordinates[1]) {
+                        return [154, 205, 50, 255]; // Bright yellow-green for selected
+                    }
                     // Yellow-green gradient: brighter = better
                     const rank = d.rank || 1;
                     const quality = Math.max(0, 1 - (rank - 1) / this.proposedShelters.length);
@@ -427,18 +617,6 @@ class ShelterAccessApp {
         }
         
         return layers;
-    }
-    
-    /**
-     * Create coverage circle geometries
-     */
-    createCoverageCircles(shelters, radius) {
-        const circles = shelters.map(shelter => {
-            const center = shelter.geometry ? shelter.geometry.coordinates : shelter.coordinates;
-            return turf.buffer(turf.point(center), radius, { units: 'meters' });
-        });
-        
-        return turf.featureCollection(circles);
     }
     
     /**
@@ -529,9 +707,9 @@ class ShelterAccessApp {
      * Update coverage analysis and statistics
      */
     updateCoverageAnalysis() {
-        const cacheKey = `${this.spatialAnalyzer.includePlannedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
+        const cacheKey = `${this.spatialAnalyzer.includeRequestedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
         const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-        const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
+        const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
         
         if (!data || !data.statistics) return;
         
@@ -565,18 +743,18 @@ class ShelterAccessApp {
             this.elements.additionalPeople.textContent = newPeopleCovered.toLocaleString();
         }
         
-        // Update planned shelter analysis with new pairing data
-        if (plannedEval && !this.spatialAnalyzer.includePlannedShelters) {
-            if (this.elements.suboptimalPlanned) {
-                this.elements.suboptimalPlanned.textContent = plannedEval.totalPairs.toString();
+        // Update requested shelter analysis with new pairing data
+        if (requestedEval && !this.spatialAnalyzer.includeRequestedShelters) {
+            if (this.elements.suboptimalRequested) {
+                this.elements.suboptimalRequested.textContent = requestedEval.totalPairs.toString();
             }
             if (this.elements.underservedPeople) {
-                this.elements.underservedPeople.textContent = `+${Math.round(plannedEval.totalImprovement)} people`;
+                this.elements.underservedPeople.textContent = `+${Math.round(requestedEval.totalImprovement)} people`;
             }
         } else {
-            // Clear planned analysis when including planned shelters
-            if (this.elements.suboptimalPlanned) {
-                this.elements.suboptimalPlanned.textContent = '0';
+            // Clear requested analysis when including requested shelters
+            if (this.elements.suboptimalRequested) {
+                this.elements.suboptimalRequested.textContent = '0';
             }
             if (this.elements.underservedPeople) {
                 this.elements.underservedPeople.textContent = '0';
@@ -591,65 +769,50 @@ class ShelterAccessApp {
         const { object, x, y } = info;
         const tooltip = this.elements.tooltip;
         
+        console.log('Hover event:', info.layer?.id, object ? 'with object' : 'no object');
+        
         if (object) {
             let content = '';
             
             if (info.layer.id === 'existing-shelters') {
-                // Get coverage data from precomputed results
-                const cacheKey = `${this.spatialAnalyzer.includePlannedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
-                const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-                const shelterId = object.properties.shelter_id;
+                // Handle hover highlighting
+                this.handleShelterHover(object);
                 
-                let buildingsCovered = 0;
-                let peopleCovered = 0;
-                
-                if (data && data.existing_shelters) {
-                    const shelterData = data.existing_shelters.find(s => 
-                        s.properties && s.properties.shelter_id === shelterId
-                    );
-                    if (shelterData) {
-                        buildingsCovered = shelterData.buildings_covered || 0;
-                        peopleCovered = shelterData.people_covered || 0;
-                    }
-                }
+                // Calculate coverage for this specific shelter
+                const coveredBuildings = this.calculateShelterCoverage(object);
+                const buildingsCovered = coveredBuildings.length;
+                const peopleCovered = buildingsCovered * 7; // 7 people per building
                 
                 content = `
-                    <strong>Existing Shelter</strong><br>
+                    <strong>🔍 Existing Shelter</strong><br>
                     Buildings covered: ${buildingsCovered}<br>
-                    People served: ${peopleCovered}
+                    People served: ${peopleCovered}<br>
+                    <em>Click to highlight coverage area</em>
                 `;
                 
-            } else if (info.layer.id === 'planned-shelters') {
-                // Get coverage data and check for replacement pairing
-                const cacheKey = `without_planned_${this.coverageRadius}m`;
-                const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-                const shelterId = object.properties.shelter_id;
-                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
+                console.log(`Existing shelter tooltip: ${buildingsCovered} buildings, ${peopleCovered} people`);
                 
-                let buildingsCovered = 0;
-                let peopleCovered = 0;
+            } else if (info.layer.id === 'requested-shelters') {
+                // Handle hover highlighting
+                this.handleShelterHover(object);
                 
-                if (data && data.existing_shelters) {
-                    const shelterData = data.existing_shelters.find(s => 
-                        s.properties && s.properties.shelter_id === shelterId
-                    );
-                    if (shelterData) {
-                        buildingsCovered = shelterData.buildings_covered || 0;
-                        peopleCovered = shelterData.people_covered || 0;
-                    }
-                }
+                // Calculate coverage for this specific shelter
+                const coveredBuildings = this.calculateShelterCoverage(object);
+                const buildingsCovered = coveredBuildings.length;
+                const peopleCovered = buildingsCovered * 7; // 7 people per building
                 
-                // Check if this planned shelter has a better replacement
+                // Check if this requested shelter has a better replacement
                 let replacementInfo = '';
-                if (plannedEval && plannedEval.pairedShelters) {
-                    const pairing = plannedEval.pairedShelters.find(pair => 
-                        pair.planned.properties && pair.planned.properties.shelter_id === shelterId
+                const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
+                if (requestedEval && requestedEval.pairedShelters) {
+                    const pairing = requestedEval.pairedShelters.find(pair => 
+                        pair.requested.properties && pair.requested.properties.shelter_id === object.properties.shelter_id
                     );
                     
                     if (pairing) {
                         replacementInfo = `
                             <br><strong>⚠️ Better location available!</strong><br>
-                            Current: ${pairing.plannedCoverage} people<br>
+                            Current: ${pairing.requestedCoverage} people<br>
                             Better site: ${pairing.optimalCoverage} people<br>
                             Improvement: +${pairing.improvement} people<br>
                             <button onclick="app.jumpToOptimalSite(${pairing.optimal.lat}, ${pairing.optimal.lon})" 
@@ -661,45 +824,30 @@ class ShelterAccessApp {
                 }
                 
                 content = `
-                    <strong>Planned Shelter</strong><br>
+                    <strong>🔍 Requested Shelter</strong><br>
                     Buildings covered: ${buildingsCovered}<br>
-                    People served: ${peopleCovered}${replacementInfo}
+                    People served: ${peopleCovered}<br>
+                    <em>Click to highlight coverage area</em>${replacementInfo}
                 `;
                 
+                console.log(`Requested shelter tooltip: ${buildingsCovered} buildings, ${peopleCovered} people`);
+                
             } else if (info.layer.id === 'proposed-shelters') {
+                // Handle hover highlighting
+                this.handleShelterHover(object);
+                
                 const buildingsCovered = object.buildings_covered || 0;
                 const peopleCovered = object.people_covered || 0;
                 const rank = object.rank || 1;
                 
                 content = `
-                    <strong>Optimal New Site #${rank}</strong><br>
+                    <strong>🔍 Optimal New Site #${rank}</strong><br>
                     Buildings covered: ${buildingsCovered}<br>
-                    People served: ${peopleCovered}
+                    People served: ${peopleCovered}<br>
+                    <em>Click to highlight coverage area</em>
                 `;
                 
-            } else if (info.layer.id === 'replaceable-markers') {
-                // Same as planned-shelters but focus on replacement
-                const shelterId = object.properties.shelter_id;
-                const plannedEval = this.spatialAnalyzer.getPlannedShelterEvaluation(this.proposedShelters.length);
-                
-                if (plannedEval && plannedEval.pairedShelters) {
-                    const pairing = plannedEval.pairedShelters.find(pair => 
-                        pair.planned.properties && pair.planned.properties.shelter_id === shelterId
-                    );
-                    
-                    if (pairing) {
-                        content = `
-                            <strong>⚠️ Replaceable Planned Shelter</strong><br>
-                            Current coverage: ${pairing.plannedCoverage} people<br>
-                            Better site covers: ${pairing.optimalCoverage} people<br>
-                            Improvement: +${pairing.improvement} people<br>
-                            <button onclick="app.jumpToOptimalSite(${pairing.optimal.lat}, ${pairing.optimal.lon})" 
-                                    style="margin-top:5px; padding:4px 8px; cursor:pointer; background:#28a745; color:white; border:none; border-radius:3px;">
-                                Jump to Better Site
-                            </button>
-                        `;
-                    }
-                }
+                console.log(`Proposed shelter tooltip: ${buildingsCovered} buildings, ${peopleCovered} people`);
             }
             
             if (content) {
@@ -707,9 +855,13 @@ class ShelterAccessApp {
                 tooltip.style.display = 'block';
                 tooltip.style.left = `${x + 10}px`;
                 tooltip.style.top = `${y - 10}px`;
+                console.log('Tooltip shown with content:', content.substring(0, 100) + '...');
             }
         } else {
+            // Clear hover highlighting when not hovering over a shelter
+            this.clearShelterHover();
             tooltip.style.display = 'none';
+            console.log('Tooltip hidden');
         }
     }
     
@@ -719,9 +871,17 @@ class ShelterAccessApp {
     handleClick(info) {
         const { object } = info;
         
-        if (object && info.layer.id === 'proposed-shelters') {
-            console.log('Proposed shelter clicked:', object);
-            // Could add functionality to remove/modify proposed shelters
+        if (object) {
+            if (info.layer.id === 'existing-shelters' || info.layer.id === 'requested-shelters') {
+                // Select existing or requested shelter
+                this.selectShelter(object);
+            } else if (info.layer.id === 'proposed-shelters') {
+                // Select proposed shelter
+                this.selectShelter(object);
+            }
+        } else {
+            // Clicked on empty space - clear selection
+            this.clearShelterSelection();
         }
     }
     
@@ -840,6 +1000,151 @@ class ShelterAccessApp {
         
         console.log(`🎨 Loaded ${savedTheme} theme`);
     }
+    
+    /**
+     * Calculate which buildings are covered by a specific shelter
+     */
+    calculateShelterCoverage(shelter) {
+        if (!this.spatialAnalyzer.buildings || !shelter) {
+            console.log('Coverage calculation: No buildings data or shelter provided');
+            return [];
+        }
+        
+        const shelterCoords = shelter.geometry ? shelter.geometry.coordinates : [shelter.lon, shelter.lat];
+        const coverageRadiusDeg = this.coverageRadius / 111000; // Approximate conversion to degrees
+        const coverageRadiusSquared = coverageRadiusDeg * coverageRadiusDeg; // Use squared distance for efficiency
+        
+        console.log(`Coverage calculation for shelter at [${shelterCoords[0]}, ${shelterCoords[1]}]`);
+        console.log(`Coverage radius: ${this.coverageRadius}m = ${coverageRadiusDeg} degrees`);
+        
+        const coveredBuildings = [];
+        let totalBuildings = 0;
+        let validBuildings = 0;
+        
+        // Use a more efficient loop with early termination
+        for (let i = 0; i < this.spatialAnalyzer.buildings.features.length; i++) {
+            const building = this.spatialAnalyzer.buildings.features[i];
+            totalBuildings++;
+            
+            // Calculate building centroid for distance calculation
+            let buildingCentroid;
+            if (building.geometry.type === 'Point') {
+                buildingCentroid = building.geometry.coordinates;
+                validBuildings++;
+            } else if (building.geometry.type === 'Polygon') {
+                // Calculate centroid of polygon
+                const coords = building.geometry.coordinates[0]; // First ring (exterior)
+                let sumX = 0, sumY = 0;
+                for (let j = 0; j < coords.length - 1; j++) { // Skip last point (same as first)
+                    sumX += coords[j][0];
+                    sumY += coords[j][1];
+                }
+                buildingCentroid = [sumX / (coords.length - 1), sumY / (coords.length - 1)];
+                validBuildings++;
+            } else {
+                // Skip if not point or polygon
+                continue;
+            }
+            
+            // Calculate squared distance (faster than sqrt)
+            const dx = buildingCentroid[0] - shelterCoords[0];
+            const dy = buildingCentroid[1] - shelterCoords[1];
+            const distanceSquared = dx * dx + dy * dy;
+            
+            if (distanceSquared <= coverageRadiusSquared) {
+                coveredBuildings.push(i); // Use array index as building ID
+            }
+        }
+        
+        console.log(`Coverage calculation complete: ${coveredBuildings.length} buildings covered out of ${validBuildings} valid buildings (${totalBuildings} total)`);
+        console.log(`Coverage percentage: ${((coveredBuildings.length / validBuildings) * 100).toFixed(2)}%`);
+        
+        return coveredBuildings;
+    }
+    
+    /**
+     * Select a shelter and highlight its coverage
+     */
+    selectShelter(shelter) {
+        this.selectedShelter = shelter;
+        this.highlightedBuildings = this.calculateShelterCoverage(shelter);
+        this.updateVisualization();
+        this.updateSelectionUI();
+        
+        console.log(`Selected shelter: ${shelter.properties?.shelter_id || 'Optimal site'}`);
+        console.log(`Buildings covered: ${this.highlightedBuildings.length}`);
+    }
+    
+    /**
+     * Clear shelter selection
+     */
+    clearShelterSelection() {
+        this.selectedShelter = null;
+        this.highlightedBuildings = [];
+        this.updateVisualization();
+        this.updateSelectionUI();
+    }
+    
+    /**
+     * Update UI to show selection status
+     */
+    updateSelectionUI() {
+        // You can add a selection indicator to the UI here
+        // For example, update a status bar or add a notification
+        if (this.selectedShelter) {
+            const shelterName = this.selectedShelter.properties?.name || 
+                               this.selectedShelter.properties?.shelter_id || 
+                               'Optimal site';
+            console.log(`📍 Selected: ${shelterName} (${this.highlightedBuildings.length} buildings highlighted)`);
+        } else {
+            console.log('📍 No shelter selected');
+        }
+    }
+    
+    /**
+     * Debug method to test coverage calculation
+     */
+    debugCoverageCalculation() {
+        if (!this.spatialAnalyzer.shelters || !this.spatialAnalyzer.buildings) {
+            console.log('❌ Data not loaded yet');
+            return;
+        }
+        
+        // Test with first shelter
+        const testShelter = this.spatialAnalyzer.shelters.features[0];
+        if (testShelter) {
+            console.log('🧪 Testing coverage calculation...');
+            console.log('Test shelter:', testShelter.properties?.shelter_id);
+            console.log('Coverage radius:', this.coverageRadius, 'm');
+            
+            const startTime = performance.now();
+            const coveredBuildings = this.calculateShelterCoverage(testShelter);
+            const endTime = performance.now();
+            
+            console.log(`✅ Coverage calculation completed in ${(endTime - startTime).toFixed(2)}ms`);
+            console.log(`📊 Buildings covered: ${coveredBuildings.length}`);
+            console.log(`📊 Total buildings: ${this.spatialAnalyzer.buildings.features.length}`);
+            console.log(`📊 Coverage percentage: ${((coveredBuildings.length / this.spatialAnalyzer.buildings.features.length) * 100).toFixed(2)}%`);
+        }
+    }
+    
+    /**
+     * Handle shelter hover for building highlighting
+     */
+    handleShelterHover(shelter) {
+        this.hoveredShelter = shelter;
+        this.hoveredBuildings = this.calculateShelterCoverage(shelter);
+        this.updateVisualization();
+    }
+    
+    /**
+     * Clear shelter hover highlighting
+     */
+    clearShelterHover() {
+        this.hoveredShelter = null;
+        this.hoveredBuildings = [];
+        this.updateVisualization();
+    }
 }
 
 // Initialize app when DOM is loaded
@@ -863,4 +1168,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the application
     window.app = new ShelterAccessApp();
     window.app.initializeApp();
-}); 
+    
+    // Add global debug functions
+    window.debugCoverage = () => {
+        if (window.app) {
+            window.app.debugCoverageCalculation();
+        } else {
+            console.log('❌ App not initialized yet');
+        }
+    };
+    
+    window.testShelterSelection = (shelterIndex = 0) => {
+        if (window.app && window.app.spatialAnalyzer.shelters) {
+            const shelter = window.app.spatialAnalyzer.shelters.features[shelterIndex];
+            if (shelter) {
+                window.app.selectShelter(shelter);
+                console.log(`✅ Selected shelter ${shelterIndex}:`, shelter.properties?.shelter_id);
+            } else {
+                console.log('❌ Shelter not found at index:', shelterIndex);
+            }
+        } else {
+            console.log('❌ App or data not ready');
+        }
+    };
+    
+    window.debugLayers = () => {
+        if (window.app) {
+            window.app.debugLayerVisibility();
+        } else {
+            console.log('❌ App not initialized yet');
+        }
+    };
+    
+    window.toggleBuildings = () => {
+        if (window.app) {
+            const checkbox = document.getElementById('buildingsLayer');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+                console.log('🔄 Toggled buildings layer');
+            }
+        } else {
+            console.log('❌ App not initialized yet');
+        }
+    };
+});

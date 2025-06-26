@@ -9,7 +9,7 @@ class SimpleSpatialAnalyzer {
         this.shelters = null;
         this.optimalData = new Map(); // Cache for precomputed data
         this.coverageRadius = 100;
-        this.includePlannedShelters = false;
+        this.includeRequestedShelters = false;
         
         // Constants
         this.ACCESSIBILITY_OPTIONS = [100, 150, 200, 250, 300];
@@ -25,7 +25,7 @@ class SimpleSpatialAnalyzer {
         
         try {
             const [buildingResponse, shelterResponse] = await Promise.all([
-                fetch('data/buildings_light.geojson'),
+                fetch('data/buildings.geojson'),
                 fetch('data/shelters.geojson')
             ]);
             
@@ -35,7 +35,7 @@ class SimpleSpatialAnalyzer {
             console.log(`✓ Loaded ${this.buildings.features.length} buildings and ${this.shelters.features.length} shelters`);
             
             // Load default optimal data
-            await this.loadOptimalData(this.coverageRadius, this.includePlannedShelters);
+            await this.loadOptimalData(this.coverageRadius, this.includeRequestedShelters);
             
             return true;
         } catch (error) {
@@ -47,8 +47,8 @@ class SimpleSpatialAnalyzer {
     /**
      * Load precomputed optimal shelter data
      */
-    async loadOptimalData(radius, includePlanned) {
-        const scenario = includePlanned ? "with_planned" : "without_planned";
+    async loadOptimalData(radius, includeRequested) {
+        const scenario = includeRequested ? "with_planned" : "without_planned";
         const cacheKey = `${scenario}_${radius}m`;
         
         if (this.optimalData.has(cacheKey)) {
@@ -80,16 +80,16 @@ class SimpleSpatialAnalyzer {
      */
     async setCoverageRadius(radius) {
         this.coverageRadius = radius;
-        await this.loadOptimalData(radius, this.includePlannedShelters);
+        await this.loadOptimalData(radius, this.includeRequestedShelters);
         return this.MAX_SHELTERS;
     }
     
     /**
-     * Set whether to include planned shelters
+     * Set whether to include requested shelters
      */
-    async setIncludePlannedShelters(includePlanned) {
-        this.includePlannedShelters = includePlanned;
-        await this.loadOptimalData(this.coverageRadius, includePlanned);
+    async setIncludeRequestedShelters(includeRequested) {
+        this.includeRequestedShelters = includeRequested;
+        await this.loadOptimalData(this.coverageRadius, includeRequested);
         return this.MAX_SHELTERS;
     }
     
@@ -97,7 +97,7 @@ class SimpleSpatialAnalyzer {
      * Get top N optimal shelter locations
      */
     async getOptimalLocations(numShelters) {
-        const data = await this.loadOptimalData(this.coverageRadius, this.includePlannedShelters);
+        const data = await this.loadOptimalData(this.coverageRadius, this.includeRequestedShelters);
         
         // Return top N locations (they're already sorted by quality)
         const maxShelters = Math.min(numShelters, this.MAX_SHELTERS, data.optimal_locations.length);
@@ -105,61 +105,61 @@ class SimpleSpatialAnalyzer {
     }
     
     /**
-     * Get planned shelter evaluation with specific pairing to optimal locations
+     * Get requested shelter evaluation with specific pairing to optimal locations
      */
-    getPlannedShelterEvaluation(numNewShelters = 0) {
-        if (this.includePlannedShelters) return null;
+    getRequestedShelterEvaluation(numNewShelters = 0) {
+        if (this.includeRequestedShelters) return null;
         
         const cacheKey = `without_planned_${this.coverageRadius}m`;
         const data = this.optimalData.get(cacheKey);
         
         if (!data || !data.existing_shelters || !data.optimal_locations) return null;
         
-        // Get planned shelters
-        const plannedShelters = data.existing_shelters.filter(shelter => 
-            shelter.properties && shelter.properties.status === "Planned"
+        // Get requested shelters (status "Request")
+        const requestedShelters = data.existing_shelters.filter(shelter => 
+            shelter.properties && shelter.properties.status === "Request"
         );
         
-        if (plannedShelters.length === 0) return null;
+        if (requestedShelters.length === 0) return null;
         
-        // We can only replace as many planned shelters as we're building new ones
-        const maxReplacements = Math.min(numNewShelters, plannedShelters.length);
+        // We can only replace as many requested shelters as we're building new ones
+        const maxReplacements = Math.min(numNewShelters, requestedShelters.length);
         
         if (maxReplacements === 0) {
             return {
                 pairedShelters: [],
                 totalPairs: 0,
                 totalImprovement: 0,
-                totalPlanned: plannedShelters.length
+                totalRequested: requestedShelters.length
             };
         }
         
-        // Sort planned shelters by coverage (worst first)
-        const sortedPlanned = [...plannedShelters].sort((a, b) => 
+        // Sort requested shelters by coverage (worst first)
+        const sortedRequested = [...requestedShelters].sort((a, b) => 
             (a.people_covered || 0) - (b.people_covered || 0)
         );
         
         // Get the top N optimal locations we're actually building
         const optimalLocations = data.optimal_locations.slice(0, numNewShelters);
         
-        // Pair worst planned with best optimal, but only up to the number we're building
+        // Pair worst requested with best optimal, but only up to the number we're building
         const pairedShelters = [];
         for (let i = 0; i < maxReplacements; i++) {
-            const planned = sortedPlanned[i];
+            const requested = sortedRequested[i];
             const optimal = optimalLocations[i];
             
-            const plannedCoverage = planned.people_covered || 0;
+            const requestedCoverage = requested.people_covered || 0;
             const optimalCoverage = optimal.people_covered || 0;
-            const improvement = optimalCoverage - plannedCoverage;
+            const improvement = optimalCoverage - requestedCoverage;
             
             if (improvement > 0) {
                 pairedShelters.push({
-                    planned: planned,
+                    requested: requested,
                     optimal: optimal,
                     improvement: improvement,
-                    plannedCoverage: plannedCoverage,
+                    requestedCoverage: requestedCoverage,
                     optimalCoverage: optimalCoverage,
-                    plannedRank: i + 1, // Rank among worst planned (1 = worst)
+                    requestedRank: i + 1, // Rank among worst requested (1 = worst)
                     optimalRank: i + 1  // Rank among selected optimal (1 = best)
                 });
             }
@@ -171,7 +171,7 @@ class SimpleSpatialAnalyzer {
             pairedShelters,
             totalPairs: pairedShelters.length,
             totalImprovement,
-            totalPlanned: plannedShelters.length
+            totalRequested: requestedShelters.length
         };
     }
     
@@ -179,7 +179,7 @@ class SimpleSpatialAnalyzer {
      * Calculate coverage statistics
      */
     calculateCoverageStats(proposedShelters = null) {
-        const cacheKey = `${this.includePlannedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
+        const cacheKey = `${this.includeRequestedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
         const data = this.optimalData.get(cacheKey);
         
         if (!data || !data.statistics) {
@@ -228,24 +228,24 @@ class SimpleSpatialAnalyzer {
         return this.shelters.features.filter(shelter => {
             if (!shelter.properties) return false;
             
-            if (this.includePlannedShelters) {
-                // Include both active and planned
-                return shelter.properties.status === 'Active' || shelter.properties.status === 'Planned';
+            if (this.includeRequestedShelters) {
+                // Include both built and requested
+                return shelter.properties.status === 'Built' || shelter.properties.status === 'Request';
             } else {
-                // Only active shelters
-                return shelter.properties.status === 'Active';
+                // Only built shelters
+                return shelter.properties.status === 'Built';
             }
         });
     }
     
     /**
-     * Get planned shelters for visualization
+     * Get requested shelters for visualization
      */
-    getPlannedShelters() {
-        if (!this.shelters || this.includePlannedShelters) return [];
+    getRequestedShelters() {
+        if (!this.shelters || this.includeRequestedShelters) return [];
         
         return this.shelters.features.filter(shelter => 
-            shelter.properties && shelter.properties.status === 'Planned'
+            shelter.properties && shelter.properties.status === 'Request'
         );
     }
     
@@ -269,7 +269,7 @@ class SimpleSpatialAnalyzer {
             buildings: this.buildings,
             shelters: this.shelters,
             coverageRadius: this.coverageRadius,
-            includePlannedShelters: this.includePlannedShelters
+            includeRequestedShelters: this.includeRequestedShelters
         };
     }
     

@@ -6,11 +6,11 @@ A real-time web-based tool for analyzing and optimizing shelter accessibility fo
 ## 📊 Data & Analysis
 
 ### **Input Data**
-- **📍 Shelters**: existing + planned locations
+- **📍 Shelters**: existing + requested locations
 - **🏘️ Buildings**: Footprint data from MS Planetary Computer {https://planetarycomputer.microsoft.com/} 
 
 ### **Precalculated Parameters**
-- **5 radius options** × **2 scenarios** (with/without planned) = **10 optimization datasets**
+- **5 radius options** × **2 scenarios** (with/without requested) = **10 optimization datasets**
 - **150 optimal locations** per scenario, ranked by coverage statistics
 - **Population Estimates** currently set at 7 people per building (configurable assumption based on average pop. data)
 
@@ -32,7 +32,7 @@ A real-time web-based tool for analyzing and optimizing shelter accessibility fo
 4. Generate statistics and coverage analysis
 ```
 
-## Planned Deployment (Github Pages)
+## Requested Deployment (Github Pages)
 TO-DO
 
 ## 📁 Project Structure
@@ -46,7 +46,7 @@ shelter_access/
 │   └── app.js                          # Real-time UI controller
 ├── data/
 │   ├── buildings_light.geojson        # Building footprints (lightweight)
-│   ├── shelters.geojson               # Existing + planned shelter 
+│   ├── shelters.geojson               # Existing + requested shelter 
 │   └── optimal_locations/             # Precalculated optimization results
 ├── scripts/ # all scripts should be run only once and outputs are already stored in data folder, only use if needed to update data assets
 │   ├── shelter_optimizer.py           # DBSCAN + Greedy optimization
