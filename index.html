@@ -8,6 +8,9 @@
     <!-- deck.gl (no Mapbox dependency) -->
     <script src="https://unpkg.com/deck.gl@^9.0.0/dist.min.js"></script>
     
+    <!-- deck.gl widgets CSS -->
+    <link href="https://unpkg.com/deck.gl@^9.0.0/dist/stylesheet.css" rel='stylesheet' />
+    
     <!-- Turf.js for spatial analysis -->
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     
@@ -48,12 +51,10 @@
                     <h3>➕ New Shelters</h3>
                     <div class="input-group">
                         <label for="newShelters">Number of new shelters</label>
-                        <input type="range" id="newShelters" min="0" max="150" value="10" step="1">
+                        <input type="range" id="newShelters" min="0" max="500" value="10" step="1">
                         <span id="newSheltersValue">10</span>
                     </div>
                 </div>
-                
-
             </div>
             
             <!-- Map Container -->
@@ -71,15 +72,19 @@
                         <div class="basemap-menu">
                             <label class="basemap-option">
                                 <input type="radio" name="basemap" value="satellite" checked>
-                                <span class="basemap-label">Satellite</span>
+                                <span class="basemap-label">Satellite Streets</span>
+                            </label>
+                            <label class="basemap-option">
+                                <input type="radio" name="basemap" value="topography">
+                                <span class="basemap-label">Topography</span>
                             </label>
                             <label class="basemap-option">
                                 <input type="radio" name="basemap" value="light">
-                                <span class="basemap-label">Light</span>
+                                <span class="basemap-label">Light OSM</span>
                             </label>
                             <label class="basemap-option">
                                 <input type="radio" name="basemap" value="dark">
-                                <span class="basemap-label">Dark</span>
+                                <span class="basemap-label">Dark OSM</span>
                             </label>
                         </div>
                     </div>

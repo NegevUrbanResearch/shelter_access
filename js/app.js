@@ -1,6 +1,6 @@
 /**
  * Main Application for Shelter Access Analysis
- * Uses deck.gl for visualization and spatial analysis
+ * Uses deck.gl for visualization and spatial analysis with optimized tile layers
  */
 
 class ShelterAccessApp {
@@ -11,7 +11,7 @@ class ShelterAccessApp {
         this.proposedShelters = [];
         this.coverageRadius = 100;
         this.numNewShelters = 10;
-        this.maxShelters = 150; // Updated to match script's TARGET_SHELTERS
+        this.maxShelters = 500; // Updated to match script's TARGET_SHELTERS
         this.isAnalyzing = false;
         
         // Add state for selected shelter and coverage highlighting
@@ -30,25 +30,44 @@ class ShelterAccessApp {
             optimalShelters: true
         };
         
-        // Basemap configuration (satellite as default, like in hospital access app)
+        // Tile layer settings
+        this.useBuildingTiles = true; // Use tiled buildings for better performance
+        this.buildingTileUrl = 'data/building_tiles/{z}/{x}/{y}.json';
+        
+        // Mapbox token for terrain and other services
+        this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
+        
+        // Basemap configuration with terrain support
         this.currentBasemap = 'satellite';
         this.basemaps = {
             satellite: {
-                name: 'Satellite',
-                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                name: 'Satellite Streets',
+                url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
+                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                type: 'raster'
             },
             light: {
-                name: 'Light',
-                url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+                name: 'Streets',
+                url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
+                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                type: 'raster'
             },
             dark: {
                 name: 'Dark',
-                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+                url: `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
+                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                type: 'raster'
+            },
+            topography: {
+                name: 'Topography',
+                url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
+                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                type: 'raster'
             }
         };
+        
+        // Widgets
+        this.widgets = [];
         
         // UI elements
         this.elements = {
@@ -194,12 +213,14 @@ class ShelterAccessApp {
             this.toggleTheme();
         });
         
+
+        
         // Initial load of optimal locations
         this.updateOptimalLocations();
     }
     
     /**
-     * Initialize deck.gl map
+     * Initialize deck.gl map with widgets and terrain support
      */
     initializeMap() {
         // Get data bounds for initial view
@@ -209,7 +230,10 @@ class ShelterAccessApp {
         const centerLng = (bounds.west + bounds.east) / 2;
         const centerLat = (bounds.south + bounds.north) / 2;
         
-        // Initialize deck.gl without Mapbox dependency
+        // Initialize deck.gl widgets first
+        this.initializeWidgets();
+        
+        // Initialize deck.gl with enhanced features and widgets
         this.deckgl = new deck.DeckGL({
             container: 'map',
             initialViewState: {
@@ -223,8 +247,16 @@ class ShelterAccessApp {
             onHover: (info) => this.handleHover(info),
             onClick: (info) => this.handleClick(info),
             onViewStateChange: ({viewState}) => this.handleViewStateChange(viewState),
-            // Add brush extension for better coverage visualization
-            extensions: [new deck.BrushingExtension()]
+            // Enable WebGL features for better performance
+            parameters: {
+                clearColor: [0.1, 0.1, 0.1, 1],
+                blend: true,
+                blendFunc: [770, 771, 1, 0]
+            },
+            // Use high DPI for crisp rendering
+            useDevicePixels: true,
+            // Add widgets to deck.gl
+            widgets: this.widgets
         });
         
         // Store initial zoom level
@@ -232,6 +264,58 @@ class ShelterAccessApp {
         
         // Initial layer setup
         this.updateVisualization();
+    }
+    
+
+
+    /**
+     * Initialize deck.gl widgets (zoom, fullscreen, compass)
+     */
+    initializeWidgets() {
+        try {
+            // Check if widgets are available in this deck.gl version
+            if (!deck.ZoomWidget || !deck.FullscreenWidget || !deck.CompassWidget) {
+                console.warn('⚠️ Widgets not available in this deck.gl version');
+                return;
+            }
+            
+            // Zoom Control Widget
+            const zoomWidget = new deck.ZoomWidget({
+                id: 'zoom-widget',
+                placement: 'top-left',
+                onViewStateChange: ({viewState}) => {
+                    this.deckgl.setProps({viewState});
+                    this.handleViewStateChange(viewState);
+                }
+            });
+            
+            // Fullscreen Control Widget
+            const fullscreenWidget = new deck.FullscreenWidget({
+                id: 'fullscreen-widget',
+                placement: 'top-left',
+                container: document.getElementById('map')
+            });
+            
+            // Compass Widget
+            const compassWidget = new deck.CompassWidget({
+                id: 'compass-widget',
+                placement: 'top-left',
+                onViewStateChange: ({viewState}) => {
+                    this.deckgl.setProps({viewState});
+                    this.handleViewStateChange(viewState);
+                }
+            });
+            
+            // Store widgets for later use
+            this.widgets = [zoomWidget, fullscreenWidget, compassWidget];
+            
+            console.log('✅ Deck.gl widgets initialized');
+            
+        } catch (error) {
+            console.warn('⚠️ Widgets not available in this deck.gl version:', error);
+            // Widgets might not be available in all deck.gl versions
+            // Fall back to basic functionality
+        }
     }
     
     /**
@@ -256,15 +340,50 @@ class ShelterAccessApp {
             });
         }
         
-        // === BUILDINGS LAYER (Full polygon footprints) ===
-        if (currentData.buildings && currentData.buildings.features.length > 0) {
-            // Only show buildings if layer is enabled OR if we're hovering over a shelter
-            const shouldShowBuildings = this.layerVisibility.buildings || 
-                                      (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
-                                      (this.selectedShelter && this.highlightedBuildings.length > 0);
-            
-            if (shouldShowBuildings) {
-                // Determine which buildings to show
+        // === BUILDINGS LAYER (Tiled or GeoJSON) ===
+        const shouldShowBuildings = this.layerVisibility.buildings || 
+                                  (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
+                                  (this.selectedShelter && this.highlightedBuildings.length > 0);
+        
+        if (shouldShowBuildings) {
+            if (this.useBuildingTiles && this.layerVisibility.buildings) {
+                // Use optimized tile layer for all buildings when layer is enabled
+                layers.push(new deck.TileLayer({
+                    id: 'buildings-tiles',
+                    data: this.buildingTileUrl,
+                    minZoom: 10,
+                    maxZoom: 16,
+                    tileSize: 256,
+                    pickable: false,
+                    
+                    renderSubLayers: props => {
+                        const {data, tile} = props;
+                        
+                        if (!data || !data.features || data.features.length === 0) {
+                            return null;
+                        }
+                        
+                        return new deck.GeoJsonLayer({
+                            ...props,
+                            id: `buildings-tile-${tile.x}-${tile.y}-${tile.z}`,
+                            data: data.features,
+                            stroked: true,
+                            filled: true,
+                            lineWidthMinPixels: 1,
+                            lineWidthMaxPixels: 2,
+                            getFillColor: [255, 0, 0, 120], // Red for all buildings
+                            getLineColor: [255, 0, 0, 180], // Red outline
+                            getLineWidth: 1,
+                            // Performance optimizations
+                            updateTriggers: {
+                                getFillColor: [this._currentZoom],
+                                getLineColor: [this._currentZoom]
+                            }
+                        });
+                    }
+                }));
+            } else if (currentData.buildings && currentData.buildings.features.length > 0) {
+                // Fallback to GeoJSON layer for coverage highlighting or when tiles are disabled
                 let buildingsToShow;
                 if (this.layerVisibility.buildings) {
                     // Show all buildings when layer is enabled
@@ -282,7 +401,7 @@ class ShelterAccessApp {
                 
                 if (buildingsToShow.length > 0) {
                     layers.push(new deck.GeoJsonLayer({
-                        id: 'buildings',
+                        id: 'buildings-geojson',
                         data: buildingsToShow.map((feature, index) => ({
                             ...feature,
                             _index: index // Add array index for identification
@@ -293,9 +412,6 @@ class ShelterAccessApp {
                         lineWidthMinPixels: 1,
                         lineWidthMaxPixels: 2,
                         // Performance optimizations for large datasets
-                        _lighting: 'pbr',
-                        _useTerrainProjection: false,
-                        // Level of detail optimization
                         parameters: {
                             blend: true,
                             blendFunc: [770, 771, 1, 0]
@@ -551,9 +667,25 @@ class ShelterAccessApp {
         
         // Get current basemap configuration
         const basemapConfig = this.basemaps[this.currentBasemap];
+        let baseLayer;
         
-        // Create tile layer with proper URL handling
-        const tileLayer = new deck.TileLayer({
+        // Standard raster tile layer for all basemaps
+        baseLayer = this.createStandardTileLayer(basemapConfig);
+        
+        // Combine base layer with data layers
+        const allLayers = [baseLayer, ...dataLayers];
+        
+        this.deckgl.setProps({ layers: allLayers });
+        
+        console.log(`🗺️ Updated visualization with ${dataLayers.length} data layers on ${basemapConfig.name} basemap`);
+        this.updateCoverageAnalysis();
+    }
+    
+    /**
+     * Create standard tile layer for raster basemaps
+     */
+    createStandardTileLayer(basemapConfig) {
+        return new deck.TileLayer({
             id: 'base-tiles',
             data: basemapConfig.url,
             minZoom: 0,
@@ -592,12 +724,6 @@ class ShelterAccessApp {
                 });
             }
         });
-        
-        // Combine base layer with data layers
-        const allLayers = [tileLayer, ...dataLayers];
-        
-        this.deckgl.setProps({ layers: allLayers });
-        this.updateCoverageAnalysis();
     }
     
     /**

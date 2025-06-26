@@ -203,6 +203,11 @@ body {
     box-shadow: 0 2px 6px var(--shadow-medium);
 }
 
+.input-group input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
 .input-group span {
     font-weight: bold;
     color: var(--accent-blue);
@@ -222,55 +227,15 @@ body {
     color: var(--text-primary);
 }
 
+.checkbox-label:hover {
+    background: var(--accent-blue-light);
+}
+
 .checkbox-label input[type="checkbox"] {
     width: 18px;
     height: 18px;
     accent-color: var(--accent-blue);
     cursor: pointer;
-}
-
-/* Analyze Button */
-.analyze-btn {
-    width: 100%;
-    padding: 1rem;
-    background: linear-gradient(135deg, var(--accent-blue), #2980b9);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px var(--accent-blue-shadow);
-}
-
-.analyze-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px var(--accent-blue-shadow);
-}
-
-.analyze-btn:active {
-    transform: translateY(0);
-}
-
-/* Right legend panel */
-.legend-panel.right-panel {
-    width: 300px;
-    background: var(--bg-primary);
-    padding: 1rem;
-    box-shadow: -2px 0 10px var(--shadow-light);
-    overflow-y: auto;
-    z-index: 10;
-    transition: all 0.3s ease;
-}
-
-.legend-panel h3 {
-    color: var(--text-accent);
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-    border-bottom: 2px solid var(--accent-blue);
-    padding-bottom: 0.5rem;
-    font-weight: 600;
 }
 
 /* Map container and basic styling */
@@ -285,6 +250,39 @@ body {
     width: 100%;
     height: 100%;
     position: relative;
+}
+
+/* deck.gl Widgets Styling */
+.deck-widgets {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Custom widget styling to match our theme */
+.deck-widget {
+    --button-size: 44px;
+    --button-border-radius: 12px;
+    --widget-margin: 8px;
+    --button-background: rgba(255, 255, 255, 0.95);
+    --button-stroke: rgba(52, 152, 219, 0.3);
+    --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --button-backdrop-filter: blur(10px);
+    --button-icon-idle: rgba(52, 152, 219, 0.8);
+    --button-icon-hover: rgba(52, 152, 219, 1);
+    --icon-compass-north-color: #e74c3c;
+    --icon-compass-south-color: #95a5a6;
+}
+
+[data-theme="dark"] .deck-widget {
+    --button-background: rgba(26, 26, 26, 0.95);
+    --button-stroke: rgba(93, 173, 226, 0.3);
+    --button-icon-idle: rgba(93, 173, 226, 0.8);
+    --button-icon-hover: rgba(93, 173, 226, 1);
 }
 
 /* Map Controls */
@@ -324,7 +322,7 @@ body {
     transition: all 0.3s ease;
     position: absolute;
     top: 20px;
-    right: 170px; /* Increased spacing to prevent overlap */
+    right: 230px; /* Further increased spacing to prevent overlap */
     z-index: 1000;
 }
 
@@ -423,7 +421,7 @@ body {
 }
 
 .basemap-control.expanded .basemap-menu {
-    max-height: 120px;
+    max-height: 160px;
 }
 
 .layer-control.expanded .layer-menu {
@@ -520,39 +518,24 @@ body {
     border-bottom-color: rgba(39, 174, 96, 0.4);
 }
 
-/* Requested analysis section */
-.requested-analysis {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 0.75rem;
-    margin: 1rem 0;
-    border-left: 4px solid #f39c12;
+/* Right legend panel */
+.legend-panel.right-panel {
+    width: 300px;
+    background: var(--bg-primary);
+    padding: 1rem;
+    box-shadow: -2px 0 10px var(--shadow-light);
+    overflow-y: auto;
+    z-index: 10;
     transition: all 0.3s ease;
 }
 
-.requested-analysis h4 {
+.legend-panel h3 {
     color: var(--text-accent);
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    border-bottom: 2px solid var(--accent-blue);
+    padding-bottom: 0.5rem;
     font-weight: 600;
-}
-
-.requested-analysis .stats-grid {
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.requested-analysis .stat {
-    padding: 0.5rem;
-}
-
-.requested-analysis .stat-label {
-    font-size: 0.7rem;
-    margin-bottom: 0.3rem;
-}
-
-.requested-analysis .stat-value {
-    font-size: 1rem;
 }
 
 /* Map attribution */
@@ -699,7 +682,7 @@ body {
     
     /* Mobile map controls - stack vertically */
     .layer-control {
-        top: 80px; /* Position below basemap control */
+        top: 100px; /* Position below basemap control with more space */
         right: 20px; /* Align with basemap control */
     }
 }
