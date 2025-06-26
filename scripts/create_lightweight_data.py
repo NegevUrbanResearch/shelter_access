@@ -132,7 +132,7 @@ def main():
     data_dir = Path('data')
     
     # Create lightweight centroid buildings
-    buildings_input = data_dir / 'bedouin_buildings.shp'
+    buildings_input = data_dir / 'buildings.geojson'
     buildings_output = data_dir / 'buildings_light.geojson'
     
     if buildings_input.exists():
@@ -141,22 +141,6 @@ def main():
     else:
         print(f"❌ Buildings shapefile not found: {buildings_input}")
     
-    # Optimize shelters data
-    shelters_input = data_dir / 'shelters.geojson'  # Use existing GeoJSON
-    shelters_output = data_dir / 'shelters_optimized.geojson'
-    
-    if shelters_input.exists():
-        shelters_data = optimize_shelters_data(shelters_input, shelters_output)
-        print()
-    else:
-        print(f"❌ Shelters GeoJSON not found: {shelters_input}")
-    
-    print("🎉 Lightweight data creation complete!")
-    print("\n📋 Next steps:")
-    print("1. Update your application to use 'buildings_light.geojson' and 'shelters_optimized.geojson'")
-    print("2. Test the application performance")
-    print("3. Buildings are now simple centroids - much faster loading!")
-    print("4. All original building properties preserved")
 
 if __name__ == "__main__":
     main() 
