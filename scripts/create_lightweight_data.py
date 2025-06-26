@@ -63,68 +63,6 @@ def create_lightweight_buildings(input_path, output_path):
     
     return geojson_data
 
-def optimize_shelters_data(input_path, output_path):
-    """
-    Optimize shelters data and separate by status
-    """
-    print(f"🏠 Processing shelters data from {input_path}...")
-    
-    # Load shelters
-    with open(input_path, 'r') as f:
-        shelters_data = json.load(f)
-    
-    # Count by status
-    statuses = [f['properties'].get('status', 'Unknown') for f in shelters_data['features']]
-    from collections import Counter
-    status_counts = Counter(statuses)
-    
-    print("   Status distribution:")
-    for status, count in status_counts.items():
-        print(f"     {status}: {count}")
-    
-    # Optimize the data structure
-    optimized_features = []
-    
-    for i, feature in enumerate(shelters_data['features']):
-        props = feature['properties']
-        
-        optimized_feature = {
-            'type': 'Feature',
-            'geometry': feature['geometry'],
-            'properties': {
-                'shelter_id': props.get('shelter_id', f'SH_{i:03d}'),
-                'name': props.get('name', f'Shelter_{i:03d}'),
-                'status': props.get('status', 'Active'),
-                'capacity': int(props.get('capacity', np.random.randint(50, 150))),
-                'type': props.get('type', 'Mobile')
-            }
-        }
-        optimized_features.append(optimized_feature)
-    
-    # Create optimized GeoJSON
-    optimized_data = {
-        'type': 'FeatureCollection',
-        'features': optimized_features,
-        'metadata': {
-            'source': 'Negev emergency shelters',
-            'total_count': len(optimized_features),
-            'status_distribution': dict(status_counts)
-        }
-    }
-    
-    # Write optimized GeoJSON
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(optimized_data, f, separators=(',', ':'))
-    
-    import os
-    output_size_kb = os.path.getsize(output_path) / 1024
-    print(f"✅ Optimized shelters created!")
-    print(f"   Output: {output_path}")
-    print(f"   Shelters: {len(optimized_features):,}")
-    print(f"   File size: {output_size_kb:.1f}KB")
-    
-    return optimized_data
-
 def main():
     """Main function to create lightweight data files"""
     print("🚀 Creating lightweight data for web application...\n")
