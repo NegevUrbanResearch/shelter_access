@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Enhanced DBSCAN + K-means Shelter Optimizer with Planned Shelter Logic
+Enhanced DBSCAN + K-means Shelter Optimizer with Requested Shelter Logic
 Finds optimal shelter locations using two complementary methods:
 1. DBSCAN variants (24 configurations) to find density-based clusters  
 2. K-means clustering (k=750, 1500) for systematic space coverage
 Then uses advanced selection strategies.
 
 Supports two scenarios per radius:
-- Without planned shelters: Find optimal locations ignoring existing infrastructure
-- With planned shelters: Account for existing shelter coverage when optimizing
+- Without requested shelters: Find optimal locations ignoring existing infrastructure
+- With requested shelters: Account for existing shelter coverage when optimizing
 """
 
 import json
@@ -58,41 +58,47 @@ class EnhancedShelterOptimizer:
         lon_deg_per_meter = 1 / (111000 * np.cos(np.radians(lat)))
         return meters * lat_deg_per_meter, meters * lon_deg_per_meter
     
-    def process_existing_shelters(self, shelter_features, include_planned=False):
-        """Process existing and planned shelters from GeoJSON"""
+    def process_existing_shelters(self, shelter_features, include_requested=False):
+        """Process existing and requested shelters from GeoJSON"""
         existing_shelters = []
-        planned_shelters = []
+        requested_shelters = []
         existing_shelter_data = []
-        planned_shelter_data = []
+        requested_shelter_data = []
         
         for shelter in shelter_features:
-            is_planned = shelter['properties'].get('type') == 'planned'
+            status = shelter['properties'].get('status', '').strip()
+            if not status or status == 'Built':
+                is_requested = False
+            elif status == 'Request':
+                is_requested = True
+            else:
+                is_requested = False  # fallback, treat unknown as existing
             coords = shelter['geometry']['coordinates']
             shelter_coord = [coords[1], coords[0]]  # lat, lon
             
             shelter_info = {
                 'lat': float(coords[1]),
                 'lon': float(coords[0]),
-                'type': 'planned' if is_planned else 'existing',
+                'type': 'requested' if is_requested else 'existing',
                 'properties': shelter['properties']
             }
             
-            if is_planned:
-                planned_shelters.append(shelter_coord)
-                planned_shelter_data.append(shelter_info)
+            if is_requested:
+                requested_shelters.append(shelter_coord)
+                requested_shelter_data.append(shelter_info)
             else:
                 existing_shelters.append(shelter_coord)
                 existing_shelter_data.append(shelter_info)
         
         existing_shelters = np.array(existing_shelters) if existing_shelters else np.empty((0, 2))
-        planned_shelters = np.array(planned_shelters) if planned_shelters else np.empty((0, 2))
+        requested_shelters = np.array(requested_shelters) if requested_shelters else np.empty((0, 2))
         
         # Determine which shelters to treat as "active" for coverage filtering
         active_shelters = existing_shelters.copy() if len(existing_shelters) > 0 else np.empty((0, 2))
-        if include_planned and len(planned_shelters) > 0:
-            active_shelters = np.vstack([active_shelters, planned_shelters]) if len(active_shelters) > 0 else planned_shelters
+        if include_requested and len(requested_shelters) > 0:
+            active_shelters = np.vstack([active_shelters, requested_shelters]) if len(active_shelters) > 0 else requested_shelters
         
-        return active_shelters, existing_shelter_data, planned_shelter_data
+        return active_shelters, existing_shelter_data, requested_shelter_data
     
     def calculate_shelter_coverage(self, shelter_coords, building_coords, coverage_radius_deg):
         """Calculate how many buildings each shelter covers using vectorized operations"""
@@ -121,7 +127,7 @@ class EnhancedShelterOptimizer:
         return shelter_coverage
     
     def filter_existing_coverage(self, building_coords, active_shelters, coverage_radius_deg):
-        """Remove buildings already covered by existing/planned shelters"""
+        """Remove buildings already covered by existing/requested shelters"""
         if len(active_shelters) == 0:
             return building_coords, np.arange(len(building_coords))
         
@@ -839,17 +845,17 @@ class EnhancedShelterOptimizer:
         return self.optimize_single_run_for_buildings(building_coords, coverage_radius_m, main_pbar)
     
     def optimize_for_radius_and_scenario(self, building_coords, building_features, 
-                                       shelter_features, coverage_radius_m, include_planned, pbar=None):
-        """Optimize shelter locations for specific radius and planned shelter scenario"""
+                                       shelter_features, coverage_radius_m, include_requested, pbar=None):
+        """Optimize shelter locations for specific radius and requested shelter scenario"""
         
-        scenario_name = "with_planned" if include_planned else "without_planned"
+        scenario_name = "with_requested" if include_requested else "without_requested"
         print(f"\n  📊 Scenario: {scenario_name.replace('_', ' ').title()}")
         
         coverage_radius_deg, _ = self.meters_to_degrees(coverage_radius_m)
         
-        # Process existing and planned shelters
-        active_shelters, existing_shelter_data, planned_shelter_data = self.process_existing_shelters(
-            shelter_features, include_planned
+        # Process existing and requested shelters
+        active_shelters, existing_shelter_data, requested_shelter_data = self.process_existing_shelters(
+            shelter_features, include_requested
         )
         
         # Calculate existing shelter coverage if any
@@ -863,8 +869,8 @@ class EnhancedShelterOptimizer:
             for i, coverage in enumerate(existing_coverage):
                 if i < len(existing_shelter_data):
                     existing_shelter_data[i].update(coverage)
-                elif i - len(existing_shelter_data) < len(planned_shelter_data):
-                    planned_shelter_data[i - len(existing_shelter_data)].update(coverage)
+                elif i - len(existing_shelter_data) < len(requested_shelter_data):
+                    requested_shelter_data[i - len(existing_shelter_data)].update(coverage)
             
             print(f"    📍 Active shelters: {len(active_shelters)} covering {total_existing_coverage} buildings")
         
@@ -877,11 +883,11 @@ class EnhancedShelterOptimizer:
             print("    ✅ All buildings already covered by existing shelters!")
             return {
                 'radius_m': coverage_radius_m,
-                'include_planned': include_planned,
+                'include_requested': include_requested,
                 'scenario': scenario_name,
                 'optimal_locations': [],
                 'existing_shelters': existing_shelter_data,
-                'planned_shelters': planned_shelter_data,
+                'requested_shelters': requested_shelter_data,
                 'statistics': {
                     'total_buildings': len(building_features),
                     'total_people': total_people,
@@ -918,11 +924,11 @@ class EnhancedShelterOptimizer:
         
         result = {
             'radius_m': coverage_radius_m,
-            'include_planned': include_planned,
+            'include_requested': include_requested,
             'scenario': scenario_name,
             'optimal_locations': selected_shelters,
             'existing_shelters': existing_shelter_data,
-            'planned_shelters': planned_shelter_data,
+            'requested_shelters': requested_shelter_data,
             'statistics': {
                 'total_buildings': len(building_features),
                 'total_people': total_people,
@@ -941,7 +947,7 @@ class EnhancedShelterOptimizer:
         return result
     
     def run_full_optimization(self, buildings_file, shelters_file, output_dir='data/optimal_locations'):
-        """Run enhanced optimization for all radii and scenarios"""
+        """Run enhanced optimization for all radii and scenarios (now only without_requested)"""
         print("🏠 ENHANCED ENSEMBLE SHELTER OPTIMIZATION")
         print("=" * 70)
         print(f"Target: {self.TARGET_SHELTERS} shelters per radius")
@@ -950,58 +956,38 @@ class EnhancedShelterOptimizer:
         print(f"Strategy: Generate diverse candidates, then optimal non-overlapping selection")
         print(f"Multithreading: {'Enabled' if self.USE_MULTITHREADING else 'Disabled'} ({self.MAX_WORKERS} workers)" if self.USE_MULTITHREADING else "Multithreading: Disabled")
         print("=" * 70)
-        
-        # Load data
         print("📁 Loading data...")
         building_coords, building_features = self.load_geojson(buildings_file)
         print(f"    ✓ Loaded {len(building_features)} buildings")
-        
         shelter_coords, shelter_features = self.load_geojson(shelters_file)
         print(f"    ✓ Loaded {len(shelter_features)} shelters")
-        
-        # Create output directory
         os.makedirs(output_dir, exist_ok=True)
-        
-        # Run optimization for each radius and scenario
-        total_scenarios = len(self.RADII_TO_TEST) * 2  # 2 scenarios per radius
+        total_scenarios = len(self.RADII_TO_TEST)  # Only one scenario per radius
         scenario_count = 0
-        
         for radius_m in self.RADII_TO_TEST:
             print(f"\n🎯 RADIUS: {radius_m}m")
             print("=" * 50)
-            
-            for include_planned in [False, True]:  # without planned, then with planned
-                scenario_count += 1
-                scenario_name = "with_planned" if include_planned else "without_planned"
-                
-                print(f"\n📊 Scenario {scenario_count}/{total_scenarios}: {scenario_name.replace('_', ' ').title()}")
-                
-                # Calculate total progress steps for this scenario
-                dbscan_steps = 1 + (len(self.DBSCAN_EPS_MULTIPLIERS) * len(self.DBSCAN_MIN_SAMPLES))  # +1 for original DBSCAN
-                kmeans_steps = len(self.KMEANS_K_VALUES) * self.N_KMEANS_SEEDS
-                total_steps = dbscan_steps + kmeans_steps + 2  # +2 for selection and final processing
-                
-                with tqdm(total=total_steps, desc=f"  {radius_m}m {scenario_name}") as pbar:
-                    result = self.optimize_for_radius_and_scenario(
-                        building_coords, building_features, shelter_features, 
-                        radius_m, include_planned, pbar
-                    )
-                
-                if result:
-                    # Save result with correct filename pattern to match original
-                    scenario_name = "with_planned" if include_planned else "without_planned"
-                    filename = f"optimal_shelters_{scenario_name}_{radius_m}m.json"
-                    filepath = os.path.join(output_dir, filename)
-                    
-                    with open(filepath, 'w') as f:
-                        json.dump(result, f, indent=2)
-                    
-                    coverage_pct = result['statistics']['coverage_percentage']
-                    shelters_count = result['statistics']['shelters_selected']
-                    print(f"    💾 Saved: {filename} ({coverage_pct:.1f}% coverage, {shelters_count} shelters)")
-                else:
-                    print(f"    ❌ No result for {scenario_name} {radius_m}m")
-        
+            scenario_count += 1
+            scenario_name = "without_requested"
+            print(f"\n📊 Scenario {scenario_count}/{total_scenarios}: {scenario_name.replace('_', ' ').title()}")
+            dbscan_steps = 1 + (len(self.DBSCAN_EPS_MULTIPLIERS) * len(self.DBSCAN_MIN_SAMPLES))
+            kmeans_steps = len(self.KMEANS_K_VALUES) * self.N_KMEANS_SEEDS
+            total_steps = dbscan_steps + kmeans_steps + 2
+            with tqdm(total=total_steps, desc=f"  {radius_m}m {scenario_name}") as pbar:
+                result = self.optimize_for_radius_and_scenario(
+                    building_coords, building_features, shelter_features, 
+                    radius_m, False, pbar
+                )
+            if result:
+                filename = f"optimal_shelters_without_planned_{radius_m}m.json"
+                filepath = os.path.join(output_dir, filename)
+                with open(filepath, 'w') as f:
+                    json.dump(result, f, indent=2)
+                coverage_pct = result['statistics']['coverage_percentage']
+                shelters_count = result['statistics']['shelters_selected']
+                print(f"    💾 Saved: {filename} ({coverage_pct:.1f}% coverage, {shelters_count} shelters)")
+            else:
+                print(f"    ❌ No result for {scenario_name} {radius_m}m")
         print(f"\n🎉 Enhanced optimization completed!")
         print(f"📁 Results saved in: {output_dir}/")
 

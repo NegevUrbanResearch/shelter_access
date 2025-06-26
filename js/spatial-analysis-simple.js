@@ -48,26 +48,20 @@ class SimpleSpatialAnalyzer {
      * Load precomputed optimal shelter data
      */
     async loadOptimalData(radius, includeRequested) {
-        const scenario = includeRequested ? "with_planned" : "without_planned";
-        const cacheKey = `${scenario}_${radius}m`;
-        
+        // Only support 'optimal_shelters' scenario
+        const cacheKey = `optimal_shelters_${radius}m`;
         if (this.optimalData.has(cacheKey)) {
             return this.optimalData.get(cacheKey);
         }
-        
         try {
             console.log(`Loading optimal data: ${cacheKey}...`);
-            const response = await fetch(`data/optimal_locations/optimal_shelters_${cacheKey}.json`);
-            
+            const response = await fetch(`data/optimal_locations/${cacheKey}.json`);
             if (!response.ok) {
                 throw new Error(`Failed to load: ${response.status}`);
             }
-            
             const data = await response.json();
             this.optimalData.set(cacheKey, data);
-            
             console.log(`✓ Loaded ${data.optimal_locations.length} optimal locations for ${cacheKey}`);
-            
             return data;
         } catch (error) {
             console.error(`Error loading ${cacheKey}:`, error);
@@ -80,7 +74,7 @@ class SimpleSpatialAnalyzer {
      */
     async setCoverageRadius(radius) {
         this.coverageRadius = radius;
-        await this.loadOptimalData(radius, this.includeRequestedShelters);
+        await this.loadOptimalData(radius);
         return this.MAX_SHELTERS;
     }
     
@@ -88,8 +82,9 @@ class SimpleSpatialAnalyzer {
      * Set whether to include requested shelters
      */
     async setIncludeRequestedShelters(includeRequested) {
-        this.includeRequestedShelters = includeRequested;
-        await this.loadOptimalData(this.coverageRadius, includeRequested);
+        // No longer supports includeRequested, always false
+        this.includeRequestedShelters = false;
+        await this.loadOptimalData(this.coverageRadius, false);
         return this.MAX_SHELTERS;
     }
     
@@ -97,9 +92,7 @@ class SimpleSpatialAnalyzer {
      * Get top N optimal shelter locations
      */
     async getOptimalLocations(numShelters) {
-        const data = await this.loadOptimalData(this.coverageRadius, this.includeRequestedShelters);
-        
-        // Return top N locations (they're already sorted by quality)
+        const data = await this.loadOptimalData(this.coverageRadius);
         const maxShelters = Math.min(numShelters, this.MAX_SHELTERS, data.optimal_locations.length);
         return data.optimal_locations.slice(0, maxShelters);
     }
@@ -108,11 +101,8 @@ class SimpleSpatialAnalyzer {
      * Get requested shelter evaluation with specific pairing to optimal locations
      */
     getRequestedShelterEvaluation(numNewShelters = 0) {
-        if (this.includeRequestedShelters) return null;
-        
-        const cacheKey = `without_planned_${this.coverageRadius}m`;
+        const cacheKey = `optimal_shelters_${this.coverageRadius}m`;
         const data = this.optimalData.get(cacheKey);
-        
         if (!data || !data.existing_shelters || !data.optimal_locations) return null;
         
         // Get requested shelters (status "Request")
@@ -179,7 +169,7 @@ class SimpleSpatialAnalyzer {
      * Calculate coverage statistics
      */
     calculateCoverageStats(proposedShelters = null) {
-        const cacheKey = `${this.includeRequestedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
+        const cacheKey = `optimal_shelters_${this.coverageRadius}m`;
         const data = this.optimalData.get(cacheKey);
         
         if (!data || !data.statistics) {

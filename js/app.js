@@ -56,7 +56,6 @@ class ShelterAccessApp {
             accessibilityDistanceValue: document.getElementById('accessibilityDistanceValue'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
-            analyzeRequestedCheckbox: document.getElementById('analyzeRequested'),
             basemapControl: document.querySelector('.basemap-control'),
             basemapHeader: document.querySelector('.basemap-header'),
             layerControl: document.querySelector('.layer-control'),
@@ -108,14 +107,6 @@ class ShelterAccessApp {
             
             // Set initial attribution
             this.updateAttribution();
-            
-            // Initialize requested analysis section and legend visibility
-            const requestedAnalysisDiv = document.getElementById('requestedAnalysis');
-            const analyzeRequestedChecked = this.elements.analyzeRequestedCheckbox.checked;
-            
-            if (requestedAnalysisDiv) {
-                requestedAnalysisDiv.style.display = analyzeRequestedChecked ? 'block' : 'none';
-            }
             
             // Initial analysis
             this.updateCoverageAnalysis();
@@ -171,39 +162,6 @@ class ShelterAccessApp {
         this.elements.newSheltersSlider.addEventListener('input', async (e) => {
             this.numNewShelters = parseInt(e.target.value);
             this.elements.newSheltersValue.textContent = this.numNewShelters;
-            await this.updateOptimalLocations();
-        });
-        
-        // Analyze requested shelters checkbox
-        this.elements.analyzeRequestedCheckbox.addEventListener('change', async (e) => {
-            // When checked: analyze requested shelters (treat them as not existing for optimization)
-            // When unchecked: show requested shelters normally (treat them as existing, don't analyze)
-            const includeRequestedAsExisting = !e.target.checked;
-            const maxShelters = await this.spatialAnalyzer.setIncludeRequestedShelters(includeRequestedAsExisting);
-            this.maxShelters = maxShelters;
-            
-            // Update slider max
-            this.elements.newSheltersSlider.max = this.maxShelters;
-            if (this.numNewShelters > this.maxShelters) {
-                this.numNewShelters = this.maxShelters;
-                this.elements.newSheltersSlider.value = this.maxShelters;
-                this.elements.newSheltersValue.textContent = this.maxShelters;
-            }
-            
-            // Show/hide requested analysis section and legend item
-            const requestedAnalysisDiv = document.getElementById('requestedAnalysis');
-            
-            if (e.target.checked) {
-                // Show requested analysis and replaceable legend when analyzing
-                requestedAnalysisDiv.style.display = 'block';
-            } else {
-                // Hide requested analysis and replaceable legend when not analyzing
-                requestedAnalysisDiv.style.display = 'none';
-            }
-            
-            // Reset analysis when toggling requested shelters
-            this.proposedShelters = [];
-            this.clearShelterSelection();
             await this.updateOptimalLocations();
         });
         
@@ -514,20 +472,6 @@ class ShelterAccessApp {
             );
             
             if (requestedShelters.length > 0) {
-                // Check if we should analyze requested shelters (when checkbox is checked)
-                const shouldAnalyzeRequested = this.elements.analyzeRequestedCheckbox.checked;
-                
-                // Get replaceable shelter IDs if analyzing
-                let replaceableIds = new Set();
-                if (shouldAnalyzeRequested && this.proposedShelters.length > 0) {
-                    const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
-                    if (requestedEval && requestedEval.pairedShelters) {
-                        replaceableIds = new Set(requestedEval.pairedShelters.map(pair => 
-                            pair.requested.properties ? pair.requested.properties.shelter_id : null
-                        ).filter(id => id !== null));
-                    }
-                }
-                
                 // Requested shelter points
                 layers.push(new deck.ScatterplotLayer({
                     id: 'requested-shelters',
@@ -554,10 +498,6 @@ class ShelterAccessApp {
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
                             return [255, 165, 0, 255]; // Bright orange for selected
-                        }
-                        // Red warning for replaceable requested shelters (only when analyzing)
-                        if (shouldAnalyzeRequested && replaceableIds.has(d.properties.shelter_id)) {
-                            return [220, 53, 69, 255]; // Red warning
                         }
                         return [255, 165, 0, 255]; // Bright orange for requested
                     },
