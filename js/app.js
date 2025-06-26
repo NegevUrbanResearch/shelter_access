@@ -84,32 +84,14 @@ class ShelterAccessApp {
     async initializeApp() {
         try {
             console.log('🚀 Initializing Shelter Access Analysis App...');
-            
-            // Load theme preference
             this.loadThemePreference();
-            
-            // Initialize UI controls
             this.setupEventListeners();
-            
-            // Load spatial data
             await this.spatialAnalyzer.loadData();
-            
-            // Debug: Check shelter data
-            console.log('📊 Loaded shelters:', this.spatialAnalyzer.shelters?.features?.length || 0);
-            if (this.spatialAnalyzer.shelters?.features?.length > 0) {
-                const firstShelter = this.spatialAnalyzer.shelters.features[0];
-                console.log('🔍 First shelter status:', firstShelter.properties?.status);
-                console.log('🔍 First shelter coords:', firstShelter.geometry?.coordinates);
-            }
-            
-            // Initialize map
             this.initializeMap();
-            
-            // Set initial attribution
             this.updateAttribution();
             
-            // Initial analysis
-            this.updateCoverageAnalysis();
+            // Initial load of optimal locations and coverage analysis
+            await this.updateOptimalLocations();
             
             // Debug coverage calculation
             setTimeout(() => this.debugCoverageCalculation(), 1000);
@@ -636,6 +618,9 @@ class ShelterAccessApp {
             // Update visualization
             this.updateVisualization();
             
+            // Update coverage analysis
+            this.updateCoverageAnalysis();
+            
         } catch (error) {
             console.error('❌ Loading optimal locations failed:', error);
         } finally {
@@ -647,14 +632,26 @@ class ShelterAccessApp {
      * Update coverage analysis and statistics
      */
     updateCoverageAnalysis() {
-        const cacheKey = `${this.spatialAnalyzer.includeRequestedShelters ? "with_planned" : "without_planned"}_${this.coverageRadius}m`;
-        const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-        const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
+        console.log('🔄 Updating coverage analysis...');
+        const cacheKey = `optimal_shelters_${this.coverageRadius}m`;
+        console.log('📊 Cache key:', cacheKey);
         
-        if (!data || !data.statistics) return;
+        const data = this.spatialAnalyzer.optimalData.get(cacheKey);
+        console.log('📊 Data available:', !!data);
+        console.log('📊 Statistics available:', !!(data && data.statistics));
+        
+        const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
+        console.log('📊 Requested evaluation:', requestedEval);
+        
+        if (!data || !data.statistics) {
+            console.log('❌ No data or statistics available');
+            return;
+        }
         
         const stats = data.statistics;
         const newSheltersSelected = this.proposedShelters.length;
+        console.log('📊 Stats:', stats);
+        console.log('📊 New shelters selected:', newSheltersSelected);
         
         // Calculate coverage from selected optimal shelters
         let newBuildingsCovered = 0;
@@ -663,28 +660,45 @@ class ShelterAccessApp {
             newBuildingsCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.buildings_covered || 0), 0);
             newPeopleCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.people_covered || 0), 0);
         }
+        console.log('📊 New buildings covered:', newBuildingsCovered);
+        console.log('📊 New people covered:', newPeopleCovered);
         
         const existingCoverage = (stats.total_buildings_covered || 0) - (stats.new_buildings_covered || 0);
         const totalBuildingsCovered = existingCoverage + newBuildingsCovered;
         const totalPeopleCovered = ((totalBuildingsCovered) * 7); // 7 people per building
         const totalCoveragePercentage = (totalBuildingsCovered / stats.total_buildings) * 100;
+        const currentCoveragePercentage = (existingCoverage / stats.total_buildings) * 100;
+        
+        // Calculate net additional buildings (new coverage minus existing coverage)
+        const netAdditionalBuildings = newBuildingsCovered - (existingCoverage * 0); // No overlap in this case since we're adding to existing
+        
+        console.log('📊 Existing coverage:', existingCoverage);
+        console.log('📊 Total buildings covered:', totalBuildingsCovered);
+        console.log('📊 Total people covered:', totalPeopleCovered);
+        console.log('📊 Current coverage percentage:', currentCoveragePercentage);
+        console.log('📊 Total coverage percentage:', totalCoveragePercentage);
+        console.log('📊 Net additional buildings:', netAdditionalBuildings);
         
         // Update main statistics
         if (this.elements.currentCoverage) {
-            this.elements.currentCoverage.textContent = `${totalCoveragePercentage.toFixed(1)}%`;
+            this.elements.currentCoverage.textContent = `${currentCoveragePercentage.toFixed(1)}%`;
+            console.log('✅ Updated current coverage:', `${currentCoveragePercentage.toFixed(1)}%`);
         }
         if (this.elements.newCoverage) {
             this.elements.newCoverage.textContent = `${totalCoveragePercentage.toFixed(1)}%`;
+            console.log('✅ Updated new coverage:', `${totalCoveragePercentage.toFixed(1)}%`);
         }
         if (this.elements.buildingsCovered) {
             this.elements.buildingsCovered.textContent = totalBuildingsCovered.toLocaleString();
+            console.log('✅ Updated buildings covered:', totalBuildingsCovered.toLocaleString());
         }
         if (this.elements.additionalPeople) {
-            this.elements.additionalPeople.textContent = newPeopleCovered.toLocaleString();
+            this.elements.additionalPeople.textContent = Math.max(0, netAdditionalBuildings).toLocaleString();
+            console.log('✅ Updated additional buildings:', Math.max(0, netAdditionalBuildings).toLocaleString());
         }
         
         // Update requested shelter analysis with new pairing data
-        if (requestedEval && !this.spatialAnalyzer.includeRequestedShelters) {
+        if (requestedEval) {
             if (this.elements.suboptimalRequested) {
                 this.elements.suboptimalRequested.textContent = requestedEval.totalPairs.toString();
             }
@@ -692,7 +706,7 @@ class ShelterAccessApp {
                 this.elements.underservedPeople.textContent = `+${Math.round(requestedEval.totalImprovement)} people`;
             }
         } else {
-            // Clear requested analysis when including requested shelters
+            // Clear requested analysis when no evaluation available
             if (this.elements.suboptimalRequested) {
                 this.elements.suboptimalRequested.textContent = '0';
             }
@@ -700,6 +714,7 @@ class ShelterAccessApp {
                 this.elements.underservedPeople.textContent = '0';
             }
         }
+        console.log('✅ Coverage analysis update complete');
     }
     
     /**
