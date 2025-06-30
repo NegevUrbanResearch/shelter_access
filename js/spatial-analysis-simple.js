@@ -7,6 +7,8 @@ class SimpleSpatialAnalyzer {
     constructor() {
         this.buildings = null;
         this.shelters = null;
+        this.statisticalAreas = null; // Add statistical areas
+        this.habitationClusters = null; // Add habitation clusters (tribes polygons)
         this.optimalData = new Map(); // Cache for precomputed data
         this.coverageRadius = 100;
         this.includeRequestedShelters = false;
@@ -26,13 +28,16 @@ class SimpleSpatialAnalyzer {
         try {
             const [buildingResponse, shelterResponse] = await Promise.all([
                 fetch('data/buildings.geojson'),
-                fetch('data/shelters.geojson')
+                fetch('data/shelters_filtered.geojson') // Use pre-filtered shelters
             ]);
             
             this.buildings = await buildingResponse.json();
             this.shelters = await shelterResponse.json();
             
             console.log(`✓ Loaded ${this.buildings.features.length} buildings and ${this.shelters.features.length} shelters`);
+            
+            // Load pre-filtered polygon layers
+            await this.loadPolygonLayers();
             
             // Load default optimal data
             await this.loadOptimalData(this.coverageRadius);
@@ -43,6 +48,95 @@ class SimpleSpatialAnalyzer {
             throw error;
         }
     }
+    
+    /**
+     * Load pre-filtered polygon layers
+     */
+    async loadPolygonLayers() {
+        console.log('Loading pre-filtered polygon layers...');
+        
+        try {
+            // Load both pre-filtered polygon datasets
+            const [statisticalResponse, habitationResponse] = await Promise.all([
+                fetch('data/statistical_areas_filtered.geojson'),
+                fetch('data/tribes_polygons_filtered.geojson')
+            ]);
+            
+            this.statisticalAreas = await statisticalResponse.json();
+            this.habitationClusters = await habitationResponse.json();
+            
+            console.log(`✓ Loaded ${this.statisticalAreas.features.length} statistical areas (pre-filtered)`);
+            console.log(`✓ Loaded ${this.habitationClusters.features.length} habitation clusters (pre-filtered)`);
+            
+        } catch (error) {
+            console.error('Error loading polygon layers:', error);
+            // Initialize empty collections if loading fails
+            this.statisticalAreas = { type: 'FeatureCollection', features: [] };
+            this.habitationClusters = { type: 'FeatureCollection', features: [] };
+        }
+    }
+    
+
+    
+    /**
+     * Calculate the actual bounding box of all buildings
+     */
+    calculateBuildingsBounds() {
+        if (!this.buildings || !this.buildings.features.length) {
+            // Fallback to Jerusalem area if no buildings
+            return {
+                west: 34.5,
+                east: 35.5,
+                south: 30.5,
+                north: 32.0
+            };
+        }
+        
+        let minLng = Infinity;
+        let maxLng = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+        
+        for (const feature of this.buildings.features) {
+            // Simple coordinate extraction for common geometry types
+            let coords = [];
+            
+            if (feature.geometry.type === 'Point') {
+                coords.push(feature.geometry.coordinates);
+            } else if (feature.geometry.type === 'Polygon') {
+                // Flatten all rings
+                for (const ring of feature.geometry.coordinates) {
+                    coords.push(...ring);
+                }
+            } else if (feature.geometry.type === 'MultiPolygon') {
+                // Flatten all polygons and rings
+                for (const polygon of feature.geometry.coordinates) {
+                    for (const ring of polygon) {
+                        coords.push(...ring);
+                    }
+                }
+            }
+            
+            for (const [lng, lat] of coords) {
+                if (lng < minLng) minLng = lng;
+                if (lng > maxLng) maxLng = lng;
+                if (lat < minLat) minLat = lat;
+                if (lat > maxLat) maxLat = lat;
+            }
+        }
+        
+        // Add small buffer around buildings (approximately 1km)
+        const buffer = 0.01; // roughly 1km in degrees
+        
+        return {
+            west: minLng - buffer,
+            east: maxLng + buffer,
+            south: minLat - buffer,
+            north: maxLat + buffer
+        };
+    }
+    
+
     
     /**
      * Load precomputed optimal shelter data
@@ -243,6 +337,12 @@ class SimpleSpatialAnalyzer {
      * Get data bounds for map initialization
      */
     getDataBounds() {
+        // Use the calculated buildings bounds if available
+        if (this.buildings && this.buildings.features.length > 0) {
+            return this.calculateBuildingsBounds();
+        }
+        
+        // Fallback to Jerusalem area
         return {
             west: 34.5,
             east: 35.5,
@@ -258,6 +358,8 @@ class SimpleSpatialAnalyzer {
         return {
             buildings: this.buildings,
             shelters: this.shelters,
+            statisticalAreas: this.statisticalAreas,
+            habitationClusters: this.habitationClusters,
             coverageRadius: this.coverageRadius,
             includeRequestedShelters: this.includeRequestedShelters
         };
@@ -278,6 +380,20 @@ class SimpleSpatialAnalyzer {
      */
     isDataReady() {
         return this.buildings !== null && this.shelters !== null;
+    }
+    
+    /**
+     * Get statistical areas data
+     */
+    getStatisticalAreas() {
+        return this.statisticalAreas;
+    }
+    
+    /**
+     * Get habitation clusters data
+     */
+    getHabitationClusters() {
+        return this.habitationClusters;
     }
 }
 
