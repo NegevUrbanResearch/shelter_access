@@ -14,6 +14,12 @@ class ShelterAccessApp {
         this.maxShelters = 500; // Updated to match script's TARGET_SHELTERS
         this.isAnalyzing = false;
         
+        // Icon sizing constants - tunable in one place
+        this.ICON_SIZE = 0.0005; // Common units (0.0005 * 2^zoom pixels, before scale/constraints)
+        this.ICON_SIZE_SCALE = 2; // Global size multiplier (doubles the effective size)
+        this.ICON_MIN_PIXELS = 14; // Minimum size in pixels (icons never smaller than this)
+        this.ICON_MAX_PIXELS = 124; // Maximum size in pixels (icons never larger than this)
+        
         // Add state for selected shelter and coverage highlighting
         this.selectedShelter = null;
         this.highlightedBuildings = [];
@@ -741,24 +747,19 @@ class ShelterAccessApp {
                     iconMapping: this.getShelterIconMapping(),
                     getIcon: () => 'circle',
                     getPosition: d => d.geometry.coordinates,
-                    getSize: d => {
-                        // Make selected shelter larger
-                        if (this.selectedShelter && this.selectedShelter.properties && 
-                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return 24;
-                        }
-                        return 16;
-                    },
+                    getSize: () => this.ICON_SIZE,
                     getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [52, 152, 219, 220]; // Bright blue for selected (translucent)
+                            return [52, 152, 219, 230]; // Bright blue for selected (90% opacity)
                         }
-                        return [52, 152, 219, 180]; // Blue for existing (translucent)
+                        return [52, 152, 219, 230]; // Blue for existing (90% opacity)
                     },
-                    sizeScale: 1,
-                    sizeUnits: 'pixels'
+                    sizeScale: this.ICON_SIZE_SCALE,
+                    sizeUnits: 'common',
+                    sizeMinPixels: this.ICON_MIN_PIXELS,
+                    sizeMaxPixels: this.ICON_MAX_PIXELS
                 }));
             }
         }
@@ -780,24 +781,19 @@ class ShelterAccessApp {
                     iconMapping: this.getShelterIconMapping(),
                     getIcon: () => 'triangle',
                     getPosition: d => d.geometry.coordinates,
-                    getSize: d => {
-                        // Make selected shelter larger
-                        if (this.selectedShelter && this.selectedShelter.properties && 
-                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return 24;
-                        }
-                        return 16;
-                    },
+                    getSize: () => this.ICON_SIZE,
                     getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [255, 165, 0, 220]; // Bright orange for selected (translucent)
+                            return [255, 165, 0, 230]; // Bright orange for selected (90% opacity)
                         }
-                        return [255, 165, 0, 180]; // Bright orange for community requested (translucent)
+                        return [255, 165, 0, 230]; // Bright orange for community requested (90% opacity)
                     },
-                    sizeScale: 1,
-                    sizeUnits: 'pixels'
+                    sizeScale: this.ICON_SIZE_SCALE,
+                    sizeUnits: 'common',
+                    sizeMinPixels: this.ICON_MIN_PIXELS,
+                    sizeMaxPixels: this.ICON_MAX_PIXELS
                 }));
             }
         }
@@ -817,35 +813,29 @@ class ShelterAccessApp {
                 iconMapping: this.getShelterIconMapping(),
                 getIcon: () => 'square',
                 getPosition: d => d.coordinates,
-                getSize: d => {
-                    // Make selected shelter larger
-                    if (this.selectedShelter && this.selectedShelter.coordinates && 
-                        this.selectedShelter.coordinates[0] === d.coordinates[0] && 
-                        this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                        return 26;
-                    }
-                    return 18;
-                },
+                getSize: () => this.ICON_SIZE,
                 getColor: d => {
-                    // Highlight selected shelter
-                    if (this.selectedShelter && this.selectedShelter.coordinates && 
-                        this.selectedShelter.coordinates[0] === d.coordinates[0] && 
-                        this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                        return [50, 120, 20, 220]; // Dark green for selected (translucent)
-                    }
-                    // Green gradient: darker = better coverage
-                    const rank = d.rank || 1;
-                    const quality = Math.max(0, 1 - (rank - 1) / this.proposedShelters.length);
-                    
-                    // Interpolate from darker green (better) to lighter yellow-green (worse)
-                    const r = Math.round(50 * quality + 200 * (1 - quality)); // 50 -> 200
-                    const g = Math.round(120 * quality + 220 * (1 - quality)); // 120 -> 220  
-                    const b = Math.round(20 * quality + 50 * (1 - quality)); // 20 -> 50
-                    
-                    return [r, g, b, 180]; // Translucent for all optimal shelters
-                },
-                sizeScale: 1,
-                sizeUnits: 'pixels'
+                        // Highlight selected shelter
+                        if (this.selectedShelter && this.selectedShelter.coordinates && 
+                            this.selectedShelter.coordinates[0] === d.coordinates[0] && 
+                            this.selectedShelter.coordinates[1] === d.coordinates[1]) {
+                            return [50, 120, 20, 230]; // Dark green for selected (90% opacity)
+                        }
+                        // Green gradient: darker = better coverage
+                        const rank = d.rank || 1;
+                        const quality = Math.max(0, 1 - (rank - 1) / this.proposedShelters.length);
+                        
+                        // Interpolate from darker green (better) to lighter yellow-green (worse)
+                        const r = Math.round(50 * quality + 200 * (1 - quality)); // 50 -> 200
+                        const g = Math.round(120 * quality + 220 * (1 - quality)); // 120 -> 220  
+                        const b = Math.round(20 * quality + 50 * (1 - quality)); // 20 -> 50
+                        
+                        return [r, g, b, 230]; // 90% opacity for all optimal shelters
+                    },
+                sizeScale: this.ICON_SIZE_SCALE,
+                sizeUnits: 'common',
+                sizeMinPixels: this.ICON_MIN_PIXELS,
+                sizeMaxPixels: this.ICON_MAX_PIXELS
             }));
         }
         
@@ -1107,7 +1097,7 @@ class ShelterAccessApp {
         let newPeopleCovered = 0;
         if (newSheltersSelected > 0) {
             newBuildingsCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.buildings_covered || 0), 0);
-            newPeopleCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.people_covered || 0), 0);
+            newPeopleCovered = this.proposedShelters.reduce((sum, shelter) => sum + ((shelter.buildings_covered || 0) * 7), 0); // Use consistent 7 people per building calculation
         }
         console.log('📊 New buildings covered:', newBuildingsCovered);
         console.log('📊 New people covered:', newPeopleCovered);
@@ -1312,6 +1302,8 @@ class ShelterAccessApp {
         
         return viewState;
     }
+    
+
     
     /**
      * Show loading overlay
@@ -1669,7 +1661,7 @@ class ShelterAccessApp {
             content = `
                 <strong>🔍 Existing Shelter</strong><br>
                 Buildings covered: ${buildingsCovered}<br>
-                People served: ${peopleCovered}<br>
+                Estimated people in range: ${peopleCovered}<br>
                 <em>Click to highlight coverage area</em>
             `;
             
@@ -1709,7 +1701,7 @@ class ShelterAccessApp {
             content = `
                 <strong>🔍 Requested Shelter</strong><br>
                 Buildings covered: ${buildingsCovered}<br>
-                People served: ${peopleCovered}<br>
+                Estimated people in range: ${peopleCovered}<br>
                 <em>Click to highlight coverage area</em>${replacementInfo}
             `;
             
@@ -1720,13 +1712,13 @@ class ShelterAccessApp {
             this.handleShelterHover(shelter);
             
             const buildingsCovered = shelter.buildings_covered || 0;
-            const peopleCovered = shelter.people_covered || 0;
+            const peopleCovered = buildingsCovered * 7; // 7 people per building (same logic as existing shelters)
             const rank = shelter.rank || 1;
             
             content = `
                 <strong>🔍 Optimal New Site #${rank}</strong><br>
                 Buildings covered: ${buildingsCovered}<br>
-                People served: ${peopleCovered}<br>
+                Estimated people in range: ${peopleCovered}<br>
                 <em>Click to highlight coverage area</em>
             `;
             

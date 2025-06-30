@@ -258,7 +258,7 @@ class SimpleSpatialAnalyzer {
         
         // Sort requested shelters by coverage (worst first)
         const sortedRequested = [...requestedShelters].sort((a, b) => 
-            (a.people_covered || 0) - (b.people_covered || 0)
+            ((a.buildings_covered || 0) * 7) - ((b.buildings_covered || 0) * 7)
         );
         
         // Get the top N optimal locations we're actually building
@@ -270,8 +270,8 @@ class SimpleSpatialAnalyzer {
             const requested = sortedRequested[i];
             const optimal = optimalLocations[i];
             
-            const requestedCoverage = requested.people_covered || 0;
-            const optimalCoverage = optimal.people_covered || 0;
+            const requestedCoverage = (requested.buildings_covered || 0) * 7;
+            const optimalCoverage = (optimal.buildings_covered || 0) * 7;
             const improvement = optimalCoverage - requestedCoverage;
             
             if (improvement > 0) {
@@ -322,7 +322,7 @@ class SimpleSpatialAnalyzer {
         
         // Calculate coverage for selected shelters
         const selectedOptimal = data.optimal_locations.slice(0, numSelected);
-        const newPeopleCovered = selectedOptimal.reduce((sum, loc) => sum + (loc.people_covered || 0), 0);
+        const newPeopleCovered = selectedOptimal.reduce((sum, loc) => sum + ((loc.buildings_covered || 0) * 7), 0); // Use consistent 7 people per building calculation
         const newBuildingsCovered = selectedOptimal.reduce((sum, loc) => sum + (loc.buildings_covered || 0), 0);
         
         // Existing coverage (total - new from all optimal locations)
