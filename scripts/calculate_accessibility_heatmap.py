@@ -49,7 +49,7 @@ def calculate_accessibility_weights(buildings_gdf, existing_shelters_gdf, covera
     """
     Calculate binary accessibility heatmap data:
     - Green: Buildings within radius of any shelter (positive weights)
-    - Red to Yellow-Orange: Buildings outside radius, scaled by local uncovered building density
+    - Red: Buildings outside radius, scaled by local uncovered building density
     """
     print(f"📊 Calculating binary accessibility for {len(buildings_gdf)} buildings and {len(existing_shelters_gdf)} shelters...")
     

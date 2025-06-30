@@ -39,8 +39,14 @@ class ShelterAccessApp {
             requestedShelters: true,
             optimalShelters: true,
             statisticalAreas: false, // Off by default
-            habitationClusters: false // Off by default
+            habitationClusters: false, // Off by default
+            accessibilityHeatmap: false // Off by default
         };
+        
+        // Accessibility heatmap data
+        this.accessibilityData = null;
+        this.allAccessibilityData = null; // Stores all radii data
+        this.isCalculatingAccessibility = false;
         
         // Tile layer settings
         this.useBuildingTiles = true; // Use tiled buildings for better performance
@@ -98,6 +104,8 @@ class ShelterAccessApp {
             optimalSheltersLayer: document.getElementById('optimalSheltersLayer'),
             statisticalAreasLayer: document.getElementById('statisticalAreasLayer'),
             habitationClustersLayer: document.getElementById('habitationClustersLayer'),
+            heatmapToggle: document.getElementById('heatmapToggle'),
+            heatmapToggleText: document.getElementById('heatmapToggleText'),
             themeToggle: document.getElementById('themeToggle'),
             loading: document.getElementById('loading'),
             tooltip: document.getElementById('tooltip'),
@@ -117,7 +125,6 @@ class ShelterAccessApp {
      */
     async initializeApp() {
         try {
-            console.log('🚀 Initializing Shelter Access Analysis App...');
             this.loadThemePreference();
             this.setupEventListeners();
             await this.spatialAnalyzer.loadData();
@@ -130,16 +137,11 @@ class ShelterAccessApp {
             // Initialize legend
             this.updateLegend();
             
-            // Debug coverage calculation
-            setTimeout(() => this.debugCoverageCalculation(), 1000);
-            
             // Hide loading overlay
             this.hideLoading();
             
-            console.log('✅ App initialized successfully!');
-            
         } catch (error) {
-            console.error('❌ Failed to initialize app:', error);
+            console.error('Failed to initialize app:', error);
             this.showError('Failed to load application. Please refresh and try again.');
         }
     }
@@ -174,6 +176,12 @@ class ShelterAccessApp {
             // Clear previous analysis and update
             this.proposedShelters = [];
             this.clearShelterSelection(); // Clear selection when radius changes
+            
+            // Update accessibility data when radius changes
+            if (this.layerVisibility.accessibilityHeatmap && this.allAccessibilityData) {
+                this.updateAccessibilityDataForRadius();
+            }
+            
             await this.updateOptimalLocations();
         });
         
@@ -238,6 +246,55 @@ class ShelterAccessApp {
         
         this.elements.habitationClustersLayer.addEventListener('change', (e) => {
             this.layerVisibility.habitationClusters = e.target.checked;
+            this.updateVisualization();
+            this.updateLegend();
+        });
+        
+        this.elements.heatmapToggle.addEventListener('click', async (e) => {
+            const isActive = !this.layerVisibility.accessibilityHeatmap;
+            this.layerVisibility.accessibilityHeatmap = isActive;
+            
+            // Update button state
+            const button = e.target.closest('button');
+            const text = this.elements.heatmapToggleText;
+            const addedSheltersSection = document.getElementById('addedSheltersSection');
+            
+            if (isActive) {
+                button.classList.add('active');
+                text.textContent = 'Switch Off Heatmap';
+                
+                // Reset and lock added shelters section
+                this.numNewShelters = 0;
+                this.elements.newSheltersSlider.value = 0;
+                this.elements.newSheltersValue.textContent = '0';
+                addedSheltersSection.classList.add('disabled');
+                
+                // Clear existing proposed shelters since we reset to 0
+                this.proposedShelters = [];
+                
+                // First time enabling - load precomputed accessibility data
+                if (!this.accessibilityData) {
+                    await this.loadAccessibilityData();
+                }
+            } else {
+                button.classList.remove('active');
+                text.textContent = 'Existing Accessibility Heatmap';
+                
+                // Unlock added shelters section
+                addedSheltersSection.classList.remove('disabled');
+                
+                // Reset to previous value or default
+                this.numNewShelters = 10;
+                this.elements.newSheltersSlider.value = 10;
+                this.elements.newSheltersValue.textContent = '10';
+                
+                // Update optimal locations with restored shelter count
+                await this.updateOptimalLocations();
+            }
+            
+            // Adjust zoom constraints for heatmap mode
+            this.adjustZoomForHeatmap(isActive);
+            
             this.updateVisualization();
             this.updateLegend();
         });
@@ -310,7 +367,6 @@ class ShelterAccessApp {
         try {
             // Check if widgets are available in this deck.gl version
             if (!deck.ZoomWidget || !deck.FullscreenWidget || !deck.CompassWidget) {
-                console.warn('⚠️ Widgets not available in this deck.gl version');
                 return;
             }
             
@@ -344,10 +400,7 @@ class ShelterAccessApp {
             // Store widgets for later use
             this.widgets = [zoomWidget, fullscreenWidget, compassWidget];
             
-            console.log('✅ Deck.gl widgets initialized');
-            
         } catch (error) {
-            console.warn('⚠️ Widgets not available in this deck.gl version:', error);
             // Widgets might not be available in all deck.gl versions
             // Fall back to basic functionality
         }
@@ -361,6 +414,53 @@ class ShelterAccessApp {
         const currentData = this.spatialAnalyzer.getCurrentData();
         
         if (!currentData.shelters) return layers;
+        
+        // === UNIFIED ACCESSIBILITY HEATMAP LAYER ===
+        if (this.layerVisibility.accessibilityHeatmap && this.accessibilityData && this.accessibilityData.length > 0) {
+            // When heatmap is active, only show heatmap - hide all other layers
+            const coveredCount = this.accessibilityData.filter(d => d.type === 'covered').length;
+            const uncoveredCount = this.accessibilityData.filter(d => d.type === 'uncovered').length;
+            console.log(`🔥 Unified Heatmap data: ${this.accessibilityData.length} total points`);
+            console.log(`   🟢 Covered: ${coveredCount} buildings (${(coveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
+            console.log(`   🔴 Uncovered: ${uncoveredCount} buildings (${(uncoveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
+            
+            // Create unified heatmap layer with blended visualization
+            layers.push(new deck.ScreenGridLayer({
+                id: 'accessibility-grid-unified',
+                data: this.accessibilityData,
+                getPosition: d => d.position,
+                // Custom weight function that creates coverage-density blend
+                getWeight: d => {
+                    if (d.type === 'covered') {
+                        return -100; // Strong negative weight for covered areas (will map to green)
+                    } else {
+                        return d.density || 10; // Positive weight based on density for uncovered areas
+                    }
+                },
+                cellSizePixels: 12,
+                cellMarginPixels: 1,
+                gpuAggregation: true,
+                aggregation: 'SUM',
+                // Unified color scheme: Green (covered) → Yellow → Orange → Red (high uncovered density)
+                colorRange: [
+                    [0, 200, 0, 255],      // Bright green (covered areas - negative weights)
+                    [100, 255, 0, 255],    // Light green (lightly covered)
+                    [200, 255, 100, 255],  // Yellow-green (transition)
+                    [255, 255, 0, 255],    // Yellow (neutral/low uncovered)
+                    [255, 200, 0, 255],    // Orange (medium uncovered)
+                    [255, 100, 0, 255],    // Red-orange (high uncovered)
+                    [255, 50, 0, 255],     // Red (very high uncovered)
+                    [200, 0, 0, 255]       // Deep red (highest uncovered density)
+                ],
+                // Custom color domain to handle negative (covered) and positive (uncovered) weights
+                colorDomain: [-100, 0, 10, 50, 100, 200, 400, 800],
+                pickable: false, // Disabled tooltips
+                opacity: 0.85
+            }));
+            
+            // Return only heatmap layer when heatmap is active
+            return layers;
+        }
         
         // Get requested shelter evaluation for pairing analysis
         const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
@@ -435,7 +535,6 @@ class ShelterAccessApp {
                         buildingsToShow = currentData.buildings.features.filter((_, index) => 
                             index % simplificationFactor === 0
                         );
-                        console.log(`🔍 Showing simplified buildings (1/${simplificationFactor}) for zoom ${currentZoom}`);
                     } else {
                         buildingsToShow = currentData.buildings.features;
                     }
@@ -733,7 +832,8 @@ class ShelterAccessApp {
         }
         
         // === EXISTING SHELTERS (Blue Circles) ===
-        if (this.layerVisibility.existingShelters) {
+        // Hide all shelters when heatmap is active
+        if (this.layerVisibility.existingShelters && !this.layerVisibility.accessibilityHeatmap) {
             const existingShelters = currentData.shelters.features.filter(shelter => 
                 shelter.properties && shelter.properties.status === 'Built'
             );
@@ -765,7 +865,7 @@ class ShelterAccessApp {
         }
         
         // === PLANNED SHELTERS (Orange/Red when analyzed) ===
-        if (this.layerVisibility.requestedShelters) {
+        if (this.layerVisibility.requestedShelters && !this.layerVisibility.accessibilityHeatmap) {
             // Show requested shelters (status "Request")
             const requestedShelters = currentData.shelters.features.filter(shelter => 
                 shelter.properties && shelter.properties.status === 'Request'
@@ -799,7 +899,7 @@ class ShelterAccessApp {
         }
         
         // === OPTIMAL ADDED SHELTERS (Green Squares) ===
-        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
+        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0 && !this.layerVisibility.accessibilityHeatmap) {
             // Added shelter squares with quality-based coloring
             layers.push(new deck.IconLayer({
                 id: 'proposed-shelters',
@@ -838,6 +938,7 @@ class ShelterAccessApp {
                 sizeMaxPixels: this.ICON_MAX_PIXELS
             }));
         }
+
         
         return layers;
     }
@@ -883,6 +984,12 @@ class ShelterAccessApp {
             });
         }
         
+        if (this.layerVisibility.accessibilityHeatmap) {
+            // Create continuous heatmap legend
+            this.createHeatmapLegend();
+            return; // Only show heatmap legend when heatmap is active
+        }
+        
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
@@ -904,6 +1011,155 @@ class ShelterAccessApp {
     }
     
     /**
+     * Handle heatmap mode zoom behavior without breaking controls
+     */
+    adjustZoomForHeatmap(isHeatmapActive) {
+        if (!this.deckgl) return;
+        
+        if (isHeatmapActive) {
+            // Optional: Zoom to a good level for heatmap viewing without breaking controls
+            const currentViewState = this.deckgl.viewState || this.deckgl.props.initialViewState;
+            const currentZoom = currentViewState.zoom;
+            
+            // Only auto-zoom if currently zoomed too far in (beyond zoom 14)
+            if (currentZoom > 14) {
+                this.deckgl.setProps({
+                    viewState: {
+                        ...currentViewState,
+                        zoom: 12, // Zoom to a reasonable level for heatmap viewing
+                        transitionDuration: 800,
+                        transitionInterpolator: new deck.FlyToInterpolator()
+                    }
+                });
+            }
+        }
+        // Note: No longer modifying controller properties to avoid breaking zoom controls
+    }
+
+    /**
+     * Create unified heatmap legend showing coverage spectrum
+     */
+    createHeatmapLegend() {
+        if (!this.elements.legendItems) return;
+        
+        // Clear existing legend items
+        this.elements.legendItems.innerHTML = '';
+        
+        // Create heatmap legend container
+        const heatmapLegend = document.createElement('div');
+        heatmapLegend.className = 'heatmap-legend';
+        
+        // Legend title
+        const title = document.createElement('h4');
+        title.textContent = 'Shelter Accessibility Coverage';
+        title.style.cssText = `
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        `;
+        heatmapLegend.appendChild(title);
+        
+        // Add subtitle explaining the unified approach
+        const subtitle = document.createElement('div');
+        subtitle.textContent = 'Shows which areas have majority covered vs uncovered buildings';
+        subtitle.style.cssText = `
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            text-align: center;
+            font-style: italic;
+        `;
+        heatmapLegend.appendChild(subtitle);
+        
+        // UNIFIED COVERAGE SPECTRUM
+        const spectrumSection = document.createElement('div');
+        spectrumSection.style.cssText = `margin-bottom: 15px;`;
+        
+        // Main gradient bar
+        const gradientBar = document.createElement('div');
+        gradientBar.style.cssText = `
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(to right, 
+                rgb(0, 200, 0),      /* Green: Well covered */
+                rgb(100, 255, 0),    /* Light green */
+                rgb(200, 255, 100),  /* Yellow-green: Transition */
+                rgb(255, 255, 0),    /* Yellow: Low uncovered */
+                rgb(255, 200, 0),    /* Orange: Medium uncovered */
+                rgb(255, 100, 0),    /* Red-orange: High uncovered */
+                rgb(255, 50, 0),     /* Red: Very high uncovered */
+                rgb(200, 0, 0)       /* Deep red: Highest density */
+            );
+            border-radius: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            border: 1px solid rgba(0,0,0,0.1);
+        `;
+        spectrumSection.appendChild(gradientBar);
+        
+        // Spectrum labels
+        const spectrumLabels = document.createElement('div');
+        spectrumLabels.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        `;
+        
+        const wellCovered = document.createElement('span');
+        wellCovered.textContent = '✅ Majority Covered';
+        wellCovered.style.fontWeight = '600';
+        
+        const highNeed = document.createElement('span');
+        highNeed.textContent = '⚠️ Majority Uncovered';
+        highNeed.style.fontWeight = '600';
+        
+        spectrumLabels.appendChild(wellCovered);
+        spectrumLabels.appendChild(highNeed);
+        spectrumSection.appendChild(spectrumLabels);
+        
+        // Detailed coverage explanation
+        const explanation = document.createElement('div');
+        explanation.style.cssText = `
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.4;
+            padding: 8px;
+            background: rgba(var(--text-secondary-rgb), 0.05);
+            border-radius: 6px;
+            margin-top: 8px;
+        `;
+        explanation.innerHTML = `
+            🟢 <strong>Green:</strong> Majority of buildings within ${this.coverageRadius}m of shelters<br>
+            🔴 <strong>Red:</strong> Majority of buildings beyond ${this.coverageRadius}m from shelters<br>
+            <em style="font-size: 9px; opacity: 0.8;">Darker colors = higher building density</em>
+        `;
+        spectrumSection.appendChild(explanation);
+        
+        heatmapLegend.appendChild(spectrumSection);
+        
+        // Add interaction note
+        const interactionNote = document.createElement('div');
+        interactionNote.textContent = 'Hover over grid cells for details';
+        interactionNote.style.cssText = `
+            font-size: 9px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 15px;
+            padding: 5px;
+            background: rgba(var(--text-secondary-rgb), 0.1);
+            border-radius: 4px;
+            opacity: 0.8;
+        `;
+        heatmapLegend.appendChild(interactionNote);
+        
+        this.elements.legendItems.appendChild(heatmapLegend);
+    }
+
+    /**
      * Update visualization layers
      */
     updateVisualization() {
@@ -923,7 +1179,6 @@ class ShelterAccessApp {
         
         this.deckgl.setProps({ layers: allLayers });
         
-        console.log(`🗺️ Updated visualization with ${dataLayers.length} data layers on ${basemapConfig.name} basemap`);
         this.updateCoverageAnalysis();
         this.updateLegend();
     }
@@ -1071,26 +1326,16 @@ class ShelterAccessApp {
      * Update coverage analysis and statistics
      */
     updateCoverageAnalysis() {
-        console.log('🔄 Updating coverage analysis...');
         const cacheKey = `optimal_shelters_${this.coverageRadius}m`;
-        console.log('📊 Cache key:', cacheKey);
-        
         const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-        console.log('📊 Data available:', !!data);
-        console.log('📊 Statistics available:', !!(data && data.statistics));
-        
         const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
-        console.log('📊 Requested evaluation:', requestedEval);
         
         if (!data || !data.statistics) {
-            console.log('❌ No data or statistics available');
             return;
         }
         
         const stats = data.statistics;
         const newSheltersSelected = this.proposedShelters.length;
-        console.log('📊 Stats:', stats);
-                    console.log('📊 Added shelters selected:', newSheltersSelected);
         
         // Calculate coverage from selected optimal shelters
         let newBuildingsCovered = 0;
@@ -1099,8 +1344,6 @@ class ShelterAccessApp {
             newBuildingsCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.buildings_covered || 0), 0);
             newPeopleCovered = this.proposedShelters.reduce((sum, shelter) => sum + ((shelter.buildings_covered || 0) * 7), 0); // Use consistent 7 people per building calculation
         }
-        console.log('📊 New buildings covered:', newBuildingsCovered);
-        console.log('📊 New people covered:', newPeopleCovered);
         
         const existingCoverage = (stats.total_buildings_covered || 0) - (stats.new_buildings_covered || 0);
         const totalBuildingsCovered = existingCoverage + newBuildingsCovered;
@@ -1111,29 +1354,18 @@ class ShelterAccessApp {
         // Calculate net additional buildings (new coverage minus existing coverage)
         const netAdditionalBuildings = newBuildingsCovered - (existingCoverage * 0); // No overlap in this case since we're adding to existing
         
-        console.log('📊 Existing coverage:', existingCoverage);
-        console.log('📊 Total buildings covered:', totalBuildingsCovered);
-        console.log('📊 Total people covered:', totalPeopleCovered);
-        console.log('📊 Current coverage percentage:', currentCoveragePercentage);
-        console.log('📊 Total coverage percentage:', totalCoveragePercentage);
-        console.log('📊 Net additional buildings:', netAdditionalBuildings);
-        
         // Update main statistics
         if (this.elements.currentCoverage) {
             this.elements.currentCoverage.textContent = `${currentCoveragePercentage.toFixed(1)}%`;
-            console.log('✅ Updated current coverage:', `${currentCoveragePercentage.toFixed(1)}%`);
         }
         if (this.elements.newCoverage) {
             this.elements.newCoverage.textContent = `${totalCoveragePercentage.toFixed(1)}%`;
-            console.log('✅ Updated new coverage:', `${totalCoveragePercentage.toFixed(1)}%`);
         }
         if (this.elements.buildingsCovered) {
             this.elements.buildingsCovered.textContent = totalBuildingsCovered.toLocaleString();
-            console.log('✅ Updated buildings covered:', totalBuildingsCovered.toLocaleString());
         }
         if (this.elements.additionalPeople) {
             this.elements.additionalPeople.textContent = Math.max(0, netAdditionalBuildings).toLocaleString();
-            console.log('✅ Updated additional buildings:', Math.max(0, netAdditionalBuildings).toLocaleString());
         }
         
         // Update requested shelter analysis with new pairing data
@@ -1153,7 +1385,6 @@ class ShelterAccessApp {
                 this.elements.underservedPeople.textContent = '0';
             }
         }
-        console.log('✅ Coverage analysis update complete');
     }
     
     /**
@@ -1163,13 +1394,14 @@ class ShelterAccessApp {
         const { object, x, y, coordinate } = info;
         const tooltip = this.elements.tooltip;
         
-        console.log('Hover event:', info.layer?.id, object ? 'with object' : 'no object');
-        
-        // Priority system for hover tooltips: shelter > habitation cluster > statistical areas
+        // Priority system for hover tooltips: shelter > grid > habitation cluster > statistical areas
         if (object) {
             if (info.layer.id === 'existing-shelters' || info.layer.id === 'requested-shelters' || info.layer.id === 'proposed-shelters') {
                 // Shelter objects have highest priority
                 this.showShelterTooltip(object, info.layer.id, x, y);
+                return;
+            } else if (info.layer.id === 'accessibility-grid-unified') {
+                // Heatmap active - no tooltips for grid cells
                 return;
             } else if (info.layer.id === 'habitation-clusters') {
                 // Habitation cluster has medium priority
@@ -1194,7 +1426,6 @@ class ShelterAccessApp {
         // No object or shelter nearby - clear hover
         this.clearShelterHover();
         tooltip.style.display = 'none';
-        console.log('Tooltip hidden');
     }
     
     /**
@@ -1238,10 +1469,11 @@ class ShelterAccessApp {
             tooltip.style.display = 'block';
             tooltip.style.left = `${x + 10}px`;
             tooltip.style.top = `${y - 10}px`;
-            console.log(`${type} tooltip shown with content:`, content.substring(0, 100) + '...');
         }
     }
     
+
+
     /**
      * Handle click events
      */
@@ -1374,8 +1606,6 @@ class ShelterAccessApp {
         
         // Store preference in localStorage
         localStorage.setItem('theme', newTheme);
-        
-        console.log(`🎨 Theme switched to ${newTheme} mode`);
     }
     
     /**
@@ -1388,8 +1618,6 @@ class ShelterAccessApp {
         // Update theme toggle icon
         const themeIcon = this.elements.themeToggle.querySelector('.theme-icon');
         themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-        
-        console.log(`🎨 Loaded ${savedTheme} theme`);
     }
     
     /**
@@ -1397,7 +1625,6 @@ class ShelterAccessApp {
      */
     calculateShelterCoverage(shelter) {
         if (!this.spatialAnalyzer.buildings || !shelter) {
-            console.log('Coverage calculation: No buildings data or shelter provided');
             return [];
         }
         
@@ -1405,23 +1632,16 @@ class ShelterAccessApp {
         const coverageRadiusDeg = this.coverageRadius / 111000; // Approximate conversion to degrees
         const coverageRadiusSquared = coverageRadiusDeg * coverageRadiusDeg; // Use squared distance for efficiency
         
-        console.log(`Coverage calculation for shelter at [${shelterCoords[0]}, ${shelterCoords[1]}]`);
-        console.log(`Coverage radius: ${this.coverageRadius}m = ${coverageRadiusDeg} degrees`);
-        
         const coveredBuildings = [];
-        let totalBuildings = 0;
-        let validBuildings = 0;
         
         // Use a more efficient loop with early termination
         for (let i = 0; i < this.spatialAnalyzer.buildings.features.length; i++) {
             const building = this.spatialAnalyzer.buildings.features[i];
-            totalBuildings++;
             
             // Calculate building centroid for distance calculation
             let buildingCentroid;
             if (building.geometry.type === 'Point') {
                 buildingCentroid = building.geometry.coordinates;
-                validBuildings++;
             } else if (building.geometry.type === 'Polygon') {
                 // Calculate centroid of polygon
                 const coords = building.geometry.coordinates[0]; // First ring (exterior)
@@ -1431,7 +1651,6 @@ class ShelterAccessApp {
                     sumY += coords[j][1];
                 }
                 buildingCentroid = [sumX / (coords.length - 1), sumY / (coords.length - 1)];
-                validBuildings++;
             } else {
                 // Skip if not point or polygon
                 continue;
@@ -1447,9 +1666,6 @@ class ShelterAccessApp {
             }
         }
         
-        console.log(`Coverage calculation complete: ${coveredBuildings.length} buildings covered out of ${validBuildings} valid buildings (${totalBuildings} total)`);
-        console.log(`Coverage percentage: ${((coveredBuildings.length / validBuildings) * 100).toFixed(2)}%`);
-        
         return coveredBuildings;
     }
     
@@ -1461,9 +1677,6 @@ class ShelterAccessApp {
         this.highlightedBuildings = this.calculateShelterCoverage(shelter);
         this.updateVisualization();
         this.updateSelectionUI();
-        
-        console.log(`Selected shelter: ${shelter.properties?.shelter_id || 'Optimal site'}`);
-        console.log(`Buildings covered: ${this.highlightedBuildings.length}`);
     }
     
     /**
@@ -1480,61 +1693,75 @@ class ShelterAccessApp {
      * Update UI to show selection status
      */
     updateSelectionUI() {
-        // Show shelter selection status
-        if (this.selectedShelter) {
-            const shelterName = this.selectedShelter.properties?.name || 
-                               this.selectedShelter.properties?.shelter_id || 
-                               'Optimal site';
-            console.log(`📍 Selected: ${shelterName} (${this.highlightedBuildings.length} buildings highlighted)`);
-        }
+        // Selection status updated - UI changes handled by layer updates
+    }
+    
+    /**
+     * Load precomputed accessibility data for heatmap visualization
+     */
+    async loadAccessibilityData() {
+        if (this.isCalculatingAccessibility) return;
         
-        // Show polygon selection status
-        if (this.selectedPolygon) {
-            const polygonType = this.selectedPolygonType === 'statisticalArea' ? 'Statistical Area' : 'Habitation Cluster';
-            const props = this.selectedPolygon.properties || {};
-            let polygonName = 'Unknown';
-            
-            if (this.selectedPolygonType === 'statisticalArea') {
-                polygonName = props.YISHUV_STAT11 || props.id || props.ID || this.selectedPolygon._index;
-            } else if (this.selectedPolygonType === 'habitationCluster') {
-                polygonName = props.OBJECTID || props.id || props.ID || this.selectedPolygon._index;
+        this.isCalculatingAccessibility = true;
+        this.showLoading('Loading accessibility data...');
+        
+        try {
+            // Load precomputed accessibility data
+            const response = await fetch('data/accessibility_heatmap.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            console.log(`📍 Selected: ${polygonType} (ID: ${polygonName})`);
-        }
-        
-        // If no selections
-        if (!this.selectedShelter && !this.selectedPolygon) {
-            console.log('📍 No selections');
+            const accessibilityDataAll = await response.json();
+            
+            // Get data for current coverage radius
+            const radiusKey = `${this.coverageRadius}m`;
+            if (accessibilityDataAll[radiusKey]) {
+                this.accessibilityData = accessibilityDataAll[radiusKey].accessibility_points;
+                this.allAccessibilityData = accessibilityDataAll;
+            } else {
+                // Fallback to closest available radius
+                const availableRadii = Object.keys(accessibilityDataAll).map(key => parseInt(key.replace('m', '')));
+                const closestRadius = availableRadii.reduce((prev, curr) => 
+                    Math.abs(curr - this.coverageRadius) < Math.abs(prev - this.coverageRadius) ? curr : prev
+                );
+                
+                const fallbackKey = `${closestRadius}m`;
+                this.accessibilityData = accessibilityDataAll[fallbackKey].accessibility_points;
+                this.allAccessibilityData = accessibilityDataAll;
+            }
+            
+        } catch (error) {
+            console.error('Error loading accessibility data:', error);
+            this.accessibilityData = null;
+        } finally {
+            this.isCalculatingAccessibility = false;
+            this.hideLoading();
         }
     }
     
     /**
-     * Debug method to test coverage calculation
+     * Update accessibility data when coverage radius changes
      */
-    debugCoverageCalculation() {
-        if (!this.spatialAnalyzer.shelters || !this.spatialAnalyzer.buildings) {
-            console.log('❌ Data not loaded yet');
-            return;
-        }
+    updateAccessibilityDataForRadius() {
+        if (!this.allAccessibilityData) return;
         
-        // Test with first shelter
-        const testShelter = this.spatialAnalyzer.shelters.features[0];
-        if (testShelter) {
-            console.log('🧪 Testing coverage calculation...');
-            console.log('Test shelter:', testShelter.properties?.shelter_id);
-            console.log('Coverage radius:', this.coverageRadius, 'm');
+        const radiusKey = `${this.coverageRadius}m`;
+        if (this.allAccessibilityData[radiusKey]) {
+            this.accessibilityData = this.allAccessibilityData[radiusKey].accessibility_points;
+        } else {
+            // Fallback to closest available radius
+            const availableRadii = Object.keys(this.allAccessibilityData).map(key => parseInt(key.replace('m', '')));
+            const closestRadius = availableRadii.reduce((prev, curr) => 
+                Math.abs(curr - this.coverageRadius) < Math.abs(prev - this.coverageRadius) ? curr : prev
+            );
             
-            const startTime = performance.now();
-            const coveredBuildings = this.calculateShelterCoverage(testShelter);
-            const endTime = performance.now();
-            
-            console.log(`✅ Coverage calculation completed in ${(endTime - startTime).toFixed(2)}ms`);
-            console.log(`📊 Buildings covered: ${coveredBuildings.length}`);
-            console.log(`📊 Total buildings: ${this.spatialAnalyzer.buildings.features.length}`);
-            console.log(`📊 Coverage percentage: ${((coveredBuildings.length / this.spatialAnalyzer.buildings.features.length) * 100).toFixed(2)}%`);
+            const fallbackKey = `${closestRadius}m`;
+            this.accessibilityData = this.allAccessibilityData[fallbackKey].accessibility_points;
         }
     }
+    
+
     
     /**
      * Handle shelter hover for building highlighting
@@ -1562,8 +1789,6 @@ class ShelterAccessApp {
         this.selectedPolygonType = type;
         this.updateVisualization();
         this.updateSelectionUI();
-        
-        console.log(`Selected polygon: ${type} (${this.selectedPolygon._index})`);
     }
     
     /**
@@ -1665,8 +1890,6 @@ class ShelterAccessApp {
                 <em>Click to highlight coverage area</em>
             `;
             
-            console.log(`Existing shelter tooltip: ${buildingsCovered} buildings, ${peopleCovered} people`);
-            
         } else if (layerId === 'requested-shelters') {
             // Handle hover highlighting
             this.handleShelterHover(shelter);
@@ -1705,8 +1928,6 @@ class ShelterAccessApp {
                 <em>Click to highlight coverage area</em>${replacementInfo}
             `;
             
-            console.log(`Requested shelter tooltip: ${buildingsCovered} buildings, ${peopleCovered} people`);
-            
         } else if (layerId === 'proposed-shelters') {
             // Handle hover highlighting
             this.handleShelterHover(shelter);
@@ -1721,8 +1942,6 @@ class ShelterAccessApp {
                 Estimated people in range: ${peopleCovered}<br>
                 <em>Click to highlight coverage area</em>
             `;
-            
-            console.log(`Proposed shelter tooltip: ${buildingsCovered} buildings, ${peopleCovered} people`);
         }
         
         if (content) {
@@ -1730,7 +1949,6 @@ class ShelterAccessApp {
             tooltip.style.display = 'block';
             tooltip.style.left = `${x + 10}px`;
             tooltip.style.top = `${y - 10}px`;
-            console.log('Shelter tooltip shown with content:', content.substring(0, 100) + '...');
         }
     }
 }
@@ -1795,6 +2013,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkbox.checked = !checkbox.checked;
                 checkbox.dispatchEvent(new Event('change'));
                 console.log('🔄 Toggled buildings layer');
+            }
+        } else {
+            console.log('❌ App not initialized yet');
+        }
+    };
+    
+    window.toggleHeatmap = () => {
+        if (window.app) {
+            const checkbox = document.getElementById('accessibilityHeatmapLayer');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+                console.log('🔥 Toggled accessibility heatmap');
+            }
+        } else {
+            console.log('❌ App not initialized yet');
+        }
+    };
+    
+    window.debugHeatmap = () => {
+        if (window.app) {
+            console.log('🔥 Heatmap Debug Info:');
+            console.log('   Layer visible:', window.app.layerVisibility.accessibilityHeatmap);
+            console.log('   Data loaded:', !!window.app.accessibilityData);
+            console.log('   All data loaded:', !!window.app.allAccessibilityData);
+            console.log('   Current radius:', window.app.coverageRadius + 'm');
+            console.log('   HeatmapLayer available:', typeof deck !== 'undefined' && !!deck.HeatmapLayer);
+            
+            // Check UI element
+            const checkbox = document.getElementById('accessibilityHeatmapLayer');
+            if (checkbox) {
+                console.log('   Checkbox element exists:', true);
+                console.log('   Checkbox checked:', checkbox.checked);
+                console.log('   Parent visible:', checkbox.parentElement.offsetHeight > 0);
+                console.log('   Layer menu visible:', checkbox.parentElement.parentElement.style.maxHeight);
+            } else {
+                console.log('   Checkbox element exists:', false);
+            }
+            
+            if (window.app.accessibilityData) {
+                console.log('   Points count:', window.app.accessibilityData.length);
+                console.log('   Sample point:', window.app.accessibilityData[0]);
+            }
+            
+            if (window.app.allAccessibilityData) {
+                console.log('   Available radii:', Object.keys(window.app.allAccessibilityData));
             }
         } else {
             console.log('❌ App not initialized yet');

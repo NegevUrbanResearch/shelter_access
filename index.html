@@ -8,6 +8,9 @@
     <!-- deck.gl (no Mapbox dependency) -->
     <script src="https://unpkg.com/deck.gl@^9.0.0/dist.min.js"></script>
     
+    <!-- deck.gl aggregation layers for HeatmapLayer -->
+    <script src="https://unpkg.com/@deck.gl/aggregation-layers@^9.0.0/dist.min.js"></script>
+    
     <!-- deck.gl widgets CSS -->
     <link href="https://unpkg.com/deck.gl@^9.0.0/dist/stylesheet.css" rel='stylesheet' />
     
@@ -47,13 +50,21 @@
                     </div>
                 </div>
                 
-                <div class="control-section">
+                <div class="control-section" id="addedSheltersSection">
                     <h3>➕ Added Shelters</h3>
                     <div class="input-group">
                         <label for="newShelters">Number of added shelters</label>
                         <input type="range" id="newShelters" min="0" max="500" value="10" step="1">
                         <span id="newSheltersValue">10</span>
                     </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>🔥 Analysis Mode</h3>
+                    <button id="heatmapToggle" class="heatmap-toggle-btn">
+                        <span class="heatmap-icon">🔥</span>
+                        <span id="heatmapToggleText">Existing Accessibility Heatmap</span>
+                    </button>
                 </div>
             </div>
             
@@ -91,7 +102,7 @@
                 </div>
                 
                 <!-- Layer Visibility Control -->
-                <div class="layer-control">
+                <div class="layer-control expanded">
                     <div class="layer-header">
                         <span class="layer-title">Data Layers</span>
                         <span class="layer-toggle">⌄</span>

@@ -425,7 +425,7 @@ body {
 }
 
 .layer-control.expanded .layer-menu {
-    max-height: 200px;
+    max-height: 280px;
 }
 
 .basemap-option,
@@ -478,6 +478,83 @@ body {
     width: 14px;
     height: 14px;
     cursor: pointer;
+}
+
+/* Layer divider */
+.layer-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0.5rem 0;
+    opacity: 0.5;
+}
+
+/* Heatmap Control in Sidebar */
+.heatmap-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(45deg, #ff6600, #ffaa00);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(255, 102, 0, 0.3);
+    justify-content: flex-start;
+    margin-top: 8px;
+}
+
+.heatmap-toggle-btn:hover {
+    background: linear-gradient(45deg, #ff5252, #ff9500);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 165, 0, 0.4);
+}
+
+.heatmap-toggle-btn.active {
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+    box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
+}
+
+.heatmap-toggle-btn.active:hover {
+    background: linear-gradient(45deg, #c0392b, #a93226);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+.heatmap-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+[data-theme="dark"] .heatmap-toggle-btn {
+    background: linear-gradient(45deg, #ff8533, #ffcc66);
+    color: var(--bg-primary);
+}
+
+[data-theme="dark"] .heatmap-toggle-btn:hover {
+    background: linear-gradient(45deg, #ff6600, #ffaa00);
+}
+
+/* Locked/disabled shelter section */
+.control-section.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.control-section.disabled h3 {
+    color: var(--text-secondary);
+}
+
+.control-section.disabled input[type="range"] {
+    cursor: not-allowed;
+}
+
+.control-section.disabled label,
+.control-section.disabled span {
+    color: var(--text-secondary);
 }
 
 .basemap-label,
@@ -823,6 +900,8 @@ select:focus {
 .requested-shelter { background: #ffa500; }
 .covered-building { background: #27ae60; }
 .uncovered-building { background: #95a5a6; }
+.heatmap-accessible { background: linear-gradient(90deg, #00ff00, #80ff00); }
+.heatmap-inaccessible { background: linear-gradient(90deg, #ff8000, #ff0000); }
 
 /* Basemap options styling */
 .basemap-option {
