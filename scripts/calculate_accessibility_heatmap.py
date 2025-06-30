@@ -47,10 +47,11 @@ def degrees_to_meters(distance_degrees, avg_latitude=31.0):
 
 def calculate_accessibility_weights(buildings_gdf, existing_shelters_gdf, coverage_radii=[100, 150, 200, 250, 300]):
     """
-    Calculate accessibility heatmap data for multiple coverage radii.
-    Returns dict with radius as key and accessibility points as value.
+    Calculate binary accessibility heatmap data:
+    - Green: Buildings within radius of any shelter (positive weights)
+    - Red to Yellow-Orange: Buildings outside radius, scaled by local uncovered building density
     """
-    print(f"📊 Calculating accessibility for {len(buildings_gdf)} buildings and {len(existing_shelters_gdf)} shelters...")
+    print(f"📊 Calculating binary accessibility for {len(buildings_gdf)} buildings and {len(existing_shelters_gdf)} shelters...")
     
     # Extract building centroids
     building_points = []
@@ -83,60 +84,110 @@ def calculate_accessibility_weights(buildings_gdf, existing_shelters_gdf, covera
         print(f"\n🔄 Processing coverage radius: {radius_m}m...")
         start_time = time.time()
         
-        accessibility_points = []
-        max_distance_m = radius_m * 3  # Use 3x coverage radius as max for color scaling
+        # First pass: classify buildings as covered/uncovered
+        covered_buildings = []
+        uncovered_buildings = []
         
-        # Calculate distance from each building to nearest shelter
+        radius_degrees = radius_m / 100000  # Convert meters to degrees (approximate)
+        
         for i, building_coord in enumerate(building_points):
-            min_distance_degrees = float('inf')
+            is_covered = False
             
-            # Find nearest shelter
+            # Check if building is within radius of ANY shelter
             for shelter_coord in shelter_points:
                 distance_degrees = calculate_distance_degrees(building_coord, shelter_coord)
-                if distance_degrees < min_distance_degrees:
-                    min_distance_degrees = distance_degrees
+                if distance_degrees <= radius_degrees:
+                    is_covered = True
+                    break
             
-            # Convert to meters
-            distance_meters = degrees_to_meters(min_distance_degrees)
-            
-            # Calculate weight (closer = higher weight for better visualization)
-            # Use inverse relationship: closer buildings get higher weights
-            normalized_distance = min(distance_meters, max_distance_m) / max_distance_m  # 0-1 range
-            weight = max(0.1, 1 - normalized_distance)  # Invert so closer = higher weight
-            
-            accessibility_points.append({
+            building_data = {
                 'position': building_coord,
-                'weight': round(weight, 3),
-                'distance': round(distance_meters, 1),
                 'buildingIndex': building_indices[i]
-            })
+            }
+            
+            if is_covered:
+                covered_buildings.append(building_data)
+            else:
+                uncovered_buildings.append(building_data)
             
             # Progress reporting
-            if (i + 1) % 1000 == 0:
+            if (i + 1) % 5000 == 0:
                 progress = (i + 1) / len(building_points) * 100
-                print(f"   Progress: {progress:.1f}% ({i + 1}/{len(building_points)} buildings)")
+                print(f"   Classification: {progress:.1f}% ({i + 1}/{len(building_points)} buildings)")
+        
+        print(f"   📊 Found {len(covered_buildings)} covered, {len(uncovered_buildings)} uncovered buildings")
+        
+        # Second pass: calculate density-based weights for uncovered buildings
+        accessibility_points = []
+        
+        # Add covered buildings with positive weight (GREEN)
+        for building in covered_buildings:
+            accessibility_points.append({
+                'position': building['position'],
+                'weight': 1.0,  # Positive weight = green
+                'type': 'covered',
+                'buildingIndex': building['buildingIndex']
+            })
+        
+        # Add uncovered buildings with density-based negative weights (RED to YELLOW-ORANGE)
+        if uncovered_buildings:
+            print(f"   🔄 Calculating density weights for {len(uncovered_buildings)} uncovered buildings...")
+            search_radius_degrees = 500 / 100000  # 500m search radius
+            
+            for i, building in enumerate(uncovered_buildings):
+                # Count nearby uncovered buildings within 500m
+                nearby_count = 0
+                building_coord = building['position']
+                
+                for other_building in uncovered_buildings:
+                    if other_building == building:
+                        continue
+                    other_coord = other_building['position']
+                    if calculate_distance_degrees(building_coord, other_coord) <= search_radius_degrees:
+                        nearby_count += 1
+                
+                # Scale weight by density (more uncovered buildings = more intense red)
+                # Scale from 0.2 (light red/orange) to 1.0 (intense red)
+                density_factor = min(nearby_count / 15.0, 1.0)  # Cap at 15 buildings
+                weight = 0.2 + 0.8 * density_factor  # Range: 0.2 to 1.0
+                
+                # IMPORTANT: Keep weights positive but use them with red colors in visualization
+                accessibility_points.append({
+                    'position': building['position'],
+                    'weight': round(weight, 3),
+                    'type': 'uncovered',
+                    'density': nearby_count,
+                    'buildingIndex': building['buildingIndex']
+                })
+                
+                # Progress reporting
+                if (i + 1) % 2000 == 0:
+                    progress = (i + 1) / len(uncovered_buildings) * 100
+                    print(f"      Density calc: {progress:.1f}% ({i + 1}/{len(uncovered_buildings)} uncovered)")
         
         elapsed_time = time.time() - start_time
         print(f"✅ Completed {radius_m}m radius in {elapsed_time:.2f}s")
         
         # Calculate statistics
-        distances = [p['distance'] for p in accessibility_points]
-        weights = [p['weight'] for p in accessibility_points]
+        covered_count = len(covered_buildings)
+        uncovered_count = len(uncovered_buildings)
+        coverage_percent = (covered_count / len(building_points)) * 100 if building_points else 0
+        
+        uncovered_weights = [p['weight'] for p in accessibility_points if p.get('type') == 'uncovered']
+        avg_uncovered_weight = np.mean(uncovered_weights) if uncovered_weights else 0
         
         stats = {
             'total_points': len(accessibility_points),
-            'avg_distance': round(np.mean(distances), 1),
-            'min_distance': round(np.min(distances), 1),
-            'max_distance': round(np.max(distances), 1),
-            'avg_weight': round(np.mean(weights), 3),
-            'coverage_radius': radius_m,
-            'max_distance_for_scaling': max_distance_m
+            'covered_buildings': covered_count,
+            'uncovered_buildings': uncovered_count,
+            'coverage_percent': round(coverage_percent, 1),
+            'avg_uncovered_weight': round(avg_uncovered_weight, 3),
+            'coverage_radius': radius_m
         }
         
         print(f"   📊 Statistics:")
-        print(f"      Average distance: {stats['avg_distance']}m")
-        print(f"      Distance range: {stats['min_distance']}m - {stats['max_distance']}m")
-        print(f"      Average weight: {stats['avg_weight']}")
+        print(f"      Coverage: {stats['coverage_percent']}% ({covered_count}/{len(building_points)} buildings)")
+        print(f"      Average uncovered density weight: {stats['avg_uncovered_weight']}")
         
         results[f"{radius_m}m"] = {
             'accessibility_points': accessibility_points,
@@ -146,7 +197,7 @@ def calculate_accessibility_weights(buildings_gdf, existing_shelters_gdf, covera
                 'total_buildings': len(building_points),
                 'total_shelters': len(shelter_points),
                 'coverage_radius_meters': radius_m,
-                'max_distance_meters': max_distance_m
+                'calculation_method': 'binary_with_density'
             }
         }
     
@@ -215,7 +266,7 @@ def main():
         print(f"\n📊 Summary:")
         for radius_key, data in accessibility_data.items():
             stats = data['statistics']
-            print(f"   {radius_key}: {stats['total_points']} points, avg distance {stats['avg_distance']}m")
+            print(f"   {radius_key}: {stats['total_points']} points, {stats['coverage_percent']}% coverage, avg uncovered weight {stats['avg_uncovered_weight']}")
         
     except Exception as e:
         print(f"❌ Error saving results: {e}")
