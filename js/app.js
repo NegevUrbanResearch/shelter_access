@@ -101,7 +101,8 @@ class ShelterAccessApp {
             buildingsCovered: document.getElementById('buildingsCovered'),
             additionalPeople: document.getElementById('additionalPeople'),
             suboptimalRequested: document.getElementById('suboptimalRequested'),
-            underservedPeople: document.getElementById('underservedPeople')
+            underservedPeople: document.getElementById('underservedPeople'),
+            legendItems: document.getElementById('legend-items')
         };
     }
     
@@ -119,6 +120,9 @@ class ShelterAccessApp {
             
             // Initial load of optimal locations and coverage analysis
             await this.updateOptimalLocations();
+            
+            // Initialize legend
+            this.updateLegend();
             
             // Debug coverage calculation
             setTimeout(() => this.debugCoverageCalculation(), 1000);
@@ -167,7 +171,7 @@ class ShelterAccessApp {
             await this.updateOptimalLocations();
         });
         
-        // New shelters slider - real-time updates
+        // Added shelters slider - real-time updates
         this.elements.newSheltersSlider.addEventListener('input', async (e) => {
             this.numNewShelters = parseInt(e.target.value);
             this.elements.newSheltersValue.textContent = this.numNewShelters;
@@ -199,31 +203,37 @@ class ShelterAccessApp {
         this.elements.buildingsLayer.addEventListener('change', (e) => {
             this.layerVisibility.buildings = e.target.checked;
             this.updateVisualization();
+            this.updateLegend();
         });
         
         this.elements.existingSheltersLayer.addEventListener('change', (e) => {
             this.layerVisibility.existingShelters = e.target.checked;
             this.updateVisualization();
+            this.updateLegend();
         });
         
         this.elements.requestedSheltersLayer.addEventListener('change', (e) => {
             this.layerVisibility.requestedShelters = e.target.checked;
             this.updateVisualization();
+            this.updateLegend();
         });
         
         this.elements.optimalSheltersLayer.addEventListener('change', (e) => {
             this.layerVisibility.optimalShelters = e.target.checked;
             this.updateVisualization();
+            this.updateLegend();
         });
         
         this.elements.statisticalAreasLayer.addEventListener('change', (e) => {
             this.layerVisibility.statisticalAreas = e.target.checked;
             this.updateVisualization();
+            this.updateLegend();
         });
         
         this.elements.habitationClustersLayer.addEventListener('change', (e) => {
             this.layerVisibility.habitationClusters = e.target.checked;
             this.updateVisualization();
+            this.updateLegend();
         });
         
         // Theme toggle
@@ -716,43 +726,39 @@ class ShelterAccessApp {
             }
         }
         
-        // === EXISTING SHELTERS (Blue) ===
+        // === EXISTING SHELTERS (Blue Circles) ===
         if (this.layerVisibility.existingShelters) {
             const existingShelters = currentData.shelters.features.filter(shelter => 
                 shelter.properties && shelter.properties.status === 'Built'
             );
             
-            // Existing shelter points (no coverage circles for performance)
             if (existingShelters.length > 0) {
-                layers.push(new deck.ScatterplotLayer({
+                layers.push(new deck.IconLayer({
                     id: 'existing-shelters',
                     data: existingShelters,
                     pickable: true,
-                    opacity: 0.9,
-                    stroked: true,
-                    filled: true,
-                    radiusScale: 1,
-                    radiusMinPixels: 8,
-                    radiusMaxPixels: 15,
-                    lineWidthMinPixels: 2,
+                    iconAtlas: this.createShelterIconAtlas(),
+                    iconMapping: this.getShelterIconMapping(),
+                    getIcon: () => 'circle',
                     getPosition: d => d.geometry.coordinates,
-                    getRadius: d => {
+                    getSize: d => {
                         // Make selected shelter larger
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return 18;
+                            return 24;
                         }
-                        return 12;
+                        return 16;
                     },
-                    getFillColor: d => {
+                    getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [52, 152, 219, 255]; // Bright blue for selected
+                            return [52, 152, 219, 220]; // Bright blue for selected (translucent)
                         }
-                        return [52, 152, 219, 255]; // Blue for existing
+                        return [52, 152, 219, 180]; // Blue for existing (translucent)
                     },
-                    getLineColor: [255, 255, 255, 255]
+                    sizeScale: 1,
+                    sizeUnits: 'pixels'
                 }));
             }
         }
@@ -765,44 +771,41 @@ class ShelterAccessApp {
             );
             
             if (requestedShelters.length > 0) {
-                // Requested shelter points
-                layers.push(new deck.ScatterplotLayer({
+                // Community requested shelter triangles using IconLayer
+                layers.push(new deck.IconLayer({
                     id: 'requested-shelters',
                     data: requestedShelters,
                     pickable: true,
-                    opacity: 0.9,
-                    stroked: true,
-                    filled: true,
-                    radiusScale: 1,
-                    radiusMinPixels: 8,
-                    radiusMaxPixels: 15,
-                    lineWidthMinPixels: 2,
+                    iconAtlas: this.createShelterIconAtlas(),
+                    iconMapping: this.getShelterIconMapping(),
+                    getIcon: () => 'triangle',
                     getPosition: d => d.geometry.coordinates,
-                    getRadius: d => {
+                    getSize: d => {
                         // Make selected shelter larger
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return 18;
+                            return 24;
                         }
-                        return 12;
+                        return 16;
                     },
-                    getFillColor: d => {
+                    getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [255, 165, 0, 255]; // Bright orange for selected
+                            return [255, 165, 0, 220]; // Bright orange for selected (translucent)
                         }
-                        return [255, 165, 0, 255]; // Bright orange for requested
+                        return [255, 165, 0, 180]; // Bright orange for community requested (translucent)
                     },
-                    getLineColor: [255, 255, 255, 255]
+                    sizeScale: 1,
+                    sizeUnits: 'pixels'
                 }));
             }
         }
         
-        // === OPTIMAL NEW SHELTERS (Yellow-Green Gradient) ===
+        // === OPTIMAL ADDED SHELTERS (Green Squares) ===
         if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
-            // Proposed shelter points with quality-based coloring
-            layers.push(new deck.ScatterplotLayer({
+            // Added shelter squares with quality-based coloring
+            layers.push(new deck.IconLayer({
                 id: 'proposed-shelters',
                 data: this.proposedShelters.map((shelter, index) => ({
                     coordinates: [shelter.lon, shelter.lat],
@@ -810,46 +813,104 @@ class ShelterAccessApp {
                     ...shelter
                 })),
                 pickable: true,
-                opacity: 0.9,
-                stroked: true,
-                filled: true,
-                radiusScale: 1,
-                radiusMinPixels: 10,
-                radiusMaxPixels: 18,
-                lineWidthMinPixels: 2,
+                iconAtlas: this.createShelterIconAtlas(),
+                iconMapping: this.getShelterIconMapping(),
+                getIcon: () => 'square',
                 getPosition: d => d.coordinates,
-                getRadius: d => {
+                getSize: d => {
                     // Make selected shelter larger
                     if (this.selectedShelter && this.selectedShelter.coordinates && 
                         this.selectedShelter.coordinates[0] === d.coordinates[0] && 
                         this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                        return 22;
+                        return 26;
                     }
-                    return 14;
+                    return 18;
                 },
-                getFillColor: d => {
+                getColor: d => {
                     // Highlight selected shelter
                     if (this.selectedShelter && this.selectedShelter.coordinates && 
                         this.selectedShelter.coordinates[0] === d.coordinates[0] && 
                         this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                        return [154, 205, 50, 255]; // Bright yellow-green for selected
+                        return [50, 120, 20, 220]; // Dark green for selected (translucent)
                     }
-                    // Yellow-green gradient: brighter = better
+                    // Green gradient: darker = better coverage
                     const rank = d.rank || 1;
                     const quality = Math.max(0, 1 - (rank - 1) / this.proposedShelters.length);
                     
-                    // Interpolate from bright yellow-green to darker green
-                    const r = Math.round(255 * quality + 50 * (1 - quality)); // 255 -> 50
-                    const g = Math.round(255 * quality + 150 * (1 - quality)); // 255 -> 150  
-                    const b = Math.round(50 * quality + 0 * (1 - quality)); // 50 -> 0
+                    // Interpolate from darker green (better) to lighter yellow-green (worse)
+                    const r = Math.round(50 * quality + 200 * (1 - quality)); // 50 -> 200
+                    const g = Math.round(120 * quality + 220 * (1 - quality)); // 120 -> 220  
+                    const b = Math.round(20 * quality + 50 * (1 - quality)); // 20 -> 50
                     
-                    return [r, g, b, 255];
+                    return [r, g, b, 180]; // Translucent for all optimal shelters
                 },
-                getLineColor: [255, 255, 255, 255]
+                sizeScale: 1,
+                sizeUnits: 'pixels'
             }));
         }
         
         return layers;
+    }
+    
+    /**
+     * Update legend to show only visible layers
+     */
+    updateLegend() {
+        if (!this.elements.legendItems) return;
+        
+        const legendItems = [];
+        
+        // Add legend items only for visible layers
+        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
+            legendItems.push({
+                className: 'optimal-shelter',
+                label: 'Added Shelters'
+            });
+        }
+        
+        if (this.layerVisibility.existingShelters) {
+            legendItems.push({
+                className: 'existing-shelter', 
+                label: 'Existing Shelters'
+            });
+        }
+        
+        if (this.layerVisibility.requestedShelters) {
+            legendItems.push({
+                className: 'requested-shelter',
+                label: 'Community Requested'
+            });
+        }
+        
+        if (this.layerVisibility.buildings) {
+            legendItems.push({
+                className: 'covered-building',
+                label: 'Covered Buildings'
+            });
+            legendItems.push({
+                className: 'uncovered-building', 
+                label: 'Uncovered Buildings'
+            });
+        }
+        
+        // Clear existing legend items
+        this.elements.legendItems.innerHTML = '';
+        
+        // Add new legend items
+        legendItems.forEach(item => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            
+            const colorBox = document.createElement('div');
+            colorBox.className = `legend-color ${item.className}`;
+            
+            const label = document.createElement('span');
+            label.textContent = item.label;
+            
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(label);
+            this.elements.legendItems.appendChild(legendItem);
+        });
     }
     
     /**
@@ -874,6 +935,73 @@ class ShelterAccessApp {
         
         console.log(`🗺️ Updated visualization with ${dataLayers.length} data layers on ${basemapConfig.name} basemap`);
         this.updateCoverageAnalysis();
+        this.updateLegend();
+    }
+    
+    /**
+     * Create comprehensive icon atlas with all shelter shapes
+     */
+    createShelterIconAtlas() {
+        // Create a canvas with all three shapes: circle, triangle, square
+        const canvas = document.createElement('canvas');
+        canvas.width = 96; // 3 icons x 32px each
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = 'white';
+        
+        // Circle (0, 0, 32, 32)
+        ctx.beginPath();
+        ctx.arc(16, 16, 12, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Triangle (32, 0, 32, 32) 
+        ctx.beginPath();
+        ctx.moveTo(48, 4);   // Top vertex
+        ctx.lineTo(36, 28);  // Bottom left
+        ctx.lineTo(60, 28);  // Bottom right
+        ctx.closePath();
+        ctx.fill();
+        
+        // Square (64, 0, 32, 32)
+        ctx.fillRect(68, 4, 24, 24);
+        
+        return canvas;
+    }
+
+    /**
+     * Get icon mapping for all shelter types
+     */
+    getShelterIconMapping() {
+        return {
+            circle: {
+                x: 0,
+                y: 0,
+                width: 32,
+                height: 32,
+                anchorX: 16,
+                anchorY: 16,
+                mask: true
+            },
+            triangle: {
+                x: 32,
+                y: 0,
+                width: 32,
+                height: 32,
+                anchorX: 16,
+                anchorY: 16,
+                mask: true
+            },
+            square: {
+                x: 64,
+                y: 0,
+                width: 32,
+                height: 32,
+                anchorX: 16,
+                anchorY: 16,
+                mask: true
+            }
+        };
     }
     
     /**
@@ -972,7 +1100,7 @@ class ShelterAccessApp {
         const stats = data.statistics;
         const newSheltersSelected = this.proposedShelters.length;
         console.log('📊 Stats:', stats);
-        console.log('📊 New shelters selected:', newSheltersSelected);
+                    console.log('📊 Added shelters selected:', newSheltersSelected);
         
         // Calculate coverage from selected optimal shelters
         let newBuildingsCovered = 0;

@@ -48,9 +48,9 @@
                 </div>
                 
                 <div class="control-section">
-                    <h3>➕ New Shelters</h3>
+                    <h3>➕ Added Shelters</h3>
                     <div class="input-group">
-                        <label for="newShelters">Number of new shelters</label>
+                        <label for="newShelters">Number of added shelters</label>
                         <input type="range" id="newShelters" min="0" max="500" value="10" step="1">
                         <span id="newSheltersValue">10</span>
                     </div>
@@ -107,7 +107,7 @@
                         </label>
                         <label class="layer-option">
                             <input type="checkbox" id="requestedSheltersLayer" checked>
-                            <span class="layer-label">Requested Shelters</span>
+                            <span class="layer-label">Community Requested</span>
                         </label>
                         <label class="layer-option">
                             <input type="checkbox" id="optimalSheltersLayer" checked>
@@ -141,7 +141,7 @@
                         <div class="stat-value" id="currentCoverage">--%</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-label">With New Shelters</div>
+                        <div class="stat-label">With Added Shelters</div>
                         <div class="stat-value" id="newCoverage">--%</div>
                     </div>
                     <div class="stat">
@@ -157,18 +157,7 @@
                 <!-- Color Legend -->
                 <div class="color-legend">
                     <h4>🎨 Map Legend</h4>
-                    <div class="legend-item">
-                        <div class="legend-color optimal-shelter"></div>
-                        <span>New Shelters (Yellow-Green)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color existing-shelter"></div>
-                        <span>Existing Shelters (Blue)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color requested-shelter"></div>
-                        <span>Requested Shelters (Orange)</span>
-                    </div>
+                    <div id="legend-items"></div>
                 </div>
             </div>
         </div>
