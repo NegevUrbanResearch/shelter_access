@@ -1,8 +1,8 @@
 {
-  "name": "building_tiles",
-  "description": "Building footprint vector tiles",
+  "name": "building_tiles_extended",
+  "description": "Building footprint vector tiles (extended to zoom 7-16)",
   "version": "1.0.0",
-  "minzoom": 10,
+  "minzoom": 7,
   "maxzoom": 16,
   "bounds": [
     34.673474373911105,
@@ -14,7 +14,7 @@
     34.97939397014765,
     31.030730014964874
   ],
-  "total_tiles": 3049,
+  "total_tiles": 3082,
   "tile_format": "geojson",
-  "attribution": "Building data for shelter access analysis"
+  "attribution": "Filtered geospatial data for shelter access analysis"
 }
