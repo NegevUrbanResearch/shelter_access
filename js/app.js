@@ -257,9 +257,14 @@ class ShelterAccessApp {
                 latitude: centerLat,
                 zoom: 12,
                 pitch: 0,
-                bearing: 0
+                bearing: 0,
+                minZoom: 7,  // Prevent zooming out beyond level 7
+                maxZoom: 19
             },
-            controller: true,
+            controller: {
+                minZoom: 7,  // Enforce minimum zoom level
+                maxZoom: 19
+            },
             onHover: (info) => this.handleHover(info),
             onClick: (info) => this.handleClick(info),
             onViewStateChange: ({viewState}) => this.handleViewStateChange(viewState),
@@ -360,12 +365,14 @@ class ShelterAccessApp {
                                   (this.selectedShelter && this.highlightedBuildings.length > 0);
         
         if (shouldShowBuildings) {
-            if (this.useBuildingTiles && this.layerVisibility.buildings) {
-                // Use optimized tile layer for all buildings when layer is enabled
+            const currentZoom = this._currentZoom || 12;
+            
+            if (this.useBuildingTiles && this.layerVisibility.buildings && currentZoom >= 7) {
+                // Use optimized tile layer for zoom levels 7+ when layer is enabled
                 layers.push(new deck.TileLayer({
                     id: 'buildings-tiles',
                     data: this.buildingTileUrl,
-                    minZoom: 10,
+                    minZoom: 7, // Tiles now available from zoom 7
                     maxZoom: 16,
                     tileSize: 256,
                     pickable: false,
@@ -397,11 +404,25 @@ class ShelterAccessApp {
                     }
                 }));
             } else if (currentData.buildings && currentData.buildings.features.length > 0) {
-                // Fallback to GeoJSON layer for coverage highlighting or when tiles are disabled
+                // Fallback to GeoJSON layer for:
+                // 1. Coverage highlighting when layer is disabled
+                // 2. Zoom levels below 7 when tiles aren't available (shouldn't happen with minZoom=7)
+                // 3. When tiles are disabled
+                
                 let buildingsToShow;
                 if (this.layerVisibility.buildings) {
                     // Show all buildings when layer is enabled
-                    buildingsToShow = currentData.buildings.features;
+                    if (currentZoom < 7) {
+                        // For zoom levels below 7, show simplified buildings for performance
+                        // Only show every nth building to avoid performance issues
+                        const simplificationFactor = Math.max(1, Math.floor(Math.pow(2, 10 - currentZoom)));
+                        buildingsToShow = currentData.buildings.features.filter((_, index) => 
+                            index % simplificationFactor === 0
+                        );
+                        console.log(`🔍 Showing simplified buildings (1/${simplificationFactor}) for zoom ${currentZoom}`);
+                    } else {
+                        buildingsToShow = currentData.buildings.features;
+                    }
                 } else {
                     // Only show covered buildings when layer is disabled
                     const coveredIndices = new Set([
@@ -487,95 +508,227 @@ class ShelterAccessApp {
         }
         
         // === STATISTICAL AREAS LAYER (Grey outlines) ===
-        if (this.layerVisibility.statisticalAreas && currentData.statisticalAreas) {
-            layers.push(new deck.GeoJsonLayer({
-                id: 'statistical-areas',
-                data: currentData.statisticalAreas.features.map((feature, index) => ({
-                    ...feature,
-                    _layerType: 'statisticalArea',
-                    _index: index
-                })),
-                pickable: true,
-                stroked: true,
-                filled: true,
-                lineWidthMinPixels: 2,
-                lineWidthMaxPixels: 4,
-                getFillColor: d => {
-                    // Highlight selected polygon
-                    if (this.selectedPolygon && this.selectedPolygonType === 'statisticalArea' && 
-                        this.selectedPolygon._index === d._index) {
-                        return [128, 128, 128, 100]; // Darker grey fill when selected
+        if (this.layerVisibility.statisticalAreas) {
+            // Use optimized tile layer for better performance with large polygons
+            const currentZoom = this.map?.deck?.props?.viewState?.zoom || this.map?.viewState?.zoom || 12;
+            
+            if (currentZoom >= 7 && currentZoom <= 14) {
+                // Use tile layer for supported zoom levels
+                layers.push(new deck.TileLayer({
+                    id: 'statistical-areas-tiles',
+                    data: 'data/stats_tiles/{z}/{x}/{y}.json',
+                    minZoom: 7,
+                    maxZoom: 14,
+                    tileSize: 256,
+                    pickable: true,
+                    
+                    renderSubLayers: props => {
+                        const {data, tile} = props;
+                        
+                        if (!data || !data.features || data.features.length === 0) {
+                            return null;
+                        }
+                        
+                        return new deck.GeoJsonLayer({
+                            ...props,
+                            id: `statistical-areas-tile-${tile.x}-${tile.y}-${tile.z}`,
+                            data: data.features.map((feature, index) => ({
+                                ...feature,
+                                _layerType: 'statisticalArea',
+                                _index: index,
+                                _tileInfo: `${tile.z}/${tile.x}/${tile.y}`
+                            })),
+                            stroked: true,
+                            filled: true,
+                            lineWidthMinPixels: 2,
+                            lineWidthMaxPixels: 4,
+                            getFillColor: d => {
+                                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                                return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
+                            },
+                            getLineColor: d => {
+                                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                                return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
+                            },
+                            getLineWidth: d => {
+                                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                                return isSelected ? 4 : 2; // Thicker when selected
+                            },
+                            updateTriggers: {
+                                getFillColor: [this.selectedPolygon],
+                                getLineColor: [this.selectedPolygon],
+                                getLineWidth: [this.selectedPolygon]
+                            },
+                            // Performance optimizations
+                            parameters: {
+                                blend: true,
+                                blendFunc: [770, 771, 1, 0]
+                            }
+                        });
                     }
-                    return [128, 128, 128, 30]; // Light grey fill
-                },
-                getLineColor: d => {
-                    // Highlight selected polygon
-                    if (this.selectedPolygon && this.selectedPolygonType === 'statisticalArea' && 
-                        this.selectedPolygon._index === d._index) {
-                        return [80, 80, 80, 255]; // Darker grey outline when selected
-                    }
-                    return [128, 128, 128, 200]; // Grey outline
-                },
-                getLineWidth: d => {
-                    // Thicker line when selected
-                    if (this.selectedPolygon && this.selectedPolygonType === 'statisticalArea' && 
-                        this.selectedPolygon._index === d._index) {
-                        return 4;
-                    }
-                    return 2;
-                },
-                // Performance optimizations
-                parameters: {
-                    blend: true,
-                    blendFunc: [770, 771, 1, 0]
+                }));
+            } else {
+                // Load statistical areas for fallback if not already loaded
+                if (!currentData.statisticalAreas || currentData.statisticalAreas.length === 0) {
+                    // Trigger loading in background for zoom levels outside tile range
+                    this.spatialAnalyzer.loadStatisticalAreasGeoJson().then(() => {
+                        // Redraw when data is loaded
+                        this.updateVisualization();
+                    });
                 }
-            }));
+                
+                if (currentData.statisticalAreas && currentData.statisticalAreas.length > 0) {
+                    // Fallback GeoJSON layer for zoom levels outside tile range
+                    layers.push(new deck.GeoJsonLayer({
+                        id: 'statistical-areas-geojson',
+                        data: currentData.statisticalAreas.map((feature, index) => ({
+                            ...feature,
+                            _layerType: 'statisticalArea',
+                            _index: index
+                        })),
+                        pickable: true,
+                        stroked: true,
+                        filled: true,
+                        lineWidthMinPixels: 2,
+                        lineWidthMaxPixels: 4,
+                        getFillColor: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                             this.selectedPolygon?._index === d._index;
+                            return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
+                        },
+                        getLineColor: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                             this.selectedPolygon?._index === d._index;
+                            return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
+                        },
+                        getLineWidth: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                             this.selectedPolygon?._index === d._index;
+                            return isSelected ? 4 : 2;
+                        },
+                        updateTriggers: {
+                            getFillColor: [this.selectedPolygon],
+                            getLineColor: [this.selectedPolygon],
+                            getLineWidth: [this.selectedPolygon]
+                        },
+                        // Performance optimizations
+                        parameters: {
+                            blend: true,
+                            blendFunc: [770, 771, 1, 0]
+                        }
+                    }));
+                }
+            }
         }
         
         // === HABITATION CLUSTERS LAYER (Blue outlines) ===
-        if (this.layerVisibility.habitationClusters && currentData.habitationClusters) {
-            layers.push(new deck.GeoJsonLayer({
-                id: 'habitation-clusters',
-                data: currentData.habitationClusters.features.map((feature, index) => ({
-                    ...feature,
-                    _layerType: 'habitationCluster',
-                    _index: index
-                })),
-                pickable: true,
-                stroked: true,
-                filled: true,
-                lineWidthMinPixels: 2,
-                lineWidthMaxPixels: 4,
-                getFillColor: d => {
-                    // Highlight selected polygon
-                    if (this.selectedPolygon && this.selectedPolygonType === 'habitationCluster' && 
-                        this.selectedPolygon._index === d._index) {
-                        return [52, 152, 219, 100]; // Darker blue fill when selected
+        if (this.layerVisibility.habitationClusters) {
+            // Use optimized tile layer for better performance
+            const currentZoom = this.map?.deck?.props?.viewState?.zoom || this.map?.viewState?.zoom || 12;
+            
+            if (currentZoom >= 7 && currentZoom <= 14) {
+                // Use tile layer for supported zoom levels
+                layers.push(new deck.TileLayer({
+                    id: 'habitation-clusters-tiles',
+                    data: 'data/cluster_tiles/{z}/{x}/{y}.json',
+                    minZoom: 7,
+                    maxZoom: 14,
+                    tileSize: 256,
+                    pickable: true,
+                    
+                    renderSubLayers: props => {
+                        const {data, tile} = props;
+                        
+                        if (!data || !data.features || data.features.length === 0) {
+                            return null;
+                        }
+                        
+                        return new deck.GeoJsonLayer({
+                            ...props,
+                            id: `habitation-clusters-tile-${tile.x}-${tile.y}-${tile.z}`,
+                            data: data.features.map((feature, index) => ({
+                                ...feature,
+                                _layerType: 'habitationCluster',
+                                _index: index,
+                                _tileInfo: `${tile.z}/${tile.x}/${tile.y}`
+                            })),
+                            stroked: true,
+                            filled: true,
+                            lineWidthMinPixels: 2,
+                            lineWidthMaxPixels: 4,
+                            getFillColor: d => {
+                                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                                return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 40]; // Blue fill
+                            },
+                            getLineColor: d => {
+                                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                                return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 220]; // Blue outline
+                            },
+                            getLineWidth: d => {
+                                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                                return isSelected ? 4 : 2; // Thicker when selected
+                            },
+                            updateTriggers: {
+                                getFillColor: [this.selectedPolygon],
+                                getLineColor: [this.selectedPolygon],
+                                getLineWidth: [this.selectedPolygon]
+                            }
+                        });
                     }
-                    return [52, 152, 219, 40]; // Light blue fill
-                },
-                getLineColor: d => {
-                    // Highlight selected polygon
-                    if (this.selectedPolygon && this.selectedPolygonType === 'habitationCluster' && 
-                        this.selectedPolygon._index === d._index) {
-                        return [30, 100, 150, 255]; // Darker blue outline when selected
-                    }
-                    return [52, 152, 219, 220]; // Blue outline
-                },
-                getLineWidth: d => {
-                    // Thicker line when selected
-                    if (this.selectedPolygon && this.selectedPolygonType === 'habitationCluster' && 
-                        this.selectedPolygon._index === d._index) {
-                        return 4;
-                    }
-                    return 2;
-                },
-                // Performance optimizations
-                parameters: {
-                    blend: true,
-                    blendFunc: [770, 771, 1, 0]
+                }));
+            } else {
+                // Load habitation clusters for fallback if not already loaded
+                if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
+                    // Trigger loading in background
+                    this.spatialAnalyzer.loadHabitationClustersGeoJson().then(() => {
+                        // Redraw when data is loaded
+                        this.updateVisualization();
+                    });
                 }
-            }));
+                
+                if (currentData.habitationClusters && currentData.habitationClusters.length > 0) {
+                    // Fallback GeoJSON layer for zoom levels outside tile range
+                    layers.push(new deck.GeoJsonLayer({
+                        id: 'habitation-clusters-geojson',
+                        data: currentData.habitationClusters.map((feature, index) => ({
+                            ...feature,
+                            _layerType: 'habitationCluster',
+                            _index: index
+                        })),
+                        pickable: true,
+                        stroked: true,
+                        filled: true,
+                        lineWidthMinPixels: 2,
+                        lineWidthMaxPixels: 4,
+                        getFillColor: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                             this.selectedPolygon?._index === d._index;
+                            return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 40];
+                        },
+                        getLineColor: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                             this.selectedPolygon?._index === d._index;
+                            return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 220];
+                        },
+                        getLineWidth: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                             this.selectedPolygon?._index === d._index;
+                            return isSelected ? 4 : 2;
+                        },
+                        updateTriggers: {
+                            getFillColor: [this.selectedPolygon],
+                            getLineColor: [this.selectedPolygon],
+                            getLineWidth: [this.selectedPolygon]
+                        }
+                    }));
+                }
+            }
         }
         
         // === COVERAGE BRUSH LAYER (for selected/hovered shelters) ===

@@ -53,29 +53,69 @@ class SimpleSpatialAnalyzer {
      * Load pre-filtered polygon layers
      */
     async loadPolygonLayers() {
-        console.log('Loading pre-filtered polygon layers...');
+        console.log('🗺️ Loading polygon layers...');
         
         try {
-            // Load both pre-filtered polygon datasets
-            const [statisticalResponse, habitationResponse] = await Promise.all([
-                fetch('data/statistical_areas_filtered.geojson'),
-                fetch('data/tribes_polygons_filtered.geojson')
-            ]);
+            // Both statistical areas and habitation clusters will use tiles for better performance
+            // The tile data will be loaded dynamically by deck.gl TileLayer
+            console.log('📊 Setting up statistical area tiles...');
+            this.statisticalAreas = []; // Will be loaded via tiles or on-demand
+            console.log('✓ Statistical area tiles configured');
             
-            this.statisticalAreas = await statisticalResponse.json();
-            this.habitationClusters = await habitationResponse.json();
-            
-            console.log(`✓ Loaded ${this.statisticalAreas.features.length} statistical areas (pre-filtered)`);
-            console.log(`✓ Loaded ${this.habitationClusters.features.length} habitation clusters (pre-filtered)`);
+            console.log('🏘️ Setting up habitation cluster tiles...');
+            this.habitationClusters = []; // Will be loaded via tiles or on-demand
+            console.log('✓ Habitation cluster tiles configured');
             
         } catch (error) {
-            console.error('Error loading polygon layers:', error);
-            // Initialize empty collections if loading fails
-            this.statisticalAreas = { type: 'FeatureCollection', features: [] };
-            this.habitationClusters = { type: 'FeatureCollection', features: [] };
+            console.error('❌ Error loading polygon layers:', error);
+            this.statisticalAreas = [];
+            this.habitationClusters = [];
         }
     }
     
+    /**
+     * Load habitation clusters GeoJSON for fallback (when not using tiles)
+     */
+    async loadHabitationClustersGeoJson() {
+        if (this.habitationClusters && this.habitationClusters.length > 0) {
+            return; // Already loaded
+        }
+        
+        try {
+            console.log('🏘️ Loading habitation clusters GeoJSON (fallback)...');
+            const response = await fetch('data/tribes_polygons_filtered.geojson');
+            if (response.ok) {
+                const data = await response.json();
+                this.habitationClusters = data.features || [];
+                console.log(`✓ Loaded ${this.habitationClusters.length} habitation clusters (fallback)`);
+            }
+        } catch (error) {
+            console.error('❌ Error loading habitation clusters GeoJSON:', error);
+            this.habitationClusters = [];
+        }
+    }
+    
+    /**
+     * Load statistical areas GeoJSON for fallback (when not using tiles)
+     */
+    async loadStatisticalAreasGeoJson() {
+        if (this.statisticalAreas && this.statisticalAreas.length > 0) {
+            return; // Already loaded
+        }
+        
+        try {
+            console.log('📊 Loading statistical areas GeoJSON (fallback)...');
+            const response = await fetch('data/statistical_areas_filtered.geojson');
+            if (response.ok) {
+                const data = await response.json();
+                this.statisticalAreas = data.features || [];
+                console.log(`✓ Loaded ${this.statisticalAreas.length} statistical areas (fallback)`);
+            }
+        } catch (error) {
+            console.error('❌ Error loading statistical areas GeoJSON:', error);
+            this.statisticalAreas = [];
+        }
+    }
 
     
     /**
@@ -386,16 +426,16 @@ class SimpleSpatialAnalyzer {
      * Get statistical areas data
      */
     getStatisticalAreas() {
-        return this.statisticalAreas;
+        return { type: 'FeatureCollection', features: this.statisticalAreas || [] };
     }
     
     /**
      * Get habitation clusters data
      */
     getHabitationClusters() {
-        return this.habitationClusters;
+        return { type: 'FeatureCollection', features: this.habitationClusters || [] };
     }
 }
 
 // Export for use in main application
-window.SimpleSpatialAnalyzer = SimpleSpatialAnalyzer; 
+window.SimpleSpatialAnalyzer = SimpleSpatialAnalyzer;
