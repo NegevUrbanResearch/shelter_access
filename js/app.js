@@ -509,118 +509,54 @@ class ShelterAccessApp {
         
         // === STATISTICAL AREAS LAYER (Grey outlines) ===
         if (this.layerVisibility.statisticalAreas) {
-            // Use optimized tile layer for better performance with large polygons
-            const currentZoom = this.map?.deck?.props?.viewState?.zoom || this.map?.viewState?.zoom || 12;
+            // Load statistical areas if not already loaded
+            if (!currentData.statisticalAreas || currentData.statisticalAreas.length === 0) {
+                this.spatialAnalyzer.loadStatisticalAreasGeoJson().then(() => {
+                    // Redraw when data is loaded
+                    this.updateVisualization();
+                });
+            }
             
-            if (currentZoom >= 7 && currentZoom <= 14) {
-                // Use tile layer for supported zoom levels
-                layers.push(new deck.TileLayer({
-                    id: 'statistical-areas-tiles',
-                    data: 'data/stats_tiles/{z}/{x}/{y}.json',
-                    minZoom: 7,
-                    maxZoom: 14,
-                    tileSize: 256,
+            if (currentData.statisticalAreas && currentData.statisticalAreas.length > 0) {
+                // GeoJSON layer for statistical areas
+                layers.push(new deck.GeoJsonLayer({
+                    id: 'statistical-areas-geojson',
+                    data: currentData.statisticalAreas.map((feature, index) => ({
+                        ...feature,
+                        _layerType: 'statisticalArea',
+                        _index: index
+                    })),
                     pickable: true,
-                    
-                    renderSubLayers: props => {
-                        const {data, tile} = props;
-                        
-                        if (!data || !data.features || data.features.length === 0) {
-                            return null;
-                        }
-                        
-                        return new deck.GeoJsonLayer({
-                            ...props,
-                            id: `statistical-areas-tile-${tile.x}-${tile.y}-${tile.z}`,
-                            data: data.features.map((feature, index) => ({
-                                ...feature,
-                                _layerType: 'statisticalArea',
-                                _index: index,
-                                _tileInfo: `${tile.z}/${tile.x}/${tile.y}`
-                            })),
-                            stroked: true,
-                            filled: true,
-                            lineWidthMinPixels: 2,
-                            lineWidthMaxPixels: 4,
-                            getFillColor: d => {
-                                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
-                            },
-                            getLineColor: d => {
-                                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
-                            },
-                            getLineWidth: d => {
-                                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? 4 : 2; // Thicker when selected
-                            },
-                            updateTriggers: {
-                                getFillColor: [this.selectedPolygon],
-                                getLineColor: [this.selectedPolygon],
-                                getLineWidth: [this.selectedPolygon]
-                            },
-                            // Performance optimizations
-                            parameters: {
-                                blend: true,
-                                blendFunc: [770, 771, 1, 0]
-                            }
-                        });
+                    stroked: true,
+                    filled: true,
+                    lineWidthMinPixels: 2,
+                    lineWidthMaxPixels: 4,
+                    getFillColor: d => {
+                        const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                         this.selectedPolygon?._index === d._index;
+                        return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
+                    },
+                    getLineColor: d => {
+                        const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                         this.selectedPolygon?._index === d._index;
+                        return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
+                    },
+                    getLineWidth: d => {
+                        const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                         this.selectedPolygon?._index === d._index;
+                        return isSelected ? 4 : 2;
+                    },
+                    updateTriggers: {
+                        getFillColor: [this.selectedPolygon],
+                        getLineColor: [this.selectedPolygon],
+                        getLineWidth: [this.selectedPolygon]
+                    },
+                    // Performance optimizations
+                    parameters: {
+                        blend: true,
+                        blendFunc: [770, 771, 1, 0]
                     }
                 }));
-            } else {
-                // Load statistical areas for fallback if not already loaded
-                if (!currentData.statisticalAreas || currentData.statisticalAreas.length === 0) {
-                    // Trigger loading in background for zoom levels outside tile range
-                    this.spatialAnalyzer.loadStatisticalAreasGeoJson().then(() => {
-                        // Redraw when data is loaded
-                        this.updateVisualization();
-                    });
-                }
-                
-                if (currentData.statisticalAreas && currentData.statisticalAreas.length > 0) {
-                    // Fallback GeoJSON layer for zoom levels outside tile range
-                    layers.push(new deck.GeoJsonLayer({
-                        id: 'statistical-areas-geojson',
-                        data: currentData.statisticalAreas.map((feature, index) => ({
-                            ...feature,
-                            _layerType: 'statisticalArea',
-                            _index: index
-                        })),
-                        pickable: true,
-                        stroked: true,
-                        filled: true,
-                        lineWidthMinPixels: 2,
-                        lineWidthMaxPixels: 4,
-                        getFillColor: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                             this.selectedPolygon?._index === d._index;
-                            return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
-                        },
-                        getLineColor: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                             this.selectedPolygon?._index === d._index;
-                            return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
-                        },
-                        getLineWidth: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                             this.selectedPolygon?._index === d._index;
-                            return isSelected ? 4 : 2;
-                        },
-                        updateTriggers: {
-                            getFillColor: [this.selectedPolygon],
-                            getLineColor: [this.selectedPolygon],
-                            getLineWidth: [this.selectedPolygon]
-                        },
-                        // Performance optimizations
-                        parameters: {
-                            blend: true,
-                            blendFunc: [770, 771, 1, 0]
-                        }
-                    }));
-                }
             }
         }
         
@@ -1121,7 +1057,7 @@ class ShelterAccessApp {
                 // Habitation cluster has medium priority
                 this.showPolygonTooltip(object, 'habitationCluster', x, y);
                 return;
-            } else if (info.layer.id === 'statistical-areas') {
+            } else if (info.layer.id === 'statistical-areas-geojson') {
                 // Statistical area has lowest priority
                 this.showPolygonTooltip(object, 'statisticalArea', x, y);
                 return;
@@ -1208,7 +1144,7 @@ class ShelterAccessApp {
                 // Select habitation cluster (medium priority)
                 this.selectPolygon(object, 'habitationCluster');
                 this.clearShelterSelection();
-            } else if (info.layer.id === 'statistical-areas') {
+            } else if (info.layer.id === 'statistical-areas-geojson') {
                 // Select statistical area (lowest priority)
                 this.selectPolygon(object, 'statisticalArea');
                 this.clearShelterSelection();

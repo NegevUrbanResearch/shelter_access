@@ -56,11 +56,9 @@ class SimpleSpatialAnalyzer {
         console.log('🗺️ Loading polygon layers...');
         
         try {
-            // Both statistical areas and habitation clusters will use tiles for better performance
-            // The tile data will be loaded dynamically by deck.gl TileLayer
-            console.log('📊 Setting up statistical area tiles...');
-            this.statisticalAreas = []; // Will be loaded via tiles or on-demand
-            console.log('✓ Statistical area tiles configured');
+            // Load statistical areas directly from GeoJSON (no tiles)
+            console.log('📊 Loading statistical areas GeoJSON...');
+            await this.loadStatisticalAreasGeoJson();
             
             console.log('🏘️ Setting up habitation cluster tiles...');
             this.habitationClusters = []; // Will be loaded via tiles or on-demand
@@ -105,7 +103,7 @@ class SimpleSpatialAnalyzer {
         
         try {
             console.log('📊 Loading statistical areas GeoJSON (fallback)...');
-            const response = await fetch('data/statistical_areas_filtered.geojson');
+            const response = await fetch('data/statistical_areas_simplified.geojson');
             if (response.ok) {
                 const data = await response.json();
                 this.statisticalAreas = data.features || [];
