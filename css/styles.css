@@ -821,12 +821,8 @@ select:focus {
 .existing-shelter { background: #3498db; }
 .optimal-shelter { background: #9acd32; }
 .requested-shelter { background: #ffa500; }
-.statistical-areas { background: #808080; } /* Grey for statistical areas */
-.habitation-clusters { background: #3498db; } /* Blue for habitation clusters */
-.replaceable-shelter { background: #dc3545; }
 .covered-building { background: #27ae60; }
 .uncovered-building { background: #95a5a6; }
-.building-grid { background: #dc3545; }
 
 /* Basemap options styling */
 .basemap-option {
