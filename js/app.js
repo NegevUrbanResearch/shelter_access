@@ -424,36 +424,24 @@ class ShelterAccessApp {
             console.log(`   🟢 Covered: ${coveredCount} buildings (${(coveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
             console.log(`   🔴 Uncovered: ${uncoveredCount} buildings (${(uncoveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
             
-            // Create unified heatmap layer with blended visualization
+            // Create simplified heatmap layer with intuitive weighting
             layers.push(new deck.ScreenGridLayer({
                 id: 'accessibility-grid-unified',
                 data: this.accessibilityData,
                 getPosition: d => d.position,
-                // Custom weight function that creates coverage-density blend
-                getWeight: d => {
-                    if (d.type === 'covered') {
-                        return -100; // Strong negative weight for covered areas (will map to green)
-                    } else {
-                        return d.density || 10; // Positive weight based on density for uncovered areas
-                    }
-                },
-                cellSizePixels: 12,
-                cellMarginPixels: 1,
+                getWeight: d => d.weight, // Simple: +1 for covered, -1 for uncovered
+                cellSizePixels: 8,  // Smaller cells for better detail when zoomed in
+                cellMarginPixels: 0,
                 gpuAggregation: true,
-                aggregation: 'SUM',
-                // Unified color scheme: Green (covered) → Yellow → Orange → Red (high uncovered density)
+                aggregation: 'MEAN',
+                // Proportional color scheme: Red (100% uncovered) → Yellow (50/50) → Green (100% covered)
                 colorRange: [
-                    [0, 200, 0, 255],      // Bright green (covered areas - negative weights)
-                    [100, 255, 0, 255],    // Light green (lightly covered)
-                    [200, 255, 100, 255],  // Yellow-green (transition)
-                    [255, 255, 0, 255],    // Yellow (neutral/low uncovered)
-                    [255, 200, 0, 255],    // Orange (medium uncovered)
-                    [255, 100, 0, 255],    // Red-orange (high uncovered)
-                    [255, 50, 0, 255],     // Red (very high uncovered)
-                    [200, 0, 0, 255]       // Deep red (highest uncovered density)
+                    [200, 20, 20, 255],     // Pure red: 100% uncovered buildings
+                    [255, 255, 0, 255],     // Pure yellow: 50/50 split
+                    [20, 180, 20, 255]      // Pure green: 100% covered buildings
                 ],
-                // Custom color domain to handle negative (covered) and positive (uncovered) weights
-                colorDomain: [-100, 0, 10, 50, 100, 200, 400, 800],
+                // Perfect proportional domain: -1 = 100% uncovered, 0 = 50/50, +1 = 100% covered
+                colorDomain: [-1, 0, 1],
                 pickable: false, // Disabled tooltips
                 opacity: 0.85
             }));
@@ -1037,7 +1025,7 @@ class ShelterAccessApp {
     }
 
     /**
-     * Create unified heatmap legend showing coverage spectrum
+     * Create simple heatmap legend
      */
     createHeatmapLegend() {
         if (!this.elements.legendItems) return;
@@ -1051,7 +1039,7 @@ class ShelterAccessApp {
         
         // Legend title
         const title = document.createElement('h4');
-        title.textContent = 'Shelter Accessibility Coverage';
+        title.textContent = 'Accessibility Coverage';
         title.style.cssText = `
             margin: 0 0 15px 0;
             font-size: 14px;
@@ -1060,101 +1048,62 @@ class ShelterAccessApp {
         `;
         heatmapLegend.appendChild(title);
         
-        // Add subtitle explaining the unified approach
-        const subtitle = document.createElement('div');
-        subtitle.textContent = 'Shows which areas have majority covered vs uncovered buildings';
-        subtitle.style.cssText = `
+        // Simple legend items
+        const legendItems = [
+            {
+                color: 'rgb(20, 180, 20)',
+                label: 'Well Covered Areas',
+
+            },
+            {
+                color: 'rgb(200, 20, 20)', 
+                label: 'Underserved Areas',
+            }
+        ];
+        
+        legendItems.forEach(item => {
+            const legendItem = document.createElement('div');
+            legendItem.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+                font-size: 13px;
+                color: var(--text-primary);
+            `;
+            
+            const colorBox = document.createElement('div');
+            colorBox.style.cssText = `
+                width: 16px;
+                height: 16px;
+                background: ${item.color};
+                border-radius: 3px;
+                border: 1px solid rgba(0,0,0,0.1);
+                flex-shrink: 0;
+            `;
+            
+            const label = document.createElement('span');
+            label.textContent = `${item.label}`;
+            
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(label);
+            heatmapLegend.appendChild(legendItem);
+        });
+        
+        // Distance info
+        const distanceInfo = document.createElement('div');
+        distanceInfo.style.cssText = `
             font-size: 11px;
             color: var(--text-secondary);
-            margin-bottom: 15px;
             text-align: center;
-            font-style: italic;
-        `;
-        heatmapLegend.appendChild(subtitle);
-        
-        // UNIFIED COVERAGE SPECTRUM
-        const spectrumSection = document.createElement('div');
-        spectrumSection.style.cssText = `margin-bottom: 15px;`;
-        
-        // Main gradient bar
-        const gradientBar = document.createElement('div');
-        gradientBar.style.cssText = `
-            width: 100%;
-            height: 20px;
-            background: linear-gradient(to right, 
-                rgb(0, 200, 0),      /* Green: Well covered */
-                rgb(100, 255, 0),    /* Light green */
-                rgb(200, 255, 100),  /* Yellow-green: Transition */
-                rgb(255, 255, 0),    /* Yellow: Low uncovered */
-                rgb(255, 200, 0),    /* Orange: Medium uncovered */
-                rgb(255, 100, 0),    /* Red-orange: High uncovered */
-                rgb(255, 50, 0),     /* Red: Very high uncovered */
-                rgb(200, 0, 0)       /* Deep red: Highest density */
-            );
-            border-radius: 10px;
-            margin-bottom: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            border: 1px solid rgba(0,0,0,0.1);
-        `;
-        spectrumSection.appendChild(gradientBar);
-        
-        // Spectrum labels
-        const spectrumLabels = document.createElement('div');
-        spectrumLabels.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-        `;
-        
-        const wellCovered = document.createElement('span');
-        wellCovered.textContent = '✅ Majority Covered';
-        wellCovered.style.fontWeight = '600';
-        
-        const highNeed = document.createElement('span');
-        highNeed.textContent = '⚠️ Majority Uncovered';
-        highNeed.style.fontWeight = '600';
-        
-        spectrumLabels.appendChild(wellCovered);
-        spectrumLabels.appendChild(highNeed);
-        spectrumSection.appendChild(spectrumLabels);
-        
-        // Detailed coverage explanation
-        const explanation = document.createElement('div');
-        explanation.style.cssText = `
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-align: center;
-            line-height: 1.4;
+            margin-top: 10px;
             padding: 8px;
             background: rgba(var(--text-secondary-rgb), 0.05);
-            border-radius: 6px;
-            margin-top: 8px;
-        `;
-        explanation.innerHTML = `
-            🟢 <strong>Green:</strong> Majority of buildings within ${this.coverageRadius}m of shelters<br>
-            🔴 <strong>Red:</strong> Majority of buildings beyond ${this.coverageRadius}m from shelters<br>
-            <em style="font-size: 9px; opacity: 0.8;">Darker colors = higher building density</em>
-        `;
-        spectrumSection.appendChild(explanation);
-        
-        heatmapLegend.appendChild(spectrumSection);
-        
-        // Add interaction note
-        const interactionNote = document.createElement('div');
-        interactionNote.textContent = 'Hover over grid cells for details';
-        interactionNote.style.cssText = `
-            font-size: 9px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-top: 15px;
-            padding: 5px;
-            background: rgba(var(--text-secondary-rgb), 0.1);
             border-radius: 4px;
-            opacity: 0.8;
+            font-style: italic;
         `;
-        heatmapLegend.appendChild(interactionNote);
+        distanceInfo.textContent = `Within ${this.coverageRadius}m of existing shelters`;
+        heatmapLegend.appendChild(distanceInfo);
         
         this.elements.legendItems.appendChild(heatmapLegend);
     }
@@ -1697,7 +1646,7 @@ class ShelterAccessApp {
     }
     
     /**
-     * Load precomputed accessibility data for heatmap visualization
+     * Load optimized accessibility data for heatmap visualization
      */
     async loadAccessibilityData() {
         if (this.isCalculatingAccessibility) return;
@@ -1706,7 +1655,7 @@ class ShelterAccessApp {
         this.showLoading('Loading accessibility data...');
         
         try {
-            // Load precomputed accessibility data
+            // Load accessibility data
             const response = await fetch('data/accessibility_heatmap.json');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -1714,22 +1663,10 @@ class ShelterAccessApp {
             
             const accessibilityDataAll = await response.json();
             
-            // Get data for current coverage radius
-            const radiusKey = `${this.coverageRadius}m`;
-            if (accessibilityDataAll[radiusKey]) {
-                this.accessibilityData = accessibilityDataAll[radiusKey].accessibility_points;
-                this.allAccessibilityData = accessibilityDataAll;
-            } else {
-                // Fallback to closest available radius
-                const availableRadii = Object.keys(accessibilityDataAll).map(key => parseInt(key.replace('m', '')));
-                const closestRadius = availableRadii.reduce((prev, curr) => 
-                    Math.abs(curr - this.coverageRadius) < Math.abs(prev - this.coverageRadius) ? curr : prev
-                );
-                
-                const fallbackKey = `${closestRadius}m`;
-                this.accessibilityData = accessibilityDataAll[fallbackKey].accessibility_points;
-                this.allAccessibilityData = accessibilityDataAll;
-            }
+            // Store raw data and extract for current radius
+            this.allAccessibilityData = accessibilityDataAll;
+            this.updateAccessibilityDataForRadius();
+            console.log(`🚀 Loaded accessibility data: ${accessibilityDataAll.accessibility_points.length} buildings, ${accessibilityDataAll.radii_available.length} radii`);
             
         } catch (error) {
             console.error('Error loading accessibility data:', error);
@@ -1746,19 +1683,18 @@ class ShelterAccessApp {
     updateAccessibilityDataForRadius() {
         if (!this.allAccessibilityData) return;
         
+        // Extract coverage for current radius from optimized data
         const radiusKey = `${this.coverageRadius}m`;
-        if (this.allAccessibilityData[radiusKey]) {
-            this.accessibilityData = this.allAccessibilityData[radiusKey].accessibility_points;
-        } else {
-            // Fallback to closest available radius
-            const availableRadii = Object.keys(this.allAccessibilityData).map(key => parseInt(key.replace('m', '')));
-            const closestRadius = availableRadii.reduce((prev, curr) => 
-                Math.abs(curr - this.coverageRadius) < Math.abs(prev - this.coverageRadius) ? curr : prev
-            );
-            
-            const fallbackKey = `${closestRadius}m`;
-            this.accessibilityData = this.allAccessibilityData[fallbackKey].accessibility_points;
-        }
+        const rawPoints = this.allAccessibilityData.accessibility_points;
+        
+        // Transform optimized data to format expected by ScreenGridLayer
+        this.accessibilityData = rawPoints.map(point => ({
+            position: point.position,
+            type: point.coverage[radiusKey] ? 'covered' : 'uncovered',
+            weight: point.coverage[radiusKey] ? 1 : -1  // +1 for covered (green), -1 for uncovered (red)
+        }));
+        
+        console.log(`🔄 Extracted ${radiusKey} data: ${this.accessibilityData.length} points`);
     }
     
 
