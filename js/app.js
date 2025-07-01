@@ -55,7 +55,7 @@ class ShelterAccessApp {
         // Mapbox token for terrain and other services
         this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
         
-        // Basemap configuration with terrain support
+        // Simplified basemap configuration
         this.currentBasemap = 'satellite';
         this.basemaps = {
             satellite: {
@@ -65,20 +65,8 @@ class ShelterAccessApp {
                 type: 'raster'
             },
             light: {
-                name: 'Streets',
+                name: 'Light Streets',
                 url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
-                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                type: 'raster'
-            },
-            dark: {
-                name: 'Dark',
-                url: `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
-                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                type: 'raster'
-            },
-            topography: {
-                name: 'Topography',
-                url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
                 attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 type: 'raster'
             }
@@ -93,10 +81,6 @@ class ShelterAccessApp {
             accessibilityDistanceValue: document.getElementById('accessibilityDistanceValue'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
-            basemapControl: document.querySelector('.basemap-control'),
-            basemapHeader: document.querySelector('.basemap-header'),
-            layerControl: document.querySelector('.layer-control'),
-            layerHeader: document.querySelector('.layer-header'),
             basemapRadios: document.querySelectorAll('input[name="basemap"]'),
             buildingsLayer: document.getElementById('buildingsLayer'),
             existingSheltersLayer: document.getElementById('existingSheltersLayer'),
@@ -106,7 +90,6 @@ class ShelterAccessApp {
             habitationClustersLayer: document.getElementById('habitationClustersLayer'),
             heatmapToggle: document.getElementById('heatmapToggle'),
             heatmapToggleText: document.getElementById('heatmapToggleText'),
-            themeToggle: document.getElementById('themeToggle'),
             loading: document.getElementById('loading'),
             tooltip: document.getElementById('tooltip'),
             attribution: document.getElementById('attribution'),
@@ -125,8 +108,8 @@ class ShelterAccessApp {
      */
     async initializeApp() {
         try {
-            this.loadThemePreference();
             this.setupEventListeners();
+            this.setupFloatingPanels();
             await this.spatialAnalyzer.loadData();
             this.initializeMap();
             this.updateAttribution();
@@ -147,13 +130,145 @@ class ShelterAccessApp {
     }
     
     /**
+     * Setup floating panel expand/collapse functionality
+     */
+    setupFloatingPanels() {
+        // Get all floating panels
+        const panels = document.querySelectorAll('.floating-panel');
+        
+        panels.forEach(panel => {
+            const header = panel.querySelector('.panel-header');
+            
+            if (header) {
+                header.addEventListener('click', () => {
+                    // Toggle panel state
+                    panel.classList.toggle('collapsed');
+                    panel.classList.toggle('expanded');
+                });
+            }
+        });
+    }
+    
+    /**
+     * Setup about modal functionality
+     */
+    setupAboutModal() {
+        const aboutButton = document.getElementById('aboutButton');
+        const aboutModal = document.getElementById('aboutModal');
+        const closeAboutModal = document.getElementById('closeAboutModal');
+        
+        // Open modal
+        if (aboutButton) {
+            aboutButton.addEventListener('click', () => {
+                aboutModal.classList.add('show');
+            });
+        }
+        
+        // Close modal - close button
+        if (closeAboutModal) {
+            closeAboutModal.addEventListener('click', () => {
+                aboutModal.classList.remove('show');
+            });
+        }
+        
+        // Close modal - click outside
+        if (aboutModal) {
+            aboutModal.addEventListener('click', (e) => {
+                if (e.target === aboutModal) {
+                    aboutModal.classList.remove('show');
+                }
+            });
+        }
+    }
+    
+    /**
+     * Setup methods modal functionality
+     */
+    setupMethodsModal() {
+        const methodsButton = document.getElementById('methodsButton');
+        const methodsModal = document.getElementById('methodsModal');
+        const closeMethodsModal = document.getElementById('closeMethodsModal');
+        
+        // Open modal
+        if (methodsButton) {
+            methodsButton.addEventListener('click', () => {
+                methodsModal.classList.add('show');
+            });
+        }
+        
+        // Close modal - close button
+        if (closeMethodsModal) {
+            closeMethodsModal.addEventListener('click', () => {
+                methodsModal.classList.remove('show');
+            });
+        }
+        
+        // Close modal - click outside
+        if (methodsModal) {
+            methodsModal.addEventListener('click', (e) => {
+                if (e.target === methodsModal) {
+                    methodsModal.classList.remove('show');
+                }
+            });
+        }
+    }
+    
+    /**
+     * Setup methods modal functionality
+     */
+    setupMethodsModal() {
+        const methodsButton = document.getElementById('methodsButton');
+        const methodsModal = document.getElementById('methodsModal');
+        const closeMethodsModal = document.getElementById('closeMethodsModal');
+        
+        // Open modal
+        if (methodsButton) {
+            methodsButton.addEventListener('click', () => {
+                methodsModal.classList.add('show');
+            });
+        }
+        
+        // Close modal - close button
+        if (closeMethodsModal) {
+            closeMethodsModal.addEventListener('click', () => {
+                methodsModal.classList.remove('show');
+            });
+        }
+        
+        // Close modal - click outside
+        if (methodsModal) {
+            methodsModal.addEventListener('click', (e) => {
+                if (e.target === methodsModal) {
+                    methodsModal.classList.remove('show');
+                }
+            });
+        }
+    }
+    
+    /**
      * Setup event listeners for UI controls
      */
     setupEventListeners() {
+        // Setup about modal
+        this.setupAboutModal();
+        
+        // Setup methods modal
+        this.setupMethodsModal();
+        
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                this.clearShelterSelection();
+                // Priority: close modals first, then clear shelter selection
+                const aboutModal = document.getElementById('aboutModal');
+                const methodsModal = document.getElementById('methodsModal');
+                
+                if (aboutModal && aboutModal.classList.contains('show')) {
+                    aboutModal.classList.remove('show');
+                } else if (methodsModal && methodsModal.classList.contains('show')) {
+                    methodsModal.classList.remove('show');
+                } else {
+                    this.clearShelterSelection();
+                }
             }
         });
         
@@ -192,23 +307,11 @@ class ShelterAccessApp {
             await this.updateOptimalLocations();
         });
         
-        // Basemap control - toggle menu
-        this.elements.basemapHeader.addEventListener('click', () => {
-            this.elements.basemapControl.classList.toggle('expanded');
-        });
-        
-        // Layer control - toggle menu
-        this.elements.layerHeader.addEventListener('click', () => {
-            this.elements.layerControl.classList.toggle('expanded');
-        });
-        
         // Basemap radio selection
         this.elements.basemapRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 if (e.target.checked) {
                     this.changeBasemap(e.target.value);
-                    // Close menu after selection
-                    this.elements.basemapControl.classList.remove('expanded');
                 }
             });
         });
@@ -278,7 +381,7 @@ class ShelterAccessApp {
                 }
             } else {
                 button.classList.remove('active');
-                text.textContent = 'Existing Accessibility Heatmap';
+                text.textContent = 'Accessibility Heatmap';
                 
                 // Unlock added shelters section
                 addedSheltersSection.classList.remove('disabled');
@@ -297,11 +400,6 @@ class ShelterAccessApp {
             
             this.updateVisualization();
             this.updateLegend();
-        });
-        
-        // Theme toggle
-        this.elements.themeToggle.addEventListener('click', () => {
-            this.toggleTheme();
         });
         
         // Initial load of optimal locations
@@ -1540,34 +1638,7 @@ class ShelterAccessApp {
         }
     }
     
-    /**
-     * Toggle between light and dark themes
-     */
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        
-        // Update theme toggle icon
-        const themeIcon = this.elements.themeToggle.querySelector('.theme-icon');
-        themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-        
-        // Store preference in localStorage
-        localStorage.setItem('theme', newTheme);
-    }
-    
-    /**
-     * Load saved theme preference or set default
-     */
-    loadThemePreference() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        
-        // Update theme toggle icon
-        const themeIcon = this.elements.themeToggle.querySelector('.theme-icon');
-        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-    }
+
     
     /**
      * Calculate which buildings are covered by a specific shelter

@@ -22,156 +22,250 @@
 </head>
 <body>
     <div id="app">
-        <!-- Top Navigation Bar -->
-        <nav class="navbar">
-            <div class="navbar-brand">
-                <img src="data/Nur-Logo_3x-_1_.svg" alt="Nur Logo" class="logo">
-                <div class="brand-text">
-                    <h1>Negev Shelter Access Analysis</h1>
-                    <p>Optimizing shelter placement for Bedouin communities</p>
-                </div>
-            </div>
-            <div class="navbar-controls">
-                <button id="themeToggle" class="theme-toggle" title="Toggle dark/light mode">
-                    <span class="theme-icon">🌙</span>
-                </button>
-            </div>
-        </nav>
+        <!-- Full-screen map -->
+        <div id="map"></div>
         
-        <div class="main-container">
-            <!-- Left Control Panel -->
-            <div class="control-panel left-panel">
-                <div class="control-section">
-                    <h3>📏 Accessibility Distance</h3>
-                    <div class="input-group">
-                        <label for="accessibilityDistance">Distance</label>
-                        <input type="range" id="accessibilityDistance" min="100" max="300" step="50" value="100">
-                        <span id="accessibilityDistanceValue">100m</span>
-                    </div>
-                </div>
-                
-                <div class="control-section" id="addedSheltersSection">
-                    <h3>➕ Added Shelters</h3>
-                    <div class="input-group">
-                        <label for="newShelters">Number of added shelters</label>
-                        <input type="range" id="newShelters" min="0" max="500" value="10" step="1">
-                        <span id="newSheltersValue">10</span>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <h3>🔥 Analysis Mode</h3>
-                    <button id="heatmapToggle" class="heatmap-toggle-btn">
-                        <span class="heatmap-icon">🔥</span>
-                        <span id="heatmapToggleText">Existing Accessibility Heatmap</span>
-                    </button>
-                </div>
+        <!-- Brand Overlay -->
+        <div class="brand-overlay">
+            <img src="data/Nur-Logo_3x-_1_.svg" alt="Nur Logo" class="logo nur-logo">
+            <img src="data/HUJI.svg" alt="Hebrew University of Jerusalem" class="logo huji-logo">
+            <div class="brand-content">
+                <h1>Shelter Access Analysis</h1>
+                <p>Jerusalem Emergency Shelter Accessibility Study</p>
             </div>
-            
-            <!-- Map Container -->
-            <div class="map-container">
-                <div id="map"></div>
-                
-                <!-- Map Controls -->
-                <div class="map-controls">
-                    <!-- Basemap Control -->
-                    <div class="basemap-control">
-                        <div class="basemap-header">
-                            <span class="basemap-title">Base Maps</span>
-                            <span class="basemap-toggle">⌄</span>
-                        </div>
-                        <div class="basemap-menu">
-                            <label class="basemap-option">
-                                <input type="radio" name="basemap" value="satellite" checked>
-                                <span class="basemap-label">Satellite Streets</span>
-                            </label>
-                            <label class="basemap-option">
-                                <input type="radio" name="basemap" value="topography">
-                                <span class="basemap-label">Topography</span>
-                            </label>
-                            <label class="basemap-option">
-                                <input type="radio" name="basemap" value="light">
-                                <span class="basemap-label">Light OSM</span>
-                            </label>
-                            <label class="basemap-option">
-                                <input type="radio" name="basemap" value="dark">
-                                <span class="basemap-label">Dark OSM</span>
-                            </label>
-                        </div>
-                    </div>
+            <button class="info-button" id="aboutButton" title="About this project">
+                <span>ℹ</span>
+            </button>
+        </div>
+        
+        <!-- About Modal -->
+        <div id="aboutModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>About This Project</h2>
+                    <button class="modal-close" id="closeAboutModal">&times;</button>
                 </div>
-                
-                <!-- Layer Visibility Control -->
-                <div class="layer-control expanded">
-                    <div class="layer-header">
-                        <span class="layer-title">Data Layers</span>
-                        <span class="layer-toggle">⌄</span>
+                <div class="modal-body">
+                    <div class="about-section">
+                        <h3>NUR Lab - Negev Urban Research</h3>
+                        <p>Located in Be'er Sheva and serving cities throughout Israel, the NUR lab is a creative workspace for visiting researchers and project-specific teams to meet and tackle specific questions and opportunities together. NUR Lab fosters the exchange of innovative methods and creative approaches through conferences, workshops and public discussions. Life here, on the edge of the desert is rapidly changing – hot, dense, multicultural and deprived of essential resources – a reality in many cities, and a potential future for countless others.</p>
+                        
+                        <p>NUR was launched in 2024 as a collaboration between the MIT Media Lab, Ben Gurion University of the Negev, and SCE Negev School of Architecture. It is part of MIT's global City Science Network – a learning network of 10 collaborative international labs, each solving local challenges that have global implications.</p>
                     </div>
-                    <div class="layer-menu">
-                        <label class="layer-option">
-                            <input type="checkbox" id="buildingsLayer">
-                            <span class="layer-label">Building Footprints</span>
-                        </label>
-                        <label class="layer-option">
-                            <input type="checkbox" id="existingSheltersLayer" checked>
-                            <span class="layer-label">Existing Shelters</span>
-                        </label>
-                        <label class="layer-option">
-                            <input type="checkbox" id="requestedSheltersLayer" checked>
-                            <span class="layer-label">Community Requested</span>
-                        </label>
-                        <label class="layer-option">
-                            <input type="checkbox" id="optimalSheltersLayer" checked>
-                            <span class="layer-label">Optimal Shelters</span>
-                        </label>
-                        <label class="layer-option">
-                            <input type="checkbox" id="statisticalAreasLayer">
-                            <span class="layer-label">Statistical Zones</span>
-                        </label>
-                        <label class="layer-option">
-                            <input type="checkbox" id="habitationClustersLayer">
-                            <span class="layer-label">Habitation Clusters</span>
-                        </label>
+                    
+                    <div class="about-section">
+                        <h3>Our Partners</h3>
+                        <p>This project is developed in collaboration with the <strong>Algorithmic City Planning Lab</strong>, which develops quantitative, data-driven tools to support urban planning and public policy. Working with local authorities, the lab builds high-resolution databases and creates models that help cities make smarter, fairer decisions about resource allocation and urban service design.</p>
+                        
+                        <p><strong>Bimkom – Planners for Planning Rights</strong> is an Israeli human rights organization formed in 1999 by professional planners and architects to strengthen democracy and human rights in spatial planning and housing policies. Drawing on values of social justice and community participation, Bimkom advances more just planning practices that are responsive to local community needs.</p>
                     </div>
-                </div>
-                
-                <div id="loading" class="loading-overlay">
-                    <div class="loading-spinner"></div>
-                    <p>Loading spatial data...</p>
-                </div>
-                <div id="tooltip" class="tooltip"></div>
-                <div id="attribution" class="map-attribution"></div>
-            </div>
-            
-            <!-- Right Legend Panel -->
-            <div class="legend-panel right-panel">
-                <h3>📊 Coverage Statistics</h3>
-                <div class="stats-grid">
-                    <div class="stat">
-                        <div class="stat-label">Current Coverage</div>
-                        <div class="stat-value" id="currentCoverage">--%</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">With Added Shelters</div>
-                        <div class="stat-value" id="newCoverage">--%</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Buildings Covered</div>
-                        <div class="stat-value" id="buildingsCovered">--</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Additional Buildings</div>
-                        <div class="stat-value" id="additionalPeople">--</div>
-                    </div>
-                </div>
-                
-                <!-- Color Legend -->
-                <div class="color-legend">
-                    <h4>🎨 Map Legend</h4>
-                    <div id="legend-items"></div>
                 </div>
             </div>
         </div>
+        
+        <!-- Methods Modal -->
+        <div id="methodsModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Analysis Methods</h2>
+                    <button class="modal-close" id="closeMethodsModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="about-section">
+                        <h3>Spatial Analysis Methodology</h3>
+                        <p>This analysis uses spatial optimization algorithms to evaluate shelter accessibility across Jerusalem. The methodology combines building footprint data, population estimates, and existing shelter locations to identify gaps in emergency shelter coverage and propose optimal locations for new facilities.</p>
+                    </div>
+                    
+                    <div class="about-section">
+                        <h3>Coverage Analysis</h3>
+                        <p>We calculate accessibility using walking distance buffers (100m-200m) around existing shelters, accounting for building density and estimated population. Each building within the specified radius is considered "covered" by that shelter facility.</p>
+                        
+                        <p>The accessibility heatmap visualizes coverage quality across the study area - <strong style="color: #14b814;">green areas</strong> indicate well-served locations with good shelter access, while <strong style="color: #c81414;">red areas</strong> highlight underserved neighborhoods that would benefit from additional shelter facilities.</p>
+                    </div>
+                    
+                    <div class="about-section">
+                        <h3>Optimization Algorithm</h3>
+                        <p>New shelter locations are determined using a facility location optimization that maximizes population coverage while minimizing overlap with existing facilities. The algorithm prioritizes locations that serve the highest number of previously uncovered residents.</p>
+                        
+                        <p>The optimization considers both spatial efficiency (serving dense areas) and equity (ensuring coverage reaches underserved communities). Sites are ranked by their potential impact on overall accessibility.</p>
+                    </div>
+                    
+                    <div class="about-section">
+                        <h3>Data Sources & Assumptions</h3>
+                        <p><strong>Building Data:</strong> Municipal GIS databases provide building footprints and classifications used to identify residential structures and estimate shelter demand.</p>
+                        
+                        <p><strong>Population Estimates:</strong> Based on residential building density with approximately 7 people per residential building, derived from census and municipal planning data.</p>
+                        
+                        <p><strong>Shelter Data:</strong> Existing emergency shelter locations and community-requested sites from municipal emergency management databases.</p>
+                        
+                        <p><strong>Technical Implementation:</strong> Analysis performed using spatial clustering, network analysis, and facility location optimization techniques implemented in Python with PostGIS spatial database backend.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Floating Controls Panel (top-left) -->
+        <div class="floating-panel controls-panel collapsed" data-panel="controls">
+            <div class="panel-header">
+                <div>
+                    <span class="icon">🎛️</span>
+                    <span>Controls</span>
+                </div>
+                <span class="toggle">▼</span>
+            </div>
+            <div class="panel-content">
+                <div class="panel-body">
+                    <div class="control-group">
+                        <label class="control-label" for="accessibilityDistance">Accessibility Distance</label>
+                        <input type="range" id="accessibilityDistance" class="range-input" min="100" max="300" step="50" value="100">
+                        <div class="control-value" id="accessibilityDistanceValue">100m</div>
+                    </div>
+                    
+                    <div class="control-group" id="addedSheltersSection">
+                        <label class="control-label" for="newShelters">Number of Added Shelters</label>
+                        <input type="range" id="newShelters" class="range-input" min="0" max="500" value="10" step="1">
+                        <div class="control-value" id="newSheltersValue">10</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <button id="heatmapToggle" class="panel-button">
+                            <span>🔥</span>
+                            <span id="heatmapToggleText">Accessibility Heatmap</span>
+                        </button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <button id="methodsButton" class="panel-button secondary">
+                            <span>📋</span>
+                            <span>Analysis Methods</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Combined Statistics & Legend Panel (top-right) -->
+        <div class="floating-panel stats-legend-panel collapsed" data-panel="stats-legend">
+            <div class="panel-header">
+                <div>
+                    <span class="icon">📊</span>
+                    <span>Statistics & Legend</span>
+                </div>
+                <span class="toggle">▼</span>
+            </div>
+            <div class="panel-content">
+                <div class="panel-body">
+                    <!-- Statistics Section -->
+                    <div class="panel-section">
+                        <h4 class="section-title">Coverage Statistics</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Current Coverage</div>
+                                <div class="stat-value" id="currentCoverage">--%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">With Added Shelters</div>
+                                <div class="stat-value" id="newCoverage">--%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Buildings Covered</div>
+                                <div class="stat-value" id="buildingsCovered">--</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Additional Buildings</div>
+                                <div class="stat-value" id="additionalPeople">--</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Suboptimal Requested</div>
+                                <div class="stat-value" id="suboptimalRequested">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Potential Improvement</div>
+                                <div class="stat-value" id="underservedPeople">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Legend Section -->
+                    <div class="panel-section">
+                        <h4 class="section-title">Map Legend</h4>
+                        <div id="legend-items"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Combined Maps & Layers Panel (bottom-left) -->
+        <div class="floating-panel maps-layers-panel expanded" data-panel="maps-layers">
+            <div class="panel-header">
+                <div>
+                    <span class="icon">🗺️</span>
+                    <span>Maps & Layers</span>
+                </div>
+                <span class="toggle">▼</span>
+            </div>
+            <div class="panel-content">
+                <div class="panel-body">
+                    <!-- Base Maps Section -->
+                    <div class="panel-section">
+                        <h4 class="section-title">Base Map</h4>
+                        <div class="control-group">
+                            <label class="radio-option">
+                                <input type="radio" name="basemap" value="satellite" checked>
+                                <span>Satellite Streets</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="basemap" value="light">
+                                <span>Light Streets</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Layers Section -->
+                    <div class="panel-section">
+                        <h4 class="section-title">Data Layers</h4>
+                        <div class="control-group">
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="buildingsLayer">
+                                <span>Building Footprints</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="existingSheltersLayer" checked>
+                                <span>Existing Shelters</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="requestedSheltersLayer" checked>
+                                <span>Community Requested</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="optimalSheltersLayer" checked>
+                                <span>Optimal Shelters</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="statisticalAreasLayer">
+                                <span>Statistical Zones</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="habitationClustersLayer">
+                                <span>Habitation Clusters</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading overlay -->
+        <div id="loading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <p>Loading spatial data...</p>
+        </div>
+        
+        <!-- Tooltip -->
+        <div id="tooltip" class="tooltip"></div>
+        
+        <!-- Attribution -->
+        <div id="attribution" class="map-attribution"></div>
     </div>
     
     <!-- Application JavaScript -->
