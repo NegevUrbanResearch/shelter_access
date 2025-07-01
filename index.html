@@ -36,53 +36,58 @@
             </button>
         </div>
         
-        <!-- Statistics & Legend Panel (top-right) -->
-        <div class="floating-panel stats-legend-panel collapsed" data-panel="stats-legend">
-            <div class="panel-header">
-                <div>
-                    <span class="icon">📊</span>
-                    <span>Stats & Legend</span>
+        <!-- Statistics & Legend Panel (top-right) - Updated to match main menu style -->
+        <div class="stats-legend-panel collapsed">
+            <!-- Panel Header with Title (like main menu) -->
+            <div class="menu-header">
+                <div class="menu-title">
+                    <h2>📊 Stats & Legend</h2>
+                    <p>Coverage Analysis</p>
                 </div>
-                <span class="toggle">▼</span>
+                <div class="menu-actions">
+                    <button class="menu-button minimize" id="statsMinimize" title="Minimize">
+                        <span>−</span>
+                    </button>
+                </div>
             </div>
-            <div class="panel-content">
-                <div class="panel-body">
-                    <!-- Statistics Section -->
-                    <div class="panel-section">
-                        <h4 class="section-title">Coverage Stats</h4>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-label">Current</div>
-                                <div class="stat-value" id="currentCoverage">--%</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">w/ Added</div>
-                                <div class="stat-value" id="newCoverage">--%</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Buildings</div>
-                                <div class="stat-value" id="buildingsCovered">--</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Additional</div>
-                                <div class="stat-value" id="additionalPeople">--</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Suboptimal</div>
-                                <div class="stat-value" id="suboptimalRequested">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Potential</div>
-                                <div class="stat-value" id="underservedPeople">0</div>
-                            </div>
+            
+            <!-- Panel Content (like main menu) -->
+            <div class="menu-content">
+                <!-- Statistics Section -->
+                <div class="control-section">
+                    <label class="control-label">Coverage Stats</label>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Current</div>
+                            <div class="stat-value" id="currentCoverage">--%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">w/ Added</div>
+                            <div class="stat-value" id="newCoverage">--%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Buildings</div>
+                            <div class="stat-value" id="buildingsCovered">--</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Additional</div>
+                            <div class="stat-value" id="additionalPeople">--</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Suboptimal</div>
+                            <div class="stat-value" id="suboptimalRequested">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Potential</div>
+                            <div class="stat-value" id="underservedPeople">0</div>
                         </div>
                     </div>
-                    
-                    <!-- Legend Section -->
-                    <div class="panel-section">
-                        <h4 class="section-title">Legend</h4>
-                        <div id="legend-items"></div>
-                    </div>
+                </div>
+                
+                <!-- Legend Section -->
+                <div class="control-section">
+                    <label class="control-label">Map Legend</label>
+                    <div class="legend-items" id="legend-items"></div>
                 </div>
             </div>
         </div>

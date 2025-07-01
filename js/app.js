@@ -133,16 +133,21 @@ class ShelterAccessApp {
      * Setup unified main menu functionality
      */
     setupMainMenu() {
-        // Handle stats panel toggle (keep existing functionality)
-        const statsPanel = document.querySelector('.stats-legend-panel');
-        if (statsPanel) {
-            const header = statsPanel.querySelector('.panel-header');
-            if (header) {
-                header.addEventListener('click', () => {
-                    statsPanel.classList.toggle('collapsed');
-                    statsPanel.classList.toggle('expanded');
-                });
-            }
+        // Handle stats panel minimize button
+        const statsMinimize = document.getElementById('statsMinimize');
+        const statsLegendPanel = document.querySelector('.stats-legend-panel');
+        if (statsMinimize && statsLegendPanel) {
+            statsMinimize.addEventListener('click', () => {
+                statsLegendPanel.classList.toggle('collapsed');
+                const icon = statsMinimize.querySelector('span');
+                if (statsLegendPanel.classList.contains('collapsed')) {
+                    icon.textContent = '+';
+                    statsMinimize.title = 'Expand';
+                } else {
+                    icon.textContent = '−';
+                    statsMinimize.title = 'Minimize';
+                }
+            });
         }
         
         // Handle menu minimize button
@@ -161,6 +166,8 @@ class ShelterAccessApp {
                 }
             });
         }
+        
+
         
         // Handle layers modal
         this.setupLayersModal();
@@ -955,7 +962,7 @@ class ShelterAccessApp {
                     pickable: true,
                     iconAtlas: this.createShelterIconAtlas(),
                     iconMapping: this.getShelterIconMapping(),
-                    getIcon: () => 'circle',
+                    getIcon: () => 'shield',
                     getPosition: d => d.geometry.coordinates,
                     getSize: () => this.ICON_SIZE,
                     getColor: d => {
@@ -989,7 +996,7 @@ class ShelterAccessApp {
                     pickable: true,
                     iconAtlas: this.createShelterIconAtlas(),
                     iconMapping: this.getShelterIconMapping(),
-                    getIcon: () => 'triangle',
+                    getIcon: () => 'home',
                     getPosition: d => d.geometry.coordinates,
                     getSize: () => this.ICON_SIZE,
                     getColor: d => {
@@ -1021,7 +1028,7 @@ class ShelterAccessApp {
                 pickable: true,
                 iconAtlas: this.createShelterIconAtlas(),
                 iconMapping: this.getShelterIconMapping(),
-                getIcon: () => 'square',
+                getIcon: () => 'location',
                 getPosition: d => d.coordinates,
                 getSize: () => this.ICON_SIZE,
                 getColor: d => {
@@ -1103,18 +1110,35 @@ class ShelterAccessApp {
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
-        // Add new legend items
+        // Add new legend items with modern icons
         legendItems.forEach(item => {
             const legendItem = document.createElement('div');
             legendItem.className = 'legend-item';
             
-            const colorBox = document.createElement('div');
-            colorBox.className = `legend-color ${item.className}`;
+            const iconDiv = document.createElement('div');
+            iconDiv.className = `legend-icon ${item.className}`;
+            
+            // Add appropriate icon based on shelter type
+            if (item.className === 'existing-shelter') {
+                iconDiv.innerHTML = '🛡️'; // Shield icon for existing shelters
+            } else if (item.className === 'requested-shelter') {
+                iconDiv.innerHTML = '🏠'; // Home icon for requested shelters
+            } else if (item.className === 'optimal-shelter') {
+                iconDiv.innerHTML = '📍'; // Location pin for optimal shelters
+            } else if (item.className === 'covered-building') {
+                iconDiv.innerHTML = '🏢'; // Building icon for covered buildings
+            } else if (item.className === 'uncovered-building') {
+                iconDiv.innerHTML = '🏭'; // Factory/building icon for uncovered buildings
+            } else {
+                // Fallback to color box for unknown types
+                iconDiv.innerHTML = '';
+                iconDiv.className = `legend-color ${item.className}`;
+            }
             
             const label = document.createElement('span');
             label.textContent = item.label;
             
-            legendItem.appendChild(colorBox);
+            legendItem.appendChild(iconDiv);
             legendItem.appendChild(label);
             this.elements.legendItems.appendChild(legendItem);
         });
@@ -1255,42 +1279,66 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create comprehensive icon atlas with all shelter shapes
+     * Create modern icon atlas with SVG-based shelter shapes inspired by react-icons
      */
     createShelterIconAtlas() {
-        // Create a canvas with all three shapes: circle, triangle, square
+        // Create a canvas with modern shelter icons
         const canvas = document.createElement('canvas');
         canvas.width = 96; // 3 icons x 32px each
         canvas.height = 32;
         const ctx = canvas.getContext('2d');
         
         ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
         
-        // Circle (0, 0, 32, 32)
+        // Modern shield icon for existing shelters (inspired by HiShieldExclamation)
+        // Shield shape (0, 0, 32, 32)
         ctx.beginPath();
-        ctx.arc(16, 16, 12, 0, 2 * Math.PI);
+        ctx.moveTo(16, 4);   // Top center
+        ctx.quadraticCurveTo(8, 6, 6, 12);  // Left curve
+        ctx.lineTo(6, 20);   // Left side
+        ctx.quadraticCurveTo(6, 26, 16, 28); // Bottom curve
+        ctx.quadraticCurveTo(26, 26, 26, 20); // Right curve
+        ctx.lineTo(26, 12);  // Right side
+        ctx.quadraticCurveTo(24, 6, 16, 4);  // Top curve
         ctx.fill();
         
-        // Triangle (32, 0, 32, 32) 
+        // Modern home/building icon for requested shelters (inspired by HiHome)
+        // House shape (32, 0, 32, 32)
         ctx.beginPath();
-        ctx.moveTo(48, 4);   // Top vertex
-        ctx.lineTo(36, 28);  // Bottom left
-        ctx.lineTo(60, 28);  // Bottom right
+        ctx.moveTo(48, 8);   // Roof peak
+        ctx.lineTo(40, 14);  // Left roof
+        ctx.lineTo(40, 16);  // Left wall start
+        ctx.lineTo(38, 16);  // Door frame
+        ctx.lineTo(38, 26);  // Door
+        ctx.lineTo(58, 26);  // Bottom right
+        ctx.lineTo(58, 16);  // Right wall
+        ctx.lineTo(56, 14);  // Right roof
         ctx.closePath();
         ctx.fill();
         
-        // Square (64, 0, 32, 32)
-        ctx.fillRect(68, 4, 24, 24);
+        // Modern location pin for optimal locations (inspired by HiLocationMarker)
+        // Pin shape (64, 0, 32, 32)
+        ctx.beginPath();
+        ctx.arc(80, 12, 8, 0, 2 * Math.PI); // Circle top
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(80, 20);  // Pin point
+        ctx.lineTo(76, 16);  // Left side
+        ctx.lineTo(84, 16);  // Right side
+        ctx.closePath();
+        ctx.fill();
         
         return canvas;
     }
 
     /**
-     * Get icon mapping for all shelter types
+     * Get modern icon mapping for all shelter types
      */
     getShelterIconMapping() {
         return {
-            circle: {
+            shield: {
                 x: 0,
                 y: 0,
                 width: 32,
@@ -1299,7 +1347,7 @@ class ShelterAccessApp {
                 anchorY: 16,
                 mask: true
             },
-            triangle: {
+            home: {
                 x: 32,
                 y: 0,
                 width: 32,
@@ -1308,7 +1356,7 @@ class ShelterAccessApp {
                 anchorY: 16,
                 mask: true
             },
-            square: {
+            location: {
                 x: 64,
                 y: 0,
                 width: 32,

@@ -446,100 +446,44 @@ input:checked + .toggle-slider:hover {
     flex: 1;
 }
 
-/* Statistics & Legend Panel (top-right) */
+/* Statistics & Legend Panel (top-right) - Updated to match main menu style */
 .stats-legend-panel {
     position: absolute;
     top: 68px;
     right: 20px;
-    min-width: 280px;
-    max-width: 320px;
     z-index: 100;
     background: var(--panel-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--panel-border);
     border-radius: 16px;
     box-shadow: var(--panel-shadow);
+    width: 280px;
+    max-height: calc(100vh - 88px);
+    overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    user-select: none;
-}
-
-.stats-legend-panel:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .stats-legend-panel.collapsed {
     width: 200px;
-    overflow: hidden;
 }
 
-.stats-legend-panel.expanded {
-    cursor: default;
-    background: rgba(255, 255, 255, 0.18);
-}
-
-/* Panel header (always visible) */
-.panel-header {
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-accent);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.panel-header .icon {
-    font-size: 16px;
-    margin-right: 8px;
-}
-
-.panel-header .toggle {
-    font-size: 12px;
-    transition: transform 0.3s ease;
-    opacity: 0.7;
-}
-
-.stats-legend-panel.expanded .panel-header .toggle {
-    transform: rotate(180deg);
-}
-
-/* Panel content (hidden when collapsed) */
-.panel-content {
+.stats-legend-panel.collapsed .menu-content {
     max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    pointer-events: none;
+    padding: 0 20px;
 }
 
-.stats-legend-panel.expanded .panel-content {
-    max-height: 500px;
+.stats-legend-panel.collapsed .menu-title h2,
+.stats-legend-panel.collapsed .menu-title p {
+    opacity: 0.5;
 }
 
-.panel-body {
-    padding: 16px;
-}
-
-/* Panel sections for organizing content within panels */
-.panel-section {
-    margin-bottom: 20px;
-}
-
-.panel-section:last-child {
-    margin-bottom: 0;
-}
-
-.section-title {
-    font-size: 12px;
-    color: var(--text-accent);
-    margin-bottom: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-    padding-bottom: 6px;
+/* Update legend items styling */
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .stats-grid {
@@ -571,25 +515,61 @@ input:checked + .toggle-slider:hover {
     color: var(--text-primary);
 }
 
-.legend-items {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
 .legend-item {
     display: flex;
     align-items: center;
     font-size: 12px;
     color: var(--text-primary);
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
 }
 
+.legend-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modern icon styling for legend items */
+.legend-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* Specific icon colors */
+.legend-icon.existing-shelter { color: var(--accent-blue); }
+.legend-icon.optimal-shelter { color: var(--accent-green); }
+.legend-icon.requested-shelter { color: var(--accent-orange); }
+.legend-icon.covered-building { color: var(--accent-green); }
+.legend-icon.uncovered-building { color: var(--accent-red); }
+
+/* Legacy color boxes (fallback) */
 .legend-color {
     width: 14px;
     height: 14px;
     border-radius: 3px;
     margin-right: 8px;
     flex-shrink: 0;
+}
+
+/* Mobile responsive adjustments for stats panel */
+@media (max-width: 768px) {
+    .stats-legend-panel {
+        top: 60px;
+        right: 10px;
+        width: 240px;
+    }
+    
+    .stats-legend-panel.collapsed {
+        width: 180px;
+    }
 }
 
 /* Legend color definitions */
