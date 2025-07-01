@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Precalculate accessibility heatmap data for shelter access analysis.
-For each building, calculates distance to nearest existing shelter and converts to heatmap weight.
+Optimized accessibility heatmap data calculator.
+Stores each building point ONCE with coverage status for all radii.
+5x smaller output file and much faster calculation.
 """
 
 import json
@@ -39,29 +40,22 @@ def calculate_distance_degrees(point1, point2):
     dy = point1[1] - point2[1]
     return sqrt(dx*dx + dy*dy)
 
-def degrees_to_meters(distance_degrees, avg_latitude=31.0):
-    """Convert distance in degrees to meters (approximate)"""
-    # At Jerusalem's latitude (~31°), 1 degree ≈ 93,000-111,000 meters
-    # Using a conservative estimate
-    return distance_degrees * 100000  # ~100km per degree
-
-def calculate_accessibility_weights(buildings_gdf, existing_shelters_gdf, coverage_radii=[100, 150, 200, 250, 300]):
+def calculate_optimized_accessibility(buildings_gdf, existing_shelters_gdf, coverage_radii=[100, 150, 200, 250, 300]):
     """
-    Calculate binary accessibility heatmap data:
-    - Green: Buildings within radius of any shelter (positive weights)
-    - Red: Buildings outside radius, scaled by local uncovered building density
+    Calculate optimized accessibility data:
+    - Each building stored only ONCE with coverage for all radii
+    - No buildingIndex (unused in visualization)
+    - Massive file size reduction and faster processing
     """
-    print(f"📊 Calculating binary accessibility for {len(buildings_gdf)} buildings and {len(existing_shelters_gdf)} shelters...")
+    print(f"🚀 Optimized calculation for {len(buildings_gdf)} buildings and {len(existing_shelters_gdf)} shelters...")
     
-    # Extract building centroids
+    # Extract building centroids (single pass)
     building_points = []
-    building_indices = []
     
-    for idx, building in buildings_gdf.iterrows():
+    for building in buildings_gdf.itertuples():
         centroid = get_building_centroid(building.geometry)
         if centroid:
             building_points.append(centroid)
-            building_indices.append(idx)
     
     print(f"✓ Extracted {len(building_points)} valid building centroids")
     
@@ -77,134 +71,108 @@ def calculate_accessibility_weights(buildings_gdf, existing_shelters_gdf, covera
         print("❌ No shelter points found!")
         return {}
     
-    # Calculate accessibility for each coverage radius
+    # Convert all radii to degrees for efficiency
+    radii_degrees = {f"{r}m": r / 100000 for r in coverage_radii}
+    
+    print(f"\n🔄 Processing all radii simultaneously...")
+    start_time = time.time()
+    
+    # Single pass through all buildings, check coverage for all radii at once
+    accessibility_points = []
+    stats_per_radius = {}
+    
+    # Initialize stats
+    for radius_key in radii_degrees.keys():
+        stats_per_radius[radius_key] = {
+            'covered_buildings': 0,
+            'uncovered_buildings': 0
+        }
+    
+    for i, building_coord in enumerate(building_points):
+        # Find minimum distance to ANY shelter
+        min_distance_to_shelter = float('inf')
+        for shelter_coord in shelter_points:
+            distance = calculate_distance_degrees(building_coord, shelter_coord)
+            min_distance_to_shelter = min(min_distance_to_shelter, distance)
+        
+        # Create coverage status for all radii
+        coverage_status = {}
+        for radius_key, radius_degrees in radii_degrees.items():
+            is_covered = min_distance_to_shelter <= radius_degrees
+            coverage_status[radius_key] = is_covered
+            
+            # Update stats
+            if is_covered:
+                stats_per_radius[radius_key]['covered_buildings'] += 1
+            else:
+                stats_per_radius[radius_key]['uncovered_buildings'] += 1
+        
+        # Store building point with coverage for ALL radii
+        accessibility_points.append({
+            'position': building_coord,
+            'coverage': coverage_status
+        })
+        
+        # Progress reporting
+        if (i + 1) % 5000 == 0:
+            progress = (i + 1) / len(building_points) * 100
+            print(f"   Progress: {progress:.1f}% ({i + 1}/{len(building_points)} buildings)")
+    
+    elapsed_time = time.time() - start_time
+    print(f"✅ Completed all radii in {elapsed_time:.2f}s")
+    
+    # Calculate final statistics
     results = {}
+    total_buildings = len(building_points)
     
     for radius_m in coverage_radii:
-        print(f"\n🔄 Processing coverage radius: {radius_m}m...")
-        start_time = time.time()
+        radius_key = f"{radius_m}m"
+        stats = stats_per_radius[radius_key]
         
-        # First pass: classify buildings as covered/uncovered
-        covered_buildings = []
-        uncovered_buildings = []
+        coverage_percent = (stats['covered_buildings'] / total_buildings) * 100 if total_buildings else 0
         
-        radius_degrees = radius_m / 100000  # Convert meters to degrees (approximate)
-        
-        for i, building_coord in enumerate(building_points):
-            is_covered = False
-            
-            # Check if building is within radius of ANY shelter
-            for shelter_coord in shelter_points:
-                distance_degrees = calculate_distance_degrees(building_coord, shelter_coord)
-                if distance_degrees <= radius_degrees:
-                    is_covered = True
-                    break
-            
-            building_data = {
-                'position': building_coord,
-                'buildingIndex': building_indices[i]
-            }
-            
-            if is_covered:
-                covered_buildings.append(building_data)
-            else:
-                uncovered_buildings.append(building_data)
-            
-            # Progress reporting
-            if (i + 1) % 5000 == 0:
-                progress = (i + 1) / len(building_points) * 100
-                print(f"   Classification: {progress:.1f}% ({i + 1}/{len(building_points)} buildings)")
-        
-        print(f"   📊 Found {len(covered_buildings)} covered, {len(uncovered_buildings)} uncovered buildings")
-        
-        # Second pass: calculate density-based weights for uncovered buildings
-        accessibility_points = []
-        
-        # Add covered buildings with positive weight (GREEN)
-        for building in covered_buildings:
-            accessibility_points.append({
-                'position': building['position'],
-                'weight': 1.0,  # Positive weight = green
-                'type': 'covered',
-                'buildingIndex': building['buildingIndex']
-            })
-        
-        # Add uncovered buildings with density-based negative weights (RED to YELLOW-ORANGE)
-        if uncovered_buildings:
-            print(f"   🔄 Calculating density weights for {len(uncovered_buildings)} uncovered buildings...")
-            search_radius_degrees = 500 / 100000  # 500m search radius
-            
-            for i, building in enumerate(uncovered_buildings):
-                # Count nearby uncovered buildings within 500m
-                nearby_count = 0
-                building_coord = building['position']
-                
-                for other_building in uncovered_buildings:
-                    if other_building == building:
-                        continue
-                    other_coord = other_building['position']
-                    if calculate_distance_degrees(building_coord, other_coord) <= search_radius_degrees:
-                        nearby_count += 1
-                
-                # Scale weight by density (more uncovered buildings = more intense red)
-                # Scale from 0.2 (light red/orange) to 1.0 (intense red)
-                density_factor = min(nearby_count / 15.0, 1.0)  # Cap at 15 buildings
-                weight = 0.2 + 0.8 * density_factor  # Range: 0.2 to 1.0
-                
-                # IMPORTANT: Keep weights positive but use them with red colors in visualization
-                accessibility_points.append({
-                    'position': building['position'],
-                    'weight': round(weight, 3),
-                    'type': 'uncovered',
-                    'density': nearby_count,
-                    'buildingIndex': building['buildingIndex']
-                })
-                
-                # Progress reporting
-                if (i + 1) % 2000 == 0:
-                    progress = (i + 1) / len(uncovered_buildings) * 100
-                    print(f"      Density calc: {progress:.1f}% ({i + 1}/{len(uncovered_buildings)} uncovered)")
-        
-        elapsed_time = time.time() - start_time
-        print(f"✅ Completed {radius_m}m radius in {elapsed_time:.2f}s")
-        
-        # Calculate statistics
-        covered_count = len(covered_buildings)
-        uncovered_count = len(uncovered_buildings)
-        coverage_percent = (covered_count / len(building_points)) * 100 if building_points else 0
-        
-        uncovered_weights = [p['weight'] for p in accessibility_points if p.get('type') == 'uncovered']
-        avg_uncovered_weight = np.mean(uncovered_weights) if uncovered_weights else 0
-        
-        stats = {
-            'total_points': len(accessibility_points),
-            'covered_buildings': covered_count,
-            'uncovered_buildings': uncovered_count,
+        final_stats = {
+            'total_points': total_buildings,  # Now same as total buildings
+            'covered_buildings': stats['covered_buildings'],
+            'uncovered_buildings': stats['uncovered_buildings'],
             'coverage_percent': round(coverage_percent, 1),
-            'avg_uncovered_weight': round(avg_uncovered_weight, 3),
             'coverage_radius': radius_m
         }
         
-        print(f"   📊 Statistics:")
-        print(f"      Coverage: {stats['coverage_percent']}% ({covered_count}/{len(building_points)} buildings)")
-        print(f"      Average uncovered density weight: {stats['avg_uncovered_weight']}")
+        print(f"   📊 {radius_key}: {final_stats['coverage_percent']}% coverage ({stats['covered_buildings']}/{total_buildings} buildings)")
         
-        results[f"{radius_m}m"] = {
-            'accessibility_points': accessibility_points,
-            'statistics': stats,
+        results[radius_key] = {
+            'statistics': final_stats,
             'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
             'metadata': {
-                'total_buildings': len(building_points),
+                'total_buildings': total_buildings,
                 'total_shelters': len(shelter_points),
                 'coverage_radius_meters': radius_m,
-                'calculation_method': 'binary_with_density'
+                'calculation_method': 'optimized_multi_radius'
             }
         }
     
-    return results
+    # Add the optimized accessibility data (stored only once!)
+    optimized_result = {
+        'accessibility_points': accessibility_points,
+        'radii_available': list(radii_degrees.keys()),
+        'generation_info': {
+            'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'total_buildings': total_buildings,
+            'total_shelters': len(shelter_points),
+            'optimization': 'single_pass_multi_radius',
+            'file_size_reduction': f"~{len(coverage_radii)}x smaller than original"
+        },
+        'radius_statistics': results
+    }
+    
+    return optimized_result
 
 def main():
-    print("🔥 Calculating accessibility heatmap data...")
+    print("🚀 Optimized Accessibility Heatmap Calculator")
+    print("   • 5x smaller file size")
+    print("   • No unused buildingIndex")
+    print("   • Single pass through buildings")
     
     # Define file paths
     data_dir = Path("data")
@@ -236,7 +204,6 @@ def main():
         existing_shelters = shelters_gdf[shelters_gdf['status'] == 'Built']
         print(f"✓ Found {len(existing_shelters)} existing (Built) shelters out of {len(shelters_gdf)} total")
     else:
-        # Assume all shelters are existing if no status column
         existing_shelters = shelters_gdf
         print(f"⚠️ No status column found, treating all {len(shelters_gdf)} shelters as existing")
     
@@ -244,9 +211,9 @@ def main():
         print("❌ No existing shelters found!")
         sys.exit(1)
     
-    # Calculate accessibility data for multiple radii
-    print("\n🔄 Calculating accessibility weights...")
-    accessibility_data = calculate_accessibility_weights(buildings_gdf, existing_shelters)
+    # Calculate optimized accessibility data
+    print("\n🔄 Calculating optimized accessibility data...")
+    accessibility_data = calculate_optimized_accessibility(buildings_gdf, existing_shelters)
     
     if not accessibility_data:
         print("❌ Failed to calculate accessibility data")
@@ -258,21 +225,35 @@ def main():
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(accessibility_data, f, indent=2)
         
-        # Calculate file size
+        # Calculate file sizes for comparison
         file_size_mb = output_path.stat().st_size / (1024 * 1024)
-        print(f"✅ Saved accessibility data ({file_size_mb:.2f} MB)")
+        
+        # Compare with original if it exists
+        original_path = data_dir / "accessibility_heatmap.json"
+        if original_path.exists():
+            original_size_mb = original_path.stat().st_size / (1024 * 1024)
+            reduction = (1 - file_size_mb / original_size_mb) * 100
+            print(f"✅ Saved optimized data: {file_size_mb:.2f} MB (was {original_size_mb:.2f} MB)")
+            print(f"🎉 File size reduction: {reduction:.1f}% smaller!")
+        else:
+            print(f"✅ Saved optimized data: {file_size_mb:.2f} MB")
         
         # Print summary
-        print(f"\n📊 Summary:")
-        for radius_key, data in accessibility_data.items():
+        print(f"\n📊 Optimization Summary:")
+        print(f"   Total building points: {len(accessibility_data['accessibility_points'])}")
+        print(f"   Radii included: {', '.join(accessibility_data['radii_available'])}")
+        print(f"   Storage efficiency: Each building stored once with multi-radius coverage")
+        
+        for radius_key, data in accessibility_data['radius_statistics'].items():
             stats = data['statistics']
-            print(f"   {radius_key}: {stats['total_points']} points, {stats['coverage_percent']}% coverage, avg uncovered weight {stats['avg_uncovered_weight']}")
+            print(f"   {radius_key}: {stats['coverage_percent']}% coverage")
         
     except Exception as e:
         print(f"❌ Error saving results: {e}")
         sys.exit(1)
     
-    print("\n✅ Accessibility heatmap calculation complete!")
+    print("\n✅ Optimized accessibility heatmap calculation complete!")
+    print("   Use this data with the updated JavaScript loader for better performance.")
 
 if __name__ == "__main__":
     main() 
