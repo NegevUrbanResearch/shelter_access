@@ -25,19 +25,197 @@
         <!-- Full-screen map -->
         <div id="map"></div>
         
-        <!-- Brand Overlay -->
-        <div class="brand-overlay">
-            <img src="data/Nur-Logo_3x-_1_.svg" alt="Nur Logo" class="logo nur-logo">
-            <img src="data/HUJI.svg" alt="Hebrew University of Jerusalem" class="logo huji-logo">
-            <div class="brand-content">
-                <h1>Shelter Access Analysis</h1>
-                <p>Jerusalem Emergency Shelter Accessibility Study</p>
+        <!-- Horizontal Brand Banner -->
+        <div class="brand-banner">
+            <div class="brand-logos">
+                <img src="data/Nur-Logo_3x-_1_.svg" alt="Nur Logo" class="logo nur-logo">
+                <img src="data/HUJI.svg" alt="Hebrew University of Jerusalem" class="logo huji-logo">
             </div>
             <button class="info-button" id="aboutButton" title="About this project">
                 <span>ℹ</span>
             </button>
         </div>
         
+        <!-- Statistics & Legend Panel (top-right) -->
+        <div class="floating-panel stats-legend-panel collapsed" data-panel="stats-legend">
+            <div class="panel-header">
+                <div>
+                    <span class="icon">📊</span>
+                    <span>Stats & Legend</span>
+                </div>
+                <span class="toggle">▼</span>
+            </div>
+            <div class="panel-content">
+                <div class="panel-body">
+                    <!-- Statistics Section -->
+                    <div class="panel-section">
+                        <h4 class="section-title">Coverage Stats</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Current</div>
+                                <div class="stat-value" id="currentCoverage">--%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">w/ Added</div>
+                                <div class="stat-value" id="newCoverage">--%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Buildings</div>
+                                <div class="stat-value" id="buildingsCovered">--</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Additional</div>
+                                <div class="stat-value" id="additionalPeople">--</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Suboptimal</div>
+                                <div class="stat-value" id="suboptimalRequested">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Potential</div>
+                                <div class="stat-value" id="underservedPeople">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Legend Section -->
+                    <div class="panel-section">
+                        <h4 class="section-title">Legend</h4>
+                        <div id="legend-items"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Unified Control Menu (left sidebar) -->
+        <div class="main-menu">
+            <!-- Menu Header with Title -->
+            <div class="menu-header">
+                <div class="menu-title">
+                    <h2>Shelter Access Analysis</h2>
+                    <p>Negev Informal Settlements</p>
+                </div>
+                <div class="menu-actions">
+                    <button class="menu-button minimize" id="menuMinimize" title="Minimize">
+                        <span>−</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Menu Content -->
+            <div class="menu-content">
+                <!-- Analysis Controls -->
+                <div class="control-section">
+                    <div class="control-group">
+                        <label class="control-label">Distance</label>
+                        <input type="range" id="accessibilityDistance" class="modern-range" min="100" max="300" step="50" value="100">
+                        <div class="control-value" id="accessibilityDistanceValue">100m</div>
+                    </div>
+                    
+                    <div class="control-group" id="addedSheltersSection">
+                        <label class="control-label">New Shelters</label>
+                        <input type="range" id="newShelters" class="modern-range" min="0" max="500" value="10" step="1">
+                        <div class="control-value" id="newSheltersValue">10</div>
+                    </div>
+                </div>
+                
+                <!-- Map Type Selection -->
+                <div class="control-section">
+                    <label class="control-label">Map Type</label>
+                    <div class="map-type-selector">
+                        <input type="radio" id="satellite" name="basemap" value="satellite" checked>
+                        <label for="satellite" class="map-type-option">
+                            <span class="map-icon">🛰️</span>
+                            <span>Satellite</span>
+                        </label>
+                        <input type="radio" id="light" name="basemap" value="light">
+                        <label for="light" class="map-type-option">
+                            <span class="map-icon">🗺️</span>
+                            <span>Streets</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="control-section">
+                    <button id="heatmapToggle" class="action-button">
+                        <span>🔥</span>
+                        <span id="heatmapToggleText">Heatmap</span>
+                    </button>
+                    <button id="layersButton" class="action-button">
+                        <span>🗂️</span>
+                        <span>Data Layers</span>
+                    </button>
+                    <button id="methodsButton" class="action-button secondary">
+                        <span>📋</span>
+                        <span>Methods</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Custom Scale Bar (positioned under compass) -->
+        <div class="scale-bar" id="scaleBar">
+            <div class="scale-line" id="scaleLine"></div>
+            <div class="scale-text" id="scaleText">100 m</div>
+        </div>
+        
+        <!-- Data Layers Modal -->
+        <div id="layersModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Data Layers</h2>
+                    <button class="modal-close" id="closeLayersModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="layers-grid">
+                        <div class="layer-item">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="buildingsLayer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="layer-label">Building Footprints</span>
+                        </div>
+                        <div class="layer-item">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="existingSheltersLayer" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="layer-label">Existing Shelters</span>
+                        </div>
+                        <div class="layer-item">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="requestedSheltersLayer" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="layer-label">Community Requested</span>
+                        </div>
+                        <div class="layer-item">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="optimalSheltersLayer" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="layer-label">Optimal Shelters</span>
+                        </div>
+                        <div class="layer-item">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="statisticalAreasLayer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="layer-label">Statistical Zones</span>
+                        </div>
+                        <div class="layer-item">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="habitationClustersLayer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="layer-label">Habitation Clusters</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- About Modal -->
         <div id="aboutModal" class="modal-overlay">
             <div class="modal-content">
@@ -99,157 +277,6 @@
                         <p><strong>Shelter Data:</strong> Existing emergency shelter locations and community-requested sites from municipal emergency management databases.</p>
                         
                         <p><strong>Technical Implementation:</strong> Analysis performed using spatial clustering, network analysis, and facility location optimization techniques implemented in Python with PostGIS spatial database backend.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Floating Controls Panel (top-left) -->
-        <div class="floating-panel controls-panel collapsed" data-panel="controls">
-            <div class="panel-header">
-                <div>
-                    <span class="icon">🎛️</span>
-                    <span>Controls</span>
-                </div>
-                <span class="toggle">▼</span>
-            </div>
-            <div class="panel-content">
-                <div class="panel-body">
-                    <div class="control-group">
-                        <label class="control-label" for="accessibilityDistance">Accessibility Distance</label>
-                        <input type="range" id="accessibilityDistance" class="range-input" min="100" max="300" step="50" value="100">
-                        <div class="control-value" id="accessibilityDistanceValue">100m</div>
-                    </div>
-                    
-                    <div class="control-group" id="addedSheltersSection">
-                        <label class="control-label" for="newShelters">Number of Added Shelters</label>
-                        <input type="range" id="newShelters" class="range-input" min="0" max="500" value="10" step="1">
-                        <div class="control-value" id="newSheltersValue">10</div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <button id="heatmapToggle" class="panel-button">
-                            <span>🔥</span>
-                            <span id="heatmapToggleText">Accessibility Heatmap</span>
-                        </button>
-                    </div>
-                    
-                    <div class="control-group">
-                        <button id="methodsButton" class="panel-button secondary">
-                            <span>📋</span>
-                            <span>Analysis Methods</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Combined Statistics & Legend Panel (top-right) -->
-        <div class="floating-panel stats-legend-panel collapsed" data-panel="stats-legend">
-            <div class="panel-header">
-                <div>
-                    <span class="icon">📊</span>
-                    <span>Statistics & Legend</span>
-                </div>
-                <span class="toggle">▼</span>
-            </div>
-            <div class="panel-content">
-                <div class="panel-body">
-                    <!-- Statistics Section -->
-                    <div class="panel-section">
-                        <h4 class="section-title">Coverage Statistics</h4>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-label">Current Coverage</div>
-                                <div class="stat-value" id="currentCoverage">--%</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">With Added Shelters</div>
-                                <div class="stat-value" id="newCoverage">--%</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Buildings Covered</div>
-                                <div class="stat-value" id="buildingsCovered">--</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Additional Buildings</div>
-                                <div class="stat-value" id="additionalPeople">--</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Suboptimal Requested</div>
-                                <div class="stat-value" id="suboptimalRequested">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Potential Improvement</div>
-                                <div class="stat-value" id="underservedPeople">0</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Legend Section -->
-                    <div class="panel-section">
-                        <h4 class="section-title">Map Legend</h4>
-                        <div id="legend-items"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Combined Maps & Layers Panel (bottom-left) -->
-        <div class="floating-panel maps-layers-panel expanded" data-panel="maps-layers">
-            <div class="panel-header">
-                <div>
-                    <span class="icon">🗺️</span>
-                    <span>Maps & Layers</span>
-                </div>
-                <span class="toggle">▼</span>
-            </div>
-            <div class="panel-content">
-                <div class="panel-body">
-                    <!-- Base Maps Section -->
-                    <div class="panel-section">
-                        <h4 class="section-title">Base Map</h4>
-                        <div class="control-group">
-                            <label class="radio-option">
-                                <input type="radio" name="basemap" value="satellite" checked>
-                                <span>Satellite Streets</span>
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="basemap" value="light">
-                                <span>Light Streets</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Data Layers Section -->
-                    <div class="panel-section">
-                        <h4 class="section-title">Data Layers</h4>
-                        <div class="control-group">
-                            <label class="checkbox-option">
-                                <input type="checkbox" id="buildingsLayer">
-                                <span>Building Footprints</span>
-                            </label>
-                            <label class="checkbox-option">
-                                <input type="checkbox" id="existingSheltersLayer" checked>
-                                <span>Existing Shelters</span>
-                            </label>
-                            <label class="checkbox-option">
-                                <input type="checkbox" id="requestedSheltersLayer" checked>
-                                <span>Community Requested</span>
-                            </label>
-                            <label class="checkbox-option">
-                                <input type="checkbox" id="optimalSheltersLayer" checked>
-                                <span>Optimal Shelters</span>
-                            </label>
-                            <label class="checkbox-option">
-                                <input type="checkbox" id="statisticalAreasLayer">
-                                <span>Statistical Zones</span>
-                            </label>
-                            <label class="checkbox-option">
-                                <input type="checkbox" id="habitationClustersLayer">
-                                <span>Habitation Clusters</span>
-                            </label>
-                        </div>
                     </div>
                 </div>
             </div>

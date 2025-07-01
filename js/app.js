@@ -109,7 +109,7 @@ class ShelterAccessApp {
     async initializeApp() {
         try {
             this.setupEventListeners();
-            this.setupFloatingPanels();
+            this.setupMainMenu();
             await this.spatialAnalyzer.loadData();
             this.initializeMap();
             this.updateAttribution();
@@ -130,23 +130,72 @@ class ShelterAccessApp {
     }
     
     /**
-     * Setup floating panel expand/collapse functionality
+     * Setup unified main menu functionality
      */
-    setupFloatingPanels() {
-        // Get all floating panels
-        const panels = document.querySelectorAll('.floating-panel');
-        
-        panels.forEach(panel => {
-            const header = panel.querySelector('.panel-header');
-            
+    setupMainMenu() {
+        // Handle stats panel toggle (keep existing functionality)
+        const statsPanel = document.querySelector('.stats-legend-panel');
+        if (statsPanel) {
+            const header = statsPanel.querySelector('.panel-header');
             if (header) {
                 header.addEventListener('click', () => {
-                    // Toggle panel state
-                    panel.classList.toggle('collapsed');
-                    panel.classList.toggle('expanded');
+                    statsPanel.classList.toggle('collapsed');
+                    statsPanel.classList.toggle('expanded');
                 });
             }
-        });
+        }
+        
+        // Handle menu minimize button
+        const menuMinimize = document.getElementById('menuMinimize');
+        const mainMenu = document.querySelector('.main-menu');
+        if (menuMinimize && mainMenu) {
+            menuMinimize.addEventListener('click', () => {
+                mainMenu.classList.toggle('minimized');
+                const icon = menuMinimize.querySelector('span');
+                if (mainMenu.classList.contains('minimized')) {
+                    icon.textContent = '+';
+                    menuMinimize.title = 'Expand';
+                } else {
+                    icon.textContent = '−';
+                    menuMinimize.title = 'Minimize';
+                }
+            });
+        }
+        
+        // Handle layers modal
+        this.setupLayersModal();
+    }
+    
+    /**
+     * Setup layers modal functionality
+     */
+    setupLayersModal() {
+        const layersButton = document.getElementById('layersButton');
+        const layersModal = document.getElementById('layersModal');
+        const closeLayersModal = document.getElementById('closeLayersModal');
+        
+        // Open modal
+        if (layersButton) {
+            layersButton.addEventListener('click', () => {
+                layersModal.classList.add('show');
+            });
+        }
+        
+        // Close modal - close button
+        if (closeLayersModal) {
+            closeLayersModal.addEventListener('click', () => {
+                layersModal.classList.remove('show');
+            });
+        }
+        
+        // Close modal - click outside
+        if (layersModal) {
+            layersModal.addEventListener('click', (e) => {
+                if (e.target === layersModal) {
+                    layersModal.classList.remove('show');
+                }
+            });
+        }
     }
     
     /**
@@ -176,38 +225,6 @@ class ShelterAccessApp {
             aboutModal.addEventListener('click', (e) => {
                 if (e.target === aboutModal) {
                     aboutModal.classList.remove('show');
-                }
-            });
-        }
-    }
-    
-    /**
-     * Setup methods modal functionality
-     */
-    setupMethodsModal() {
-        const methodsButton = document.getElementById('methodsButton');
-        const methodsModal = document.getElementById('methodsModal');
-        const closeMethodsModal = document.getElementById('closeMethodsModal');
-        
-        // Open modal
-        if (methodsButton) {
-            methodsButton.addEventListener('click', () => {
-                methodsModal.classList.add('show');
-            });
-        }
-        
-        // Close modal - close button
-        if (closeMethodsModal) {
-            closeMethodsModal.addEventListener('click', () => {
-                methodsModal.classList.remove('show');
-            });
-        }
-        
-        // Close modal - click outside
-        if (methodsModal) {
-            methodsModal.addEventListener('click', (e) => {
-                if (e.target === methodsModal) {
-                    methodsModal.classList.remove('show');
                 }
             });
         }
@@ -308,7 +325,8 @@ class ShelterAccessApp {
         });
         
         // Basemap radio selection
-        this.elements.basemapRadios.forEach(radio => {
+        const basemapRadios = document.querySelectorAll('input[name="basemap"]');
+        basemapRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 if (e.target.checked) {
                     this.changeBasemap(e.target.value);
@@ -364,7 +382,7 @@ class ShelterAccessApp {
             
             if (isActive) {
                 button.classList.add('active');
-                text.textContent = 'Switch Off Heatmap';
+                text.textContent = 'Hide Heatmap';
                 
                 // Reset and lock added shelters section
                 this.numNewShelters = 0;
@@ -381,7 +399,7 @@ class ShelterAccessApp {
                 }
             } else {
                 button.classList.remove('active');
-                text.textContent = 'Accessibility Heatmap';
+                text.textContent = 'Heatmap';
                 
                 // Unlock added shelters section
                 addedSheltersSection.classList.remove('disabled');
@@ -456,6 +474,12 @@ class ShelterAccessApp {
         
         // Initial layer setup
         this.updateVisualization();
+        
+        // Initialize scale bar
+        this.updateScaleBar(this.deckgl.viewState || {
+            zoom: 12,
+            latitude: centerLat
+        });
     }
     
     /**
@@ -471,7 +495,7 @@ class ShelterAccessApp {
             // Zoom Control Widget
             const zoomWidget = new deck.ZoomWidget({
                 id: 'zoom-widget',
-                placement: 'top-left',
+                placement: 'bottom-right',
                 onViewStateChange: ({viewState}) => {
                     this.deckgl.setProps({viewState});
                     this.handleViewStateChange(viewState);
@@ -481,14 +505,14 @@ class ShelterAccessApp {
             // Fullscreen Control Widget
             const fullscreenWidget = new deck.FullscreenWidget({
                 id: 'fullscreen-widget',
-                placement: 'top-left',
+                placement: 'bottom-right',
                 container: document.getElementById('map')
             });
             
             // Compass Widget
             const compassWidget = new deck.CompassWidget({
                 id: 'compass-widget',
-                placement: 'top-left',
+                placement: 'bottom-right',
                 onViewStateChange: ({viewState}) => {
                     this.deckgl.setProps({viewState});
                     this.handleViewStateChange(viewState);
@@ -1576,12 +1600,81 @@ class ShelterAccessApp {
      * Handle viewport changes 
      */
     handleViewStateChange(viewState) {
-        // Store current zoom for any future zoom-dependent functionality
         this._currentZoom = viewState.zoom;
         
-        return viewState;
+        // Update scale bar
+        this.updateScaleBar(viewState);
+        
+        // Clear hover states when view changes significantly
+        if (Math.abs(this._currentZoom - viewState.zoom) > 0.5) {
+            this.clearShelterHover();
+            this.clearPolygonSelection();
+        }
     }
     
+    /**
+     * Initialize and update scale bar
+     */
+    updateScaleBar(viewState) {
+        const scaleBar = document.getElementById('scaleBar');
+        const scaleLine = document.getElementById('scaleLine');
+        const scaleText = document.getElementById('scaleText');
+        
+        if (!scaleBar || !scaleLine || !scaleText) return;
+        
+        // Calculate scale based on zoom and latitude
+        const zoom = viewState.zoom;
+        const latitude = viewState.latitude;
+        
+        // Earth circumference in meters at the equator
+        const earthCircumference = 40075016.686;
+        
+        // Calculate meters per pixel at current zoom and latitude
+        const metersPerPixel = (earthCircumference * Math.cos(latitude * Math.PI / 180)) / Math.pow(2, zoom + 8);
+        
+        // Target scale bar width in pixels
+        const targetPixelWidth = 100;
+        
+        // Calculate actual distance for target width
+        let scaleDistance = metersPerPixel * targetPixelWidth;
+        
+        // Round to nice numbers and determine units
+        let scaleText_value, actualPixelWidth;
+        
+        if (scaleDistance >= 1000) {
+            // Use kilometers
+            const km = scaleDistance / 1000;
+            if (km >= 10) {
+                scaleText_value = Math.round(km) + ' km';
+                actualPixelWidth = (Math.round(km) * 1000) / metersPerPixel;
+            } else if (km >= 1) {
+                scaleText_value = Math.round(km * 10) / 10 + ' km';
+                actualPixelWidth = (Math.round(km * 10) / 10 * 1000) / metersPerPixel;
+            } else {
+                scaleText_value = Math.round(km * 100) / 100 + ' km';
+                actualPixelWidth = (Math.round(km * 100) / 100 * 1000) / metersPerPixel;
+            }
+        } else {
+            // Use meters
+            if (scaleDistance >= 100) {
+                const roundedMeters = Math.round(scaleDistance / 10) * 10;
+                scaleText_value = roundedMeters + ' m';
+                actualPixelWidth = roundedMeters / metersPerPixel;
+            } else if (scaleDistance >= 10) {
+                const roundedMeters = Math.round(scaleDistance);
+                scaleText_value = roundedMeters + ' m';
+                actualPixelWidth = roundedMeters / metersPerPixel;
+            } else {
+                const roundedMeters = Math.round(scaleDistance * 10) / 10;
+                scaleText_value = roundedMeters + ' m';
+                actualPixelWidth = roundedMeters / metersPerPixel;
+            }
+        }
+        
+        // Update scale bar
+        scaleLine.style.width = Math.round(actualPixelWidth) + 'px';
+        scaleText.textContent = scaleText_value;
+    }
 
     
     /**
