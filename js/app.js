@@ -10,7 +10,7 @@ class ShelterAccessApp {
         this.currentLayers = [];
         this.proposedShelters = [];
         this.coverageRadius = 100;
-        this.numNewShelters = 10;
+        this.numNewShelters = 0;
         this.maxShelters = 500; // Updated to match script's TARGET_SHELTERS
         this.isAnalyzing = false;
         
@@ -398,7 +398,7 @@ class ShelterAccessApp {
             
             if (isActive) {
                 button.classList.add('active');
-                text.textContent = 'Hide Heatmap';
+                text.textContent = 'Hide Grid';
                 
                 // Reset and lock added shelters section
                 this.numNewShelters = 0;
@@ -415,17 +415,17 @@ class ShelterAccessApp {
                 }
             } else {
                 button.classList.remove('active');
-                text.textContent = 'Heatmap';
+                text.textContent = 'Accessibility Grid';
                 
                 // Unlock added shelters section
                 addedSheltersSection.classList.remove('disabled');
                 
-                // Reset to previous value or default
-                this.numNewShelters = 10;
-                this.elements.newSheltersSlider.value = 10;
-                this.elements.newSheltersValue.textContent = '10';
+                // Keep the default at 0 instead of resetting to 10
+                this.numNewShelters = 0;
+                this.elements.newSheltersSlider.value = 0;
+                this.elements.newSheltersValue.textContent = '0';
                 
-                // Update optimal locations with restored shelter count
+                // Update optimal locations with default count
                 await this.updateOptimalLocations();
             }
             
@@ -1198,16 +1198,7 @@ class ShelterAccessApp {
             });
         }
         
-        if (this.layerVisibility.buildings) {
-            legendItems.push({
-                className: 'covered-building',
-                label: 'Covered Buildings'
-            });
-            legendItems.push({
-                className: 'uncovered-building', 
-                label: 'Uncovered Buildings'
-            });
-        }
+
         
         if (this.layerVisibility.accessibilityHeatmap) {
             // Create continuous heatmap legend
@@ -1248,12 +1239,7 @@ class ShelterAccessApp {
                 img.height = 16;
                 img.style.display = 'block';
                 iconDiv.appendChild(img);
-            } else if (item.className === 'covered-building') {
-                iconDiv.classList.add('building-covered-icon');
-                iconDiv.innerHTML = ''; // Keep CSS for building icons
-            } else if (item.className === 'uncovered-building') {
-                iconDiv.classList.add('building-uncovered-icon');
-                iconDiv.innerHTML = ''; // Keep CSS for building icons
+
             } else {
                 // Fallback to color box for unknown types
                 iconDiv.innerHTML = '';

@@ -101,10 +101,10 @@
             
             <!-- Menu Content -->
             <div class="menu-content">
-                <!-- Analysis Controls -->
+                <!-- Distance Controls -->
                 <div class="control-section">
                     <div class="control-group">
-                        <label class="control-label">Distance</label>
+                        <label class="control-label">Coverage Distance</label>
                         <div class="distance-buttons" id="distanceButtons">
                             <button class="distance-button active" data-distance="100">100m</button>
                             <button class="distance-button" data-distance="150">150m</button>
@@ -113,17 +113,34 @@
                             <button class="distance-button" data-distance="300">300m</button>
                         </div>
                     </div>
-                    
+                </div>
+                
+                <!-- Accessibility Grid Toggle -->
+                <div class="control-section">
+                    <button id="heatmapToggle" class="accessibility-grid-button">
+                        <span class="grid-icon">🏃</span>
+                        <div class="button-content">
+                            <span class="button-title" id="heatmapToggleText">Accessibility Grid</span>
+                            <span class="button-subtitle">Bomb shelter coverage analysis</span>
+                        </div>
+                    </button>
+                </div>
+                
+                <!-- New Shelters Control -->
+                <div class="control-section">
                     <div class="control-group" id="addedSheltersSection">
-                        <label class="control-label">New Shelters</label>
-                        <input type="range" id="newShelters" class="modern-range" min="0" max="500" value="10" step="1">
-                        <div class="control-value" id="newSheltersValue">10</div>
+                        <label class="control-label">Add Shelters</label>
+                        <div class="shelter-control">
+                            <input type="range" id="newShelters" class="modern-range" min="0" max="500" value="0" step="1">
+                            <div class="control-value" id="newSheltersValue">0</div>
+                        </div>
+                        <div class="control-description">Improve accessibility to shelter for uncovered residential buildings in informal settlements</div>
                     </div>
                 </div>
                 
-                <!-- Map Type Selection -->
+                <!-- Base Map Selection -->
                 <div class="control-section">
-                    <label class="control-label">Map Type</label>
+                    <label class="control-label">Base Map</label>
                     <div class="map-type-selector">
                         <input type="radio" id="satellite" name="basemap" value="satellite" checked>
                         <label for="satellite" class="map-type-option">
@@ -138,12 +155,8 @@
                     </div>
                 </div>
                 
-                <!-- Action Buttons -->
+                <!-- Data & Methods -->
                 <div class="control-section">
-                    <button id="heatmapToggle" class="action-button">
-                        <span>🔥</span>
-                        <span id="heatmapToggleText">Heatmap</span>
-                    </button>
                     <button id="layersButton" class="action-button">
                         <span>🗂️</span>
                         <span>Data Layers</span>
@@ -172,46 +185,82 @@
                 <div class="modal-body">
                     <div class="layers-grid">
                         <div class="layer-item">
+                            <div class="layer-icon building-icon">
+                                <div class="building-square"></div>
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="buildingsLayer" checked>
                                 <span class="toggle-slider"></span>
                             </label>
-                            <span class="layer-label">Building Footprints</span>
+                            <div class="layer-info">
+                                <span class="layer-label">Building Footprints</span>
+                                <span class="layer-description">Red outlines • Hover shows coverage</span>
+                            </div>
                         </div>
                         <div class="layer-item">
+                            <div class="layer-icon shelter-existing">
+                                <img src="data/airtight-hatch-svgrepo-com.svg" width="16" height="16" alt="Existing shelter icon">
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="existingSheltersLayer" checked>
                                 <span class="toggle-slider"></span>
                             </label>
-                            <span class="layer-label">Existing Shelters</span>
+                            <div class="layer-info">
+                                <span class="layer-label">Existing Shelters</span>
+                                <span class="layer-description">Blue shield icons • Current sites</span>
+                            </div>
                         </div>
                         <div class="layer-item">
+                            <div class="layer-icon shelter-requested">
+                                <img src="data/user-location-icon.svg" width="16" height="16" alt="Requested shelter icon">
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="requestedSheltersLayer" checked>
                                 <span class="toggle-slider"></span>
                             </label>
-                            <span class="layer-label">Community Requested</span>
+                            <div class="layer-info">
+                                <span class="layer-label">Community Requested</span>
+                                <span class="layer-description">Yellow pins • Resident suggestions</span>
+                            </div>
                         </div>
                         <div class="layer-item">
+                            <div class="layer-icon shelter-optimal">
+                                <img src="data/add-location-icon.svg" width="16" height="16" alt="Optimal shelter icon">
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="optimalSheltersLayer" checked>
                                 <span class="toggle-slider"></span>
                             </label>
-                            <span class="layer-label">Optimal Shelters</span>
+                            <div class="layer-info">
+                                <span class="layer-label">Optimal Shelters</span>
+                                <span class="layer-description">Green plus icons • Algorithm sites</span>
+                            </div>
                         </div>
                         <div class="layer-item">
+                            <div class="layer-icon polygon-statistical">
+                                <div class="polygon-boundary statistical"></div>
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="statisticalAreasLayer">
                                 <span class="toggle-slider"></span>
                             </label>
-                            <span class="layer-label">Statistical Zones</span>
+                            <div class="layer-info">
+                                <span class="layer-label">Statistical Zones</span>
+                                <span class="layer-description">Grey fill with black borders • Census areas</span>
+                            </div>
                         </div>
                         <div class="layer-item">
+                            <div class="layer-icon polygon-clusters">
+                                <div class="polygon-boundary clusters"></div>
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="habitationClustersLayer">
                                 <span class="toggle-slider"></span>
                             </label>
-                            <span class="layer-label">Habitation Clusters</span>
+                            <div class="layer-info">
+                                <span class="layer-label">Habitation Clusters</span>
+                                <span class="layer-description">Blue boundaries • Settlement groups</span>
+                            </div>
                         </div>
                     </div>
                 </div>
