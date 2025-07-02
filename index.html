@@ -105,8 +105,13 @@
                 <div class="control-section">
                     <div class="control-group">
                         <label class="control-label">Distance</label>
-                        <input type="range" id="accessibilityDistance" class="modern-range" min="100" max="300" step="50" value="100">
-                        <div class="control-value" id="accessibilityDistanceValue">100m</div>
+                        <div class="distance-buttons" id="distanceButtons">
+                            <button class="distance-button active" data-distance="100">100m</button>
+                            <button class="distance-button" data-distance="150">150m</button>
+                            <button class="distance-button" data-distance="200">200m</button>
+                            <button class="distance-button" data-distance="250">250m</button>
+                            <button class="distance-button" data-distance="300">300m</button>
+                        </div>
                     </div>
                     
                     <div class="control-group" id="addedSheltersSection">
@@ -168,7 +173,7 @@
                     <div class="layers-grid">
                         <div class="layer-item">
                             <label class="toggle-switch">
-                                <input type="checkbox" id="buildingsLayer">
+                                <input type="checkbox" id="buildingsLayer" checked>
                                 <span class="toggle-slider"></span>
                             </label>
                             <span class="layer-label">Building Footprints</span>

@@ -34,7 +34,7 @@ class ShelterAccessApp {
         
         // Layer visibility state
         this.layerVisibility = {
-            buildings: false, // Off by default - only show when enabled
+            buildings: true, // On by default - building footprints are useful
             existingShelters: true,
             requestedShelters: true,
             optimalShelters: true,
@@ -77,8 +77,7 @@ class ShelterAccessApp {
         
         // UI elements
         this.elements = {
-            accessibilityDistance: document.getElementById('accessibilityDistance'),
-            accessibilityDistanceValue: document.getElementById('accessibilityDistanceValue'),
+            distanceButtons: document.getElementById('distanceButtons'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
             basemapRadios: document.querySelectorAll('input[name="basemap"]'),
@@ -296,32 +295,42 @@ class ShelterAccessApp {
             }
         });
         
-        // Accessibility distance slider
-        this.elements.accessibilityDistance.addEventListener('input', async (e) => {
-            this.coverageRadius = parseInt(e.target.value);
-            this.elements.accessibilityDistanceValue.textContent = `${this.coverageRadius}m`;
-            
-            const maxShelters = await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
-            this.maxShelters = maxShelters;
-            
-            // Update slider max
-            this.elements.newSheltersSlider.max = this.maxShelters;
-            if (this.numNewShelters > this.maxShelters) {
-                this.numNewShelters = this.maxShelters;
-                this.elements.newSheltersSlider.value = this.maxShelters;
-                this.elements.newSheltersValue.textContent = this.maxShelters;
+        // Distance buttons
+        this.elements.distanceButtons.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('distance-button')) {
+                const newDistance = parseInt(e.target.dataset.distance);
+                
+                // Update active state
+                this.elements.distanceButtons.querySelectorAll('.distance-button').forEach(btn => 
+                    btn.classList.remove('active')
+                );
+                e.target.classList.add('active');
+                
+                // Update distance
+                this.coverageRadius = newDistance;
+                
+                const maxShelters = await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
+                this.maxShelters = maxShelters;
+                
+                // Update slider max
+                this.elements.newSheltersSlider.max = this.maxShelters;
+                if (this.numNewShelters > this.maxShelters) {
+                    this.numNewShelters = this.maxShelters;
+                    this.elements.newSheltersSlider.value = this.maxShelters;
+                    this.elements.newSheltersValue.textContent = this.maxShelters;
+                }
+                
+                // Clear previous analysis and update
+                this.proposedShelters = [];
+                this.clearShelterSelection(); // Clear selection when radius changes
+                
+                // Update accessibility data when radius changes
+                if (this.layerVisibility.accessibilityHeatmap && this.allAccessibilityData) {
+                    this.updateAccessibilityDataForRadius();
+                }
+                
+                await this.updateOptimalLocations();
             }
-            
-            // Clear previous analysis and update
-            this.proposedShelters = [];
-            this.clearShelterSelection(); // Clear selection when radius changes
-            
-            // Update accessibility data when radius changes
-            if (this.layerVisibility.accessibilityHeatmap && this.allAccessibilityData) {
-                this.updateAccessibilityDataForRadius();
-            }
-            
-            await this.updateOptimalLocations();
         });
         
         // Added shelters slider - real-time updates
@@ -435,12 +444,9 @@ class ShelterAccessApp {
      * Initialize deck.gl map with widgets and terrain support
      */
     initializeMap() {
-        // Get data bounds for initial view
-        const bounds = this.spatialAnalyzer.getDataBounds();
-        
-        // Calculate center and zoom level
-        const centerLng = (bounds.west + bounds.east) / 2;
-        const centerLat = (bounds.south + bounds.north) / 2;
+        // Use precalculated mean point of all building coordinates for optimal centering
+        const centerLng = 34.91862620;
+        const centerLat = 31.20737085;
         
         // Initialize deck.gl widgets first
         this.initializeWidgets();
@@ -451,7 +457,7 @@ class ShelterAccessApp {
             initialViewState: {
                 longitude: centerLng,
                 latitude: centerLat,
-                zoom: 12,
+                zoom: 11,
                 pitch: 0,
                 bearing: 0,
                 minZoom: 7,  // Prevent zooming out beyond level 7
@@ -477,14 +483,14 @@ class ShelterAccessApp {
         });
         
         // Store initial zoom level
-        this._currentZoom = 12;
+        this._currentZoom = 11;
         
         // Initial layer setup
         this.updateVisualization();
         
         // Initialize scale bar
         this.updateScaleBar(this.deckgl.viewState || {
-            zoom: 12,
+            zoom: 11,
             latitude: centerLat
         });
     }
@@ -609,18 +615,71 @@ class ShelterAccessApp {
                     maxZoom: 16,
                     tileSize: 256,
                     pickable: false,
+                    // Add bounds to limit tile requests to data area
+                    extent: [34.673474, 30.628270, 35.285314, 31.433190], // From building tiles metadata
+                    // Custom tile data loading with bounds checking
+                    getTileData: async (tile) => {
+                        try {
+                            // Extract coordinates from tile.index
+                            const {x, y, z} = tile.index;
+                            
+                            // Basic bounds check to avoid unnecessary requests
+                            const tileBounds = this.getTileBounds(x, y, z);
+                            const dataBounds = [34.673474, 30.628270, 35.285314, 31.433190];
+                            
+                            // Check if tile intersects with data bounds
+                            if (!this.boundsIntersect(tileBounds, dataBounds)) {
+                                return null; // Don't request tiles outside data area
+                            }
+                            
+                            const response = await fetch(`data/building_tiles/${z}/${x}/${y}.json`);
+                            if (!response.ok) {
+                                if (response.status === 404) {
+                                    return null; // Handle missing tiles gracefully
+                                }
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                            return await response.json();
+                        } catch (error) {
+                            // Suppress 404 errors - they're expected for sparse tilesets
+                            if (error.message.includes('404')) {
+                                return null;
+                            }
+                            console.warn(`Building tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
+                            return null;
+                        }
+                    },
                     
                     renderSubLayers: props => {
                         const {data, tile} = props;
                         
-                        if (!data || !data.features || data.features.length === 0) {
+                        // Validate tile coordinates - they're nested in tile.index
+                        if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
+                            console.warn('Invalid tile coordinates:', tile);
+                            return null;
+                        }
+                        
+                        // Validate data structure
+                        if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
+                            return null;
+                        }
+                        
+                        // Validate that features have valid geometries
+                        const validFeatures = data.features.filter(feature => 
+                            feature && 
+                            feature.geometry && 
+                            feature.geometry.coordinates &&
+                            Array.isArray(feature.geometry.coordinates)
+                        );
+                        
+                        if (validFeatures.length === 0) {
                             return null;
                         }
                         
                         return new deck.GeoJsonLayer({
                             ...props,
-                            id: `buildings-tile-${tile.x}-${tile.y}-${tile.z}`,
-                            data: data.features,
+                            id: `buildings-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
+                            data: validFeatures,
                             stroked: true,
                             filled: true,
                             lineWidthMinPixels: 1,
@@ -806,41 +865,94 @@ class ShelterAccessApp {
                     maxZoom: 14,
                     tileSize: 256,
                     pickable: true,
+                    // Add bounds to limit tile requests to data area  
+                    extent: [34.672703, 30.627776, 35.285141, 31.433086], // From cluster tiles metadata
+                    // Custom tile data loading with bounds checking
+                    getTileData: async (tile) => {
+                        try {
+                            // Extract coordinates from tile.index
+                            const {x, y, z} = tile.index;
+                            
+                            // Basic bounds check to avoid unnecessary requests
+                            const tileBounds = this.getTileBounds(x, y, z);
+                            const dataBounds = [34.672703, 30.627776, 35.285141, 31.433086];
+                            
+                            // Check if tile intersects with data bounds
+                            if (!this.boundsIntersect(tileBounds, dataBounds)) {
+                                return null; // Don't request tiles outside data area
+                            }
+                            
+                            const response = await fetch(`data/cluster_tiles/${z}/${x}/${y}.json`);
+                            if (!response.ok) {
+                                if (response.status === 404) {
+                                    return null; // Handle missing tiles gracefully
+                                }
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                            return await response.json();
+                        } catch (error) {
+                            // Suppress 404 errors - they're expected for sparse tilesets
+                            if (error.message.includes('404')) {
+                                return null;
+                            }
+                            console.warn(`Cluster tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
+                            return null;
+                        }
+                    },
                     
                     renderSubLayers: props => {
                         const {data, tile} = props;
                         
-                        if (!data || !data.features || data.features.length === 0) {
+                        // Validate tile coordinates - they're nested in tile.index
+                        if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
+                            console.warn('Invalid cluster tile coordinates:', tile);
+                            return null;
+                        }
+                        
+                        // Validate data structure
+                        if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
+                            return null;
+                        }
+                        
+                        // Validate that features have valid geometries
+                        const validFeatures = data.features.filter(feature => 
+                            feature && 
+                            feature.geometry && 
+                            feature.geometry.coordinates &&
+                            Array.isArray(feature.geometry.coordinates)
+                        );
+                        
+                        if (validFeatures.length === 0) {
                             return null;
                         }
                         
                         return new deck.GeoJsonLayer({
                             ...props,
-                            id: `habitation-clusters-tile-${tile.x}-${tile.y}-${tile.z}`,
-                            data: data.features.map((feature, index) => ({
+                            id: `habitation-clusters-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
+                            data: validFeatures.map((feature, index) => ({
                                 ...feature,
                                 _layerType: 'habitationCluster',
                                 _index: index,
-                                _tileInfo: `${tile.z}/${tile.x}/${tile.y}`
+                                _tileInfo: `${tile.index.z}/${tile.index.x}/${tile.index.y}`
                             })),
                             stroked: true,
                             filled: true,
-                            lineWidthMinPixels: 2,
-                            lineWidthMaxPixels: 4,
+                            lineWidthMinPixels: 1,
+                            lineWidthMaxPixels: 2,
                             getFillColor: d => {
                                 const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                                  this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 40]; // Blue fill
+                                return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25]; // Blue fill - more transparent
                             },
                             getLineColor: d => {
                                 const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                                  this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 220]; // Blue outline
+                                return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120]; // Blue outline - much less opaque
                             },
                             getLineWidth: d => {
                                 const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                                  this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? 4 : 2; // Thicker when selected
+                                return isSelected ? 3 : 1; // Thinner overall
                             },
                             updateTriggers: {
                                 getFillColor: [this.selectedPolygon],
@@ -872,22 +984,22 @@ class ShelterAccessApp {
                         pickable: true,
                         stroked: true,
                         filled: true,
-                        lineWidthMinPixels: 2,
-                        lineWidthMaxPixels: 4,
+                        lineWidthMinPixels: 1,
+                        lineWidthMaxPixels: 2,
                         getFillColor: d => {
                             const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                              this.selectedPolygon?._index === d._index;
-                            return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 40];
+                            return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
                         },
                         getLineColor: d => {
                             const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                              this.selectedPolygon?._index === d._index;
-                            return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 220];
+                            return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
                         },
                         getLineWidth: d => {
                             const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                              this.selectedPolygon?._index === d._index;
-                            return isSelected ? 4 : 2;
+                            return isSelected ? 3 : 1;
                         },
                         updateTriggers: {
                             getFillColor: [this.selectedPolygon],
@@ -1708,6 +1820,28 @@ class ShelterAccessApp {
         return this.basemaps[this.currentBasemap].url;
     }
     
+    /**
+     * Calculate tile bounds in geographic coordinates
+     */
+    getTileBounds(x, y, z) {
+        const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
+        const west = x / Math.pow(2, z) * 360 - 180;
+        const east = (x + 1) / Math.pow(2, z) * 360 - 180;
+        const north = Math.atan(Math.sinh(n)) * 180 / Math.PI;
+        const south = Math.atan(Math.sinh(Math.PI - 2 * Math.PI * (y + 1) / Math.pow(2, z))) * 180 / Math.PI;
+        return [west, south, east, north];
+    }
+    
+    /**
+     * Check if two bounding boxes intersect
+     */
+    boundsIntersect(bounds1, bounds2) {
+        const [west1, south1, east1, north1] = bounds1;
+        const [west2, south2, east2, north2] = bounds2;
+        
+        return !(east1 < west2 || west1 > east2 || north1 < south2 || south1 > north2);
+    }
+
     /**
      * Change basemap
      */
