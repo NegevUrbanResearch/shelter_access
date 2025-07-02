@@ -1713,6 +1713,15 @@ class ShelterAccessApp {
      */
     changeBasemap(basemap) {
         this.currentBasemap = basemap;
+        
+        // Update UI styling based on basemap
+        const body = document.body;
+        if (basemap === 'light') {
+            body.classList.add('light-basemap');
+        } else {
+            body.classList.remove('light-basemap');
+        }
+        
         this.updateAttribution();
         this.updateVisualization();
     }

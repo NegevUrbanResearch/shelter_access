@@ -28,6 +28,18 @@
     --accent-color: var(--accent-blue);
 }
 
+/* Light mode overrides for better contrast on light basemaps */
+body.light-basemap {
+    --glass-bg: rgba(0, 0, 0, 0.75);
+    --glass-border: rgba(0, 0, 0, 0.85);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+    --hover-overlay: rgba(0, 0, 0, 0.15);
+    --panel-bg: var(--glass-bg);
+    --panel-border: var(--glass-border);
+    --panel-shadow: 0 8px 32px var(--glass-shadow);
+    --hover-bg: var(--hover-overlay);
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #1a1a1a;
