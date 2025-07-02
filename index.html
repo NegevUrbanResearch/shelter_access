@@ -225,22 +225,21 @@
         <div id="aboutModal" class="modal-overlay">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>About This Project</h2>
+                    <h2>About Us</h2>
                     <button class="modal-close" id="closeAboutModal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="about-section">
                         <h3>NUR Lab - Negev Urban Research</h3>
-                        <p>Located in Be'er Sheva and serving cities throughout Israel, the NUR lab is a creative workspace for visiting researchers and project-specific teams to meet and tackle specific questions and opportunities together. NUR Lab fosters the exchange of innovative methods and creative approaches through conferences, workshops and public discussions. Life here, on the edge of the desert is rapidly changing – hot, dense, multicultural and deprived of essential resources – a reality in many cities, and a potential future for countless others.</p>
-                        
-                        <p>NUR was launched in 2024 as a collaboration between the MIT Media Lab, Ben Gurion University of the Negev, and SCE Negev School of Architecture. It is part of MIT's global City Science Network – a learning network of 10 collaborative international labs, each solving local challenges that have global implications.</p>
+                        <p>NUR is a research lab located in Be'er Sheva exploring how new technologies can create smart solutions for the unique problems facing the Negev region and cities throughout Israel.  NUR Lab was launched in 2024 as a collaboration between the MIT Media Lab, Ben Gurion University of the Negev, and SCE Negev School of Architecture. It is part of MIT's global City Science Network – a learning network of 10 collaborative international labs, each solving local challenges that have global implications.</p>
+
                     </div>
                     
                     <div class="about-section">
                         <h3>Our Partners</h3>
-                        <p>This project is developed in collaboration with the <strong>Algorithmic City Planning Lab</strong>, which develops quantitative, data-driven tools to support urban planning and public policy. Working with local authorities, the lab builds high-resolution databases and creates models that help cities make smarter, fairer decisions about resource allocation and urban service design.</p>
+                        <p>This project is developed in collaboration with the <strong>Algorithmic City Planning Lab (ACP)</strong>, at the Hebrew University of Jerusalem which develops quantitative, data-driven tools to support urban planning and public policy. The ACP lab builds high-resolution databases and creates models that help cities make smarter, fairer decisions about resource allocation and urban service design.</p>
                         
-                        <p><strong>Bimkom – Planners for Planning Rights</strong> is an Israeli human rights organization formed in 1999 by professional planners and architects to strengthen democracy and human rights in spatial planning and housing policies. Drawing on values of social justice and community participation, Bimkom advances more just planning practices that are responsive to local community needs.</p>
+                        <p> The dataset on shelter locations for this project was collected by <strong>Bimkom – Planners for Planning Rights</strong>, an Israeli human rights organization formed in 1999 by professional planners and architects to strengthen democracy and human rights in spatial planning and housing policies. Bimkom collects data on informal communities in the Negev with the goal of increasing community participation and advancing more just planning practices that are responsive to community needs.</p>
                     </div>
                 </div>
             </div>
@@ -256,32 +255,30 @@
                 <div class="modal-body">
                     <div class="about-section">
                         <h3>Spatial Analysis Methodology</h3>
-                        <p>This analysis uses spatial optimization algorithms to evaluate shelter accessibility across Jerusalem. The methodology combines building footprint data, population estimates, and existing shelter locations to identify gaps in emergency shelter coverage and propose optimal locations for new facilities.</p>
+                        <p>This analysis uses accessibility calculators and spatial clustering to analyze the coverage of existing bomb shelters for informal settlements in the Negev and proposes an algorithmic approach to optimally site new shelters. The methodology combines building footprint data from Microsoft Planetary Computer, GIS layers of informal settlements from the Authority for Development and Settlement of the Bedouin in the Negev (הרשות לפיתוח והתיישבות הבדואים בנגב), and data collected by Bimkom on shelter locations.</p>
                     </div>
                     
                     <div class="about-section">
                         <h3>Coverage Analysis</h3>
-                        <p>We calculate accessibility using walking distance buffers (100m-200m) around existing shelters, accounting for building density and estimated population. Each building within the specified radius is considered "covered" by that shelter facility.</p>
+                        <p>We calculate accessibility using five accessibility radii (100m, 150m, 200m, 250m, 300m) around existing shelters. Each building within the specified radius is considered "covered" by that shelter facility.</p>
                         
-                        <p>The accessibility heatmap visualizes coverage quality across the study area - <strong style="color: #14b814;">green areas</strong> indicate well-served locations with good shelter access, while <strong style="color: #c81414;">red areas</strong> highlight underserved neighborhoods that would benefit from additional shelter facilities.</p>
+                        <p>The accessibility heatmap visualizes coverage quality across the study area - <strong style="color: #14b814;">green areas</strong> indicate well-served locations with good shelter access, while <strong style="color: #c81414;">red areas</strong> highlight underserved neighborhoods that would benefit from additional shelter facilities. For the heatmap, buildings are colored in a binary based on whether they are within the accessibility radius of any existing shelter.</p>
                     </div>
                     
                     <div class="about-section">
-                        <h3>Optimization Algorithm</h3>
-                        <p>New shelter locations are determined using a facility location optimization that maximizes population coverage while minimizing overlap with existing facilities. The algorithm prioritizes locations that serve the highest number of previously uncovered residents.</p>
+                        <h3>Optimization Algorithm for New Shelter Locations</h3>
+                        <p>New shelter locations are determined using an optimizer that aims to maximize the number of houses covered by each additional shelter, while ensuring that there is no overlab with existing shelter coverage. The goal of this algorithm is to encourage resource allocation that prioritizes providing coverage to completely uncovered areas with the largest number of residential buildings. </p>
                         
-                        <p>The optimization considers both spatial efficiency (serving dense areas) and equity (ensuring coverage reaches underserved communities). Sites are ranked by their potential impact on overall accessibility.</p>
+                        <p><strong>Technical Implementation:</strong> For each of the accessibility distances, the optimization algorithm uses an ensemble of K-means and DBSCAN clustering with 12 different parameters to generate 12 arrays of building clusters. The centroids of these clusters are then used as candidate locations for new shelters. The optimizer then calculates a ranked list of these candidate locations maximizes the number of houses covered by each additional shelter, while ensuring that there is no overlab with existing shelter coverage.</p>
                     </div>
                     
                     <div class="about-section">
                         <h3>Data Sources & Assumptions</h3>
-                        <p><strong>Building Data:</strong> Municipal GIS databases provide building footprints and classifications used to identify residential structures and estimate shelter demand.</p>
+                        <p><strong>Building Data:</strong> Building footprints were downloaded from Microsoft Planetary Computer and filtered to residential buildings in informal Bedouin settlementsusing multiple parameters: including a GIS layer of informal settlements collected by The Authority for Development and Settlement of the Bedouin in the Negev (הרשות לפיתוח והתיישבות הבדואים בנגב), census tractss where no legally recognized settlements exist, and building footprint size.
+                    
+                        <p><strong>Population Estimates:</strong> Based on residential building density with approximately 7 people per residential building, derived consensus of estimates by nonprofits including Bimkom. This rough estimate is used because traditional census data is not available for the informal settlements.</p>
                         
-                        <p><strong>Population Estimates:</strong> Based on residential building density with approximately 7 people per residential building, derived from census and municipal planning data.</p>
-                        
-                        <p><strong>Shelter Data:</strong> Existing emergency shelter locations and community-requested sites from municipal emergency management databases.</p>
-                        
-                        <p><strong>Technical Implementation:</strong> Analysis performed using spatial clustering, network analysis, and facility location optimization techniques implemented in Python with PostGIS spatial database backend.</p>
+                        <p><strong>Shelter Data:</strong> Existing emergency shelter locations and community-requested sites are collected by Bimkom field workers and community submissions. Therefore, the exact locations of existing shelters may vary slightly from the data used in this analysis. The data on this map should be considered a best estimate of the locations of existing shelters, <strong>NOT</strong> an authoritative resource for emergency situations.</strong></p>
                     </div>
                 </div>
             </div>

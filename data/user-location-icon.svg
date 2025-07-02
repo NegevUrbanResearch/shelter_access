@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Person figure -->
+  <circle cx="16" cy="10" r="4" fill="#F97316" stroke="#EA580C" stroke-width="1"/>
+  <path d="M10 18 C10 15 12 14 16 14 C20 14 22 15 22 18 L22 22 C22 24 21 25 19 25 L13 25 C11 25 10 24 10 22 Z" 
+        fill="#F97316" 
+        stroke="#EA580C" 
+        stroke-width="1"/>
+  
+  <!-- Location pin indicator -->
+  <circle cx="16" cy="28" r="2" fill="#DC2626"/>
+  <path d="M16 30 L15 31 L17 31 Z" fill="#DC2626"/>
+</svg> 

@@ -540,15 +540,61 @@ input:checked + .toggle-slider:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    position: relative;
 }
 
-/* Specific icon colors */
-.legend-icon.existing-shelter { color: var(--accent-blue); }
-.legend-icon.optimal-shelter { color: var(--accent-green); }
-.legend-icon.requested-shelter { color: var(--accent-orange); }
-.legend-icon.covered-building { color: var(--accent-green); }
-.legend-icon.uncovered-building { color: var(--accent-red); }
+/* SVG icon styling for shelter types - no background, just clean SVG display */
+.legend-icon.shield-icon,
+.legend-icon.home-icon,
+.legend-icon.location-icon {
+    background: none;
+    border: none;
+    transform: none;
+    position: relative;
+}
+
+/* Remove all pseudo-elements from SVG-based icons */
+.legend-icon.shield-icon::before,
+.legend-icon.shield-icon::after,
+.legend-icon.home-icon::before,
+.legend-icon.home-icon::after,
+.legend-icon.location-icon::before,
+.legend-icon.location-icon::after {
+    display: none;
+}
+
+/* Building icons for coverage indicators */
+.legend-icon.building-covered-icon {
+    background: var(--accent-green);
+    position: relative;
+}
+
+.legend-icon.building-covered-icon::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: var(--accent-green);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.legend-icon.building-uncovered-icon {
+    background: var(--accent-red);
+    position: relative;
+}
+
+.legend-icon.building-uncovered-icon::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: var(--accent-red);
+    border: 1px solid rgba(255,255,255,0.3);
+}
 
 /* Legacy color boxes (fallback) */
 .legend-color {

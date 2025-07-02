@@ -15,7 +15,7 @@ class ShelterAccessApp {
         this.isAnalyzing = false;
         
         // Icon sizing constants - tunable in one place
-        this.ICON_SIZE = 0.0005; // Common units (0.0005 * 2^zoom pixels, before scale/constraints)
+        this.ICON_SIZE = 0.0015; // Common units (0.0015 * 2^zoom pixels, before scale/constraints) - tripled for better visibility
         this.ICON_SIZE_SCALE = 2; // Global size multiplier (doubles the effective size)
         this.ICON_MIN_PIXELS = 14; // Minimum size in pixels (icons never smaller than this)
         this.ICON_MAX_PIXELS = 124; // Maximum size in pixels (icons never larger than this)
@@ -960,23 +960,23 @@ class ShelterAccessApp {
                     id: 'existing-shelters',
                     data: existingShelters,
                     pickable: true,
-                    iconAtlas: this.createShelterIconAtlas(),
-                    iconMapping: this.getShelterIconMapping(),
-                    getIcon: () => 'shield',
+                    getIcon: () => this.getShelterIcon('existing'),
                     getPosition: d => d.geometry.coordinates,
-                    getSize: () => this.ICON_SIZE,
+                    getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
                     getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [52, 152, 219, 230]; // Bright blue for selected (90% opacity)
+                            return [255, 255, 255, 255]; // White for selected (100% opacity)
                         }
-                        return [52, 152, 219, 230]; // Blue for existing (90% opacity)
+                        return [255, 255, 255, 230]; // White tint (90% opacity)
                     },
                     sizeScale: this.ICON_SIZE_SCALE,
-                    sizeUnits: 'common',
+                    sizeUnits: 'meters',
                     sizeMinPixels: this.ICON_MIN_PIXELS,
-                    sizeMaxPixels: this.ICON_MAX_PIXELS
+                    sizeMaxPixels: this.ICON_MAX_PIXELS,
+                    onHover: (info) => this.handleHover(info),
+                    onClick: (info) => this.handleClick(info)
                 }));
             }
         }
@@ -994,23 +994,23 @@ class ShelterAccessApp {
                     id: 'requested-shelters',
                     data: requestedShelters,
                     pickable: true,
-                    iconAtlas: this.createShelterIconAtlas(),
-                    iconMapping: this.getShelterIconMapping(),
-                    getIcon: () => 'home',
+                    getIcon: () => this.getShelterIcon('requested'),
                     getPosition: d => d.geometry.coordinates,
-                    getSize: () => this.ICON_SIZE,
+                    getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
                     getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.properties && 
                             this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [255, 165, 0, 230]; // Bright orange for selected (90% opacity)
+                            return [255, 255, 255, 255]; // White for selected (100% opacity)
                         }
-                        return [255, 165, 0, 230]; // Bright orange for community requested (90% opacity)
+                        return [255, 255, 255, 230]; // White tint (90% opacity)
                     },
                     sizeScale: this.ICON_SIZE_SCALE,
-                    sizeUnits: 'common',
+                    sizeUnits: 'meters',
                     sizeMinPixels: this.ICON_MIN_PIXELS,
-                    sizeMaxPixels: this.ICON_MAX_PIXELS
+                    sizeMaxPixels: this.ICON_MAX_PIXELS,
+                    onHover: (info) => this.handleHover(info),
+                    onClick: (info) => this.handleClick(info)
                 }));
             }
         }
@@ -1026,33 +1026,29 @@ class ShelterAccessApp {
                     ...shelter
                 })),
                 pickable: true,
-                iconAtlas: this.createShelterIconAtlas(),
-                iconMapping: this.getShelterIconMapping(),
-                getIcon: () => 'location',
+                getIcon: () => this.getShelterIcon('optimal'),
                 getPosition: d => d.coordinates,
-                getSize: () => this.ICON_SIZE,
+                getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
                 getColor: d => {
                         // Highlight selected shelter
                         if (this.selectedShelter && this.selectedShelter.coordinates && 
                             this.selectedShelter.coordinates[0] === d.coordinates[0] && 
                             this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                            return [50, 120, 20, 230]; // Dark green for selected (90% opacity)
+                            return [255, 255, 255, 255]; // White for selected (100% opacity)
                         }
-                        // Green gradient: darker = better coverage
-                        const rank = d.rank || 1;
-                        const quality = Math.max(0, 1 - (rank - 1) / this.proposedShelters.length);
-                        
-                        // Interpolate from darker green (better) to lighter yellow-green (worse)
-                        const r = Math.round(50 * quality + 200 * (1 - quality)); // 50 -> 200
-                        const g = Math.round(120 * quality + 220 * (1 - quality)); // 120 -> 220  
-                        const b = Math.round(20 * quality + 50 * (1 - quality)); // 20 -> 50
-                        
-                        return [r, g, b, 230]; // 90% opacity for all optimal shelters
+                        return [255, 255, 255, 230]; // White tint (90% opacity)
                     },
                 sizeScale: this.ICON_SIZE_SCALE,
-                sizeUnits: 'common',
+                sizeUnits: 'meters',
                 sizeMinPixels: this.ICON_MIN_PIXELS,
-                sizeMaxPixels: this.ICON_MAX_PIXELS
+                sizeMaxPixels: this.ICON_MAX_PIXELS,
+                onHover: (info) => this.handleHover(info),
+                onClick: (info) => {
+                    if (info.object) {
+                        this.selectShelter(info.object);
+                        this.jumpToOptimalSite(info.object.coordinates[1], info.object.coordinates[0]);
+                    }
+                }
             }));
         }
 
@@ -1110,7 +1106,7 @@ class ShelterAccessApp {
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
-        // Add new legend items with modern icons
+        // Add new legend items with actual SVG icons
         legendItems.forEach(item => {
             const legendItem = document.createElement('div');
             legendItem.className = 'legend-item';
@@ -1118,17 +1114,34 @@ class ShelterAccessApp {
             const iconDiv = document.createElement('div');
             iconDiv.className = `legend-icon ${item.className}`;
             
-            // Add appropriate icon based on shelter type
+            // Use actual SVG icons that match the map icons exactly
             if (item.className === 'existing-shelter') {
-                iconDiv.innerHTML = '🛡️'; // Shield icon for existing shelters
+                const img = document.createElement('img');
+                img.src = 'data/airtight-hatch-svgrepo-com.svg';
+                img.width = 16;
+                img.height = 16;
+                img.style.display = 'block';
+                iconDiv.appendChild(img);
             } else if (item.className === 'requested-shelter') {
-                iconDiv.innerHTML = '🏠'; // Home icon for requested shelters
+                const img = document.createElement('img');
+                img.src = 'data/user-location-icon.svg';
+                img.width = 16;
+                img.height = 16;
+                img.style.display = 'block';
+                iconDiv.appendChild(img);
             } else if (item.className === 'optimal-shelter') {
-                iconDiv.innerHTML = '📍'; // Location pin for optimal shelters
+                const img = document.createElement('img');
+                img.src = 'data/add-location-icon.svg';
+                img.width = 16;
+                img.height = 16;
+                img.style.display = 'block';
+                iconDiv.appendChild(img);
             } else if (item.className === 'covered-building') {
-                iconDiv.innerHTML = '🏢'; // Building icon for covered buildings
+                iconDiv.classList.add('building-covered-icon');
+                iconDiv.innerHTML = ''; // Keep CSS for building icons
             } else if (item.className === 'uncovered-building') {
-                iconDiv.innerHTML = '🏭'; // Factory/building icon for uncovered buildings
+                iconDiv.classList.add('building-uncovered-icon');
+                iconDiv.innerHTML = ''; // Keep CSS for building icons
             } else {
                 // Fallback to color box for unknown types
                 iconDiv.innerHTML = '';
@@ -1279,93 +1292,43 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create modern icon atlas with SVG-based shelter shapes inspired by react-icons
+     * Get icon configuration for different shelter types using external SVG files
+     * Uses deck.gl's auto-packing approach for high-quality icons
      */
-    createShelterIconAtlas() {
-        // Create a canvas with modern shelter icons
-        const canvas = document.createElement('canvas');
-        canvas.width = 96; // 3 icons x 32px each
-        canvas.height = 32;
-        const ctx = canvas.getContext('2d');
-        
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
-        
-        // Modern shield icon for existing shelters (inspired by HiShieldExclamation)
-        // Shield shape (0, 0, 32, 32)
-        ctx.beginPath();
-        ctx.moveTo(16, 4);   // Top center
-        ctx.quadraticCurveTo(8, 6, 6, 12);  // Left curve
-        ctx.lineTo(6, 20);   // Left side
-        ctx.quadraticCurveTo(6, 26, 16, 28); // Bottom curve
-        ctx.quadraticCurveTo(26, 26, 26, 20); // Right curve
-        ctx.lineTo(26, 12);  // Right side
-        ctx.quadraticCurveTo(24, 6, 16, 4);  // Top curve
-        ctx.fill();
-        
-        // Modern home/building icon for requested shelters (inspired by HiHome)
-        // House shape (32, 0, 32, 32)
-        ctx.beginPath();
-        ctx.moveTo(48, 8);   // Roof peak
-        ctx.lineTo(40, 14);  // Left roof
-        ctx.lineTo(40, 16);  // Left wall start
-        ctx.lineTo(38, 16);  // Door frame
-        ctx.lineTo(38, 26);  // Door
-        ctx.lineTo(58, 26);  // Bottom right
-        ctx.lineTo(58, 16);  // Right wall
-        ctx.lineTo(56, 14);  // Right roof
-        ctx.closePath();
-        ctx.fill();
-        
-        // Modern location pin for optimal locations (inspired by HiLocationMarker)
-        // Pin shape (64, 0, 32, 32)
-        ctx.beginPath();
-        ctx.arc(80, 12, 8, 0, 2 * Math.PI); // Circle top
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(80, 20);  // Pin point
-        ctx.lineTo(76, 16);  // Left side
-        ctx.lineTo(84, 16);  // Right side
-        ctx.closePath();
-        ctx.fill();
-        
-        return canvas;
-    }
-
-    /**
-     * Get modern icon mapping for all shelter types
-     */
-    getShelterIconMapping() {
-        return {
-            shield: {
-                x: 0,
-                y: 0,
-                width: 32,
-                height: 32,
-                anchorX: 16,
-                anchorY: 16,
-                mask: true
-            },
-            home: {
-                x: 32,
-                y: 0,
-                width: 32,
-                height: 32,
-                anchorX: 16,
-                anchorY: 16,
-                mask: true
-            },
-            location: {
-                x: 64,
-                y: 0,
-                width: 32,
-                height: 32,
-                anchorX: 16,
-                anchorY: 16,
-                mask: true
-            }
+    getShelterIcon(type) {
+        const baseConfig = {
+            width: 32,
+            height: 32,
+            anchorX: 16,
+            anchorY: 16
         };
+
+        switch (type) {
+            case 'existing':
+                return {
+                    ...baseConfig,
+                    url: 'data/airtight-hatch-svgrepo-com.svg',
+                    id: 'existing-shelter'
+                };
+            case 'requested':
+                return {
+                    ...baseConfig,
+                    url: 'data/user-location-icon.svg',
+                    id: 'requested-shelter'
+                };
+            case 'optimal':
+                return {
+                    ...baseConfig,
+                    url: 'data/add-location-icon.svg',
+                    id: 'optimal-shelter'
+                };
+            default:
+                return {
+                    ...baseConfig,
+                    url: 'data/airtight-hatch-svgrepo-com.svg',
+                    id: 'default-shelter'
+                };
+        }
     }
     
     /**
