@@ -97,8 +97,8 @@ class ShelterAccessApp {
             newCoverage: document.getElementById('newCoverage'),
             buildingsCovered: document.getElementById('buildingsCovered'),
             additionalPeople: document.getElementById('additionalPeople'),
-            suboptimalRequested: document.getElementById('suboptimalRequested'),
-            underservedPeople: document.getElementById('underservedPeople'),
+
+
             legendItems: document.getElementById('legend-items')
         };
     }
@@ -1450,23 +1450,7 @@ class ShelterAccessApp {
             this.elements.additionalPeople.textContent = Math.max(0, netAdditionalBuildings).toLocaleString();
         }
         
-        // Update requested shelter analysis with new pairing data
-        if (requestedEval) {
-            if (this.elements.suboptimalRequested) {
-                this.elements.suboptimalRequested.textContent = requestedEval.totalPairs.toString();
-            }
-            if (this.elements.underservedPeople) {
-                this.elements.underservedPeople.textContent = `+${Math.round(requestedEval.totalImprovement)} people`;
-            }
-        } else {
-            // Clear requested analysis when no evaluation available
-            if (this.elements.suboptimalRequested) {
-                this.elements.suboptimalRequested.textContent = '0';
-            }
-            if (this.elements.underservedPeople) {
-                this.elements.underservedPeople.textContent = '0';
-            }
-        }
+        // Requested shelter analysis removed - these statistics were confusing and not needed
     }
     
     /**

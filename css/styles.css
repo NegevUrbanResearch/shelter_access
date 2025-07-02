@@ -618,10 +618,7 @@ input:checked + .toggle-slider:hover {
     }
 }
 
-/* Legend color definitions */
-.existing-shelter { background: var(--accent-blue); }
-.optimal-shelter { background: var(--accent-green); }
-.requested-shelter { background: var(--accent-orange); }
+/* Legend color definitions - removed backgrounds for SVG icons */
 .covered-building { background: var(--accent-green); }
 .uncovered-building { background: var(--accent-red); }
 
