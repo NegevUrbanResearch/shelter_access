@@ -78,8 +78,7 @@ class ShelterAccessApp {
             distanceButtons: document.getElementById('distanceButtons'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
-            heatmapToggle: document.getElementById('heatmapToggle'),
-            heatmapToggleText: document.getElementById('heatmapToggleText'),
+            heatmapToggle: document.getElementById('heatmapToggle'), // Now a checkbox
             // Statistics
             currentCoverage: document.getElementById('currentCoverage'),
             newCoverage: document.getElementById('newCoverage'),
@@ -210,12 +209,12 @@ class ShelterAccessApp {
     setupMainMenu() {
         // Handle stats panel minimize button
         const statsMinimize = document.getElementById('statsMinimize');
-        const statsLegendPanel = document.querySelector('.stats-legend-panel');
-        if (statsMinimize && statsLegendPanel) {
+        const statsPanel = document.querySelector('.stats-panel');
+        if (statsMinimize && statsPanel) {
             statsMinimize.addEventListener('click', () => {
-                statsLegendPanel.classList.toggle('collapsed');
+                statsPanel.classList.toggle('collapsed');
                 const icon = statsMinimize.querySelector('span');
-                if (statsLegendPanel.classList.contains('collapsed')) {
+                if (statsPanel.classList.contains('collapsed')) {
                     icon.textContent = '+';
                     statsMinimize.title = 'Expand';
                 } else {
@@ -324,20 +323,16 @@ class ShelterAccessApp {
             });
         }
         
-        // Heatmap toggle - only if it exists
+        // Heatmap checkbox toggle - updated for new checkbox structure
         if (this.elements.heatmapToggle) {
-            this.elements.heatmapToggle.addEventListener('click', async (e) => {
-                const isActive = !this.layerVisibility.accessibilityHeatmap;
+            this.elements.heatmapToggle.addEventListener('change', async (e) => {
+                const isActive = e.target.checked;
                 this.layerVisibility.accessibilityHeatmap = isActive;
                 
-                // Update button state
-                const button = e.target.closest('button');
-                if (this.elements.heatmapToggleText) {
-                    this.elements.heatmapToggleText.textContent = isActive ? 'Hide Grid' : 'Accessibility Grid';
-                }
+                // Toggle new shelter control state
+                this.toggleNewShelterControl(isActive);
                 
                 if (isActive) {
-                    button.classList.add('active');
                     // Reset shelters when enabling heatmap
                     this.numNewShelters = 0;
                     if (this.elements.newSheltersSlider) {
@@ -352,22 +347,27 @@ class ShelterAccessApp {
                         await this.loadAccessibilityData();
                     }
                 } else {
-                    button.classList.remove('active');
                     // Update optimal locations when disabling heatmap
                     await this.updateOptimalLocations();
                 }
                 
                 this.updateVisualization();
             });
+            
+            // Set initial state based on checkbox
+            this.toggleNewShelterControl(this.elements.heatmapToggle.checked);
         }
         
-        // Basemap radio selection
-        const basemapRadios = document.querySelectorAll('input[name="basemap"]');
-        basemapRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    this.changeBasemap(e.target.value);
-                }
+        // Basemap button selection
+        const basemapButtons = document.querySelectorAll('.view-button');
+        basemapButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                // Remove active class from all buttons
+                basemapButtons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                e.target.classList.add('active');
+                // Change basemap
+                this.changeBasemap(e.target.dataset.basemap);
             });
         });
         
@@ -376,7 +376,7 @@ class ShelterAccessApp {
             buildingsLayer: 'buildings',
             existingSheltersLayer: 'existingShelters',
             requestedSheltersLayer: 'requestedShelters',
-            optimalSheltersLayer: 'proposedShelters',
+            optimalSheltersLayer: 'optimalShelters',
             statisticalAreasLayer: 'statisticalAreas',
             habitationClustersLayer: 'habitationClusters'
         };
@@ -897,6 +897,19 @@ class ShelterAccessApp {
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
+        // Add legend title
+        const legendTitle = document.createElement('div');
+        legendTitle.style.cssText = `
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: var(--space-sm);
+        `;
+        legendTitle.textContent = 'Map Legend';
+        this.elements.legendItems.appendChild(legendTitle);
+        
         // Add new legend items with actual SVG icons
         legendItems.forEach(item => {
             const legendItem = document.createElement('div');
@@ -909,22 +922,22 @@ class ShelterAccessApp {
             if (item.className === 'existing-shelter') {
                 const img = document.createElement('img');
                 img.src = 'data/airtight-hatch-svgrepo-com.svg';
-                img.width = 16;
-                img.height = 16;
+                img.width = 18;
+                img.height = 18;
                 img.style.display = 'block';
                 iconDiv.appendChild(img);
             } else if (item.className === 'requested-shelter') {
                 const img = document.createElement('img');
                 img.src = 'data/user-location-icon.svg';
-                img.width = 16;
-                img.height = 16;
+                img.width = 18;
+                img.height = 18;
                 img.style.display = 'block';
                 iconDiv.appendChild(img);
             } else if (item.className === 'optimal-shelter') {
                 const img = document.createElement('img');
                 img.src = 'data/add-location-icon.svg';
-                img.width = 16;
-                img.height = 16;
+                img.width = 18;
+                img.height = 18;
                 img.style.display = 'block';
                 iconDiv.appendChild(img);
 
@@ -954,31 +967,32 @@ class ShelterAccessApp {
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
+        // Add legend title
+        const legendTitle = document.createElement('div');
+        legendTitle.style.cssText = `
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: var(--space-sm);
+        `;
+        legendTitle.textContent = 'Map Legend';
+        
         // Create heatmap legend container
         const heatmapLegend = document.createElement('div');
-        heatmapLegend.className = 'heatmap-legend';
-        
-        // Legend title
-        const title = document.createElement('h4');
-        title.textContent = 'Accessibility Coverage';
-        title.style.cssText = `
-            margin: 0 0 15px 0;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-        `;
-        heatmapLegend.appendChild(title);
+        heatmapLegend.className = 'heatmap-legend-compact';
+        heatmapLegend.appendChild(legendTitle);
         
         // Simple legend items
         const legendItems = [
             {
                 color: 'rgb(20, 180, 20)',
-                label: 'Well Covered Areas',
-
+                label: 'Well Covered',
             },
             {
                 color: 'rgb(200, 20, 20)', 
-                label: 'Underserved Areas',
+                label: 'Underserved',
             }
         ];
         
@@ -987,18 +1001,18 @@ class ShelterAccessApp {
             legendItem.style.cssText = `
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                margin-bottom: 10px;
+                gap: 8px;
+                margin-bottom: 6px;
                 font-size: 13px;
                 color: var(--text-primary);
             `;
             
             const colorBox = document.createElement('div');
             colorBox.style.cssText = `
-                width: 16px;
-                height: 16px;
+                width: 12px;
+                height: 12px;
                 background: ${item.color};
-                border-radius: 3px;
+                border-radius: 2px;
                 border: 1px solid rgba(0,0,0,0.1);
                 flex-shrink: 0;
             `;
@@ -1017,13 +1031,12 @@ class ShelterAccessApp {
             font-size: 11px;
             color: var(--text-secondary);
             text-align: center;
-            margin-top: 10px;
-            padding: 8px;
+            margin-top: 6px;
+            padding: 4px 6px;
             background: rgba(var(--text-secondary-rgb), 0.05);
-            border-radius: 4px;
-            font-style: italic;
+            border-radius: 3px;
         `;
-        distanceInfo.textContent = `Within ${this.coverageRadius}m of existing shelters`;
+        distanceInfo.textContent = `Within ${this.coverageRadius}m radius`;
         heatmapLegend.appendChild(distanceInfo);
         
         this.elements.legendItems.appendChild(heatmapLegend);
@@ -1846,6 +1859,21 @@ class ShelterAccessApp {
         // Update deck.gl
         this.currentLayers = updatedLayers;
         this.deckgl.setProps({ layers: this.currentLayers });
+    }
+    
+    /**
+     * Toggle new shelter control enable/disable state based on accessibility grid
+     */
+    toggleNewShelterControl(isAccessibilityGridActive) {
+        const shelterSection = document.getElementById('addedSheltersSection');
+        
+        if (isAccessibilityGridActive) {
+            // Disable new shelter control when accessibility grid is active
+            shelterSection.classList.add('disabled');
+        } else {
+            // Enable new shelter control when accessibility grid is inactive
+            shelterSection.classList.remove('disabled');
+        }
     }
 
 }
