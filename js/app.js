@@ -81,6 +81,9 @@ class ShelterAccessApp {
             heatmapToggle: document.getElementById('heatmapToggle'), // Now a checkbox
             // Statistics
             currentCoverage: document.getElementById('currentCoverage'),
+            currentRadius: document.getElementById('currentRadius'),
+            residentsLeftOut: document.getElementById('residentsLeftOut'),
+            newSheltersCount: document.getElementById('newSheltersCount'),
             newCoverage: document.getElementById('newCoverage'),
             buildingsCovered: document.getElementById('buildingsCovered'),
             additionalPeople: document.getElementById('additionalPeople'),
@@ -1218,18 +1221,34 @@ class ShelterAccessApp {
         const totalCoveragePercentage = (totalBuildingsCovered / stats.total_buildings) * 100;
         const currentCoveragePercentage = (existingCoverage / stats.total_buildings) * 100;
         
-        // Update main statistics
+        // Calculate additional people (7 people per building)
+        const additionalPeople = Math.max(0, newBuildingsCovered * 7);
+        
+        // Calculate residents left out (uncovered buildings * 7 people per building)
+        const uncoveredBuildings = Math.max(0, stats.total_buildings - existingCoverage);
+        const residentsLeftOut = uncoveredBuildings * 7;
+        
+        // Update narrative statistics
         if (this.elements.currentCoverage) {
             this.elements.currentCoverage.textContent = `${currentCoveragePercentage.toFixed(1)}%`;
+        }
+        if (this.elements.currentRadius) {
+            this.elements.currentRadius.textContent = `${this.coverageRadius}m`;
+        }
+        if (this.elements.residentsLeftOut) {
+            this.elements.residentsLeftOut.textContent = residentsLeftOut.toLocaleString();
+        }
+        if (this.elements.newSheltersCount) {
+            this.elements.newSheltersCount.textContent = newSheltersSelected.toLocaleString();
         }
         if (this.elements.newCoverage) {
             this.elements.newCoverage.textContent = `${totalCoveragePercentage.toFixed(1)}%`;
         }
         if (this.elements.buildingsCovered) {
-            this.elements.buildingsCovered.textContent = totalBuildingsCovered.toLocaleString();
+            this.elements.buildingsCovered.textContent = newBuildingsCovered.toLocaleString();
         }
         if (this.elements.additionalPeople) {
-            this.elements.additionalPeople.textContent = Math.max(0, newBuildingsCovered).toLocaleString();
+            this.elements.additionalPeople.textContent = additionalPeople.toLocaleString();
         }
     }
     

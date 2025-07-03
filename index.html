@@ -36,12 +36,12 @@
             </button>
         </div>
         
-        <!-- Statistics Panel (top-right) - Simplified -->
+        <!-- Statistics Panel (top-right) - Narrative -->
         <div class="stats-panel collapsed">
             <!-- Panel Header -->
             <div class="menu-header">
                 <div class="menu-title">
-                    <h2>Coverage Stats</h2>
+                    <h2>Coverage</h2>
                 </div>
                 <div class="menu-actions">
                     <button class="menu-button minimize" id="statsMinimize" title="Minimize">
@@ -54,22 +54,18 @@
             <div class="menu-content">
                 <!-- Statistics Section -->
                 <div class="control-section">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-label">Current</div>
-                            <div class="stat-value" id="currentCoverage">--%</div>
+                    <div class="stats-narrative">
+                        <div class="stat-paragraph">
+                            <p id="currentCoverageText">With existing bomb shelters, <strong id="currentCoverage">--%</strong> of residential buildings are currently covered within a <strong id="currentRadius">--m</strong> accessibility distance parameter (maximum residents can travel to reach safety during an emergency alert).</p>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-label">w/ Added</div>
-                            <div class="stat-value" id="newCoverage">--%</div>
+                        <div class="stat-paragraph">
+                            <p id="residentsLeftOutText">This leaves approximately <strong id="residentsLeftOut">--</strong> residents without adequate shelter access in the study area.</p>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Buildings</div>
-                            <div class="stat-value" id="buildingsCovered">--</div>
+                        <div class="stat-paragraph">
+                            <p id="newCoverageText">By adding <strong id="newSheltersCount">--</strong> strategically placed new shelters, total coverage increases to <strong id="newCoverage">--%</strong> of residential buildings in the study area.</p>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Additional</div>
-                            <div class="stat-value" id="additionalPeople">--</div>
+                        <div class="stat-paragraph">
+                            <p id="benefitsText">This improvement provides emergency shelter access for <strong id="buildingsCovered">--</strong> additional residential buildings, benefiting an estimated <strong id="additionalPeople">--</strong> additional residents.</p>
                         </div>
                     </div>
                 </div>
