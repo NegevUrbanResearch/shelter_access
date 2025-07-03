@@ -43,7 +43,8 @@ class ShelterAccessApp {
             accessibilityHeatmap: false // Off by default
         };
         
-        // Simplified - no layer caching needed
+        // Precomputed shelter coverage data - replaces expensive calculations
+        this.shelterCoverageData = null;
         
         // Accessibility heatmap data
         this.accessibilityData = null;
@@ -76,14 +77,11 @@ class ShelterAccessApp {
         this._currentZoom = 12;
         this._currentViewState = null;
         
-        // Simplified - using direct calculations with caching
-        
         // Performance monitoring
         this.lastCoverageCalculation = 0;
         
-        // Simple hover state
+        // Simplified hover state - no complex caching needed with precomputed data
         this.hoverState = {
-            coverageCache: new Map(), // Cache coverage results per shelter
             currentShelter: null
         };
         
@@ -115,68 +113,80 @@ class ShelterAccessApp {
         };
     }
     
-
-    
-    // Layer caching system removed - direct layer creation is simpler and fast enough
+    /**
+     * Load precomputed shelter coverage data for instant lookups
+     */
+    async loadShelterCoverageData() {
+        try {
+            console.log('🚀 Loading precomputed shelter coverage data...');
+            const response = await fetch('data/shelter_coverage_precomputed.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            this.shelterCoverageData = await response.json();
+            console.log(`✅ Loaded precomputed coverage for ${Object.keys(this.shelterCoverageData.shelter_coverage_map).length} shelters`);
+            
+        } catch (error) {
+            console.error('❌ Error loading precomputed shelter coverage:', error);
+            this.shelterCoverageData = null;
+        }
+    }
     
     /**
-     * Generate cache key for shelter coverage results
+     * Generate lookup key for precomputed shelter coverage
      */
-    generateCoverageKey(shelter) {
+    generateShelterKey(shelter) {
         if (!shelter) return null;
         
-        // Create unique key based on shelter location and current coverage radius
+        let coords;
         if (shelter.geometry && shelter.geometry.coordinates) {
-            // Existing/requested shelter
-            const coords = shelter.geometry.coordinates;
-            return `${coords[0].toFixed(6)}_${coords[1].toFixed(6)}_${this.coverageRadius}`;
+            coords = shelter.geometry.coordinates;
         } else if (shelter.coordinates) {
-            // Optimal shelter
-            const coords = shelter.coordinates;
-            return `${coords[0].toFixed(6)}_${coords[1].toFixed(6)}_${this.coverageRadius}`;
+            coords = shelter.coordinates;
         } else if (shelter.lat && shelter.lon) {
-            // Alternative format
-            return `${shelter.lon.toFixed(6)}_${shelter.lat.toFixed(6)}_${this.coverageRadius}`;
+            coords = [shelter.lon, shelter.lat];
+        } else {
+            return null;
         }
         
-        return null;
+        // Use same format as precomputed data: "lng_lat"
+        return `${coords[0]}_${coords[1]}`;
     }
     
     /**
-     * Get cached coverage or calculate new coverage (simplified)
+     * Get precomputed shelter coverage - instant lookup instead of expensive calculation
      */
-    getCachedCoverage(shelter) {
-        const cacheKey = this.generateCoverageKey(shelter);
-        if (!cacheKey) return [];
-        
-        // Check cache first
-        if (this.hoverState.coverageCache.has(cacheKey)) {
-            return this.hoverState.coverageCache.get(cacheKey);
+    getPrecomputedCoverage(shelter) {
+        if (!this.shelterCoverageData || !shelter) {
+            return [];
         }
         
-        // Calculate and cache using simple method
-        const coverage = this.calculateShelterCoverage(shelter);
-        this.hoverState.coverageCache.set(cacheKey, coverage);
+        const shelterKey = this.generateShelterKey(shelter);
+        if (!shelterKey) return [];
         
-        // Limit cache size to prevent memory issues
-        if (this.hoverState.coverageCache.size > 100) {
-            // Remove oldest entries (FIFO)
-            const firstKey = this.hoverState.coverageCache.keys().next().value;
-            this.hoverState.coverageCache.delete(firstKey);
-        }
+        const shelterData = this.shelterCoverageData.shelter_coverage_map[shelterKey];
+        if (!shelterData) return [];
         
-        return coverage;
+        const radiusKey = `${this.coverageRadius}m`;
+        const coverageData = shelterData.coverage_by_radius[radiusKey];
+        
+        return coverageData ? (coverageData.building_indices || []) : [];
     }
     
     /**
-     * Clear coverage cache when radius changes
+     * Get shelter coverage - uses precomputed data when available, falls back to calculation
      */
-    clearCoverageCache() {
-        this.hoverState.coverageCache.clear();
-        console.log('🧹 Cleared coverage cache');
+    getShelterCoverage(shelter) {
+        // Try precomputed data first (instant lookup)
+        const precomputedCoverage = this.getPrecomputedCoverage(shelter);
+        if (precomputedCoverage.length > 0) {
+            return precomputedCoverage;
+        }
+        
+        // Fallback to calculation for optimal shelters or missing data
+        return this.calculateShelterCoverage(shelter);
     }
-    
-
     
     /**
      * Initialize the application
@@ -187,10 +197,8 @@ class ShelterAccessApp {
             this.setupMainMenu();
             await this.spatialAnalyzer.loadData();
             
-            // Layer caching removed - no longer needed
-            
-            // Clear coverage cache when data loads
-            this.clearCoverageCache();
+            // Load precomputed shelter coverage data for instant lookups
+            await this.loadShelterCoverageData();
             
             await this.initializeMap();
             this.updateAttribution();
@@ -204,8 +212,7 @@ class ShelterAccessApp {
             // Hide loading overlay
             this.hideLoading();
             
-            console.log('✅ Simple hover system initialized');
-            console.log('✅ Coverage calculation system initialized');
+            console.log('✅ App initialized with precomputed shelter coverage data');
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -397,9 +404,6 @@ class ShelterAccessApp {
                     
                     // Update distance
                     this.coverageRadius = newDistance;
-                    
-                    // Clear coverage cache when radius changes (important for hover optimization)
-                    this.clearCoverageCache();
                     
                     // Update spatial analyzer and refresh
                     await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
@@ -1716,7 +1720,8 @@ class ShelterAccessApp {
 
     
     /**
-     * Calculate which buildings are covered by a specific shelter
+     * Calculate which buildings are covered by a specific shelter (optimized fallback)
+     * Only used when precomputed data is not available
      */
     calculateShelterCoverage(shelter) {
         if (!this.spatialAnalyzer.buildings || !shelter) {
@@ -1724,40 +1729,36 @@ class ShelterAccessApp {
         }
         
         const shelterCoords = shelter.geometry ? shelter.geometry.coordinates : [shelter.lon, shelter.lat];
-        const coverageRadiusDeg = this.coverageRadius / 111000; // Approximate conversion to degrees
-        const coverageRadiusSquared = coverageRadiusDeg * coverageRadiusDeg; // Use squared distance for efficiency
+        const coverageRadiusMeters = this.coverageRadius;
         
+        // Optimized: Use Haversine distance for more accurate calculation
         const coveredBuildings = [];
+        const buildings = this.spatialAnalyzer.buildings.features;
         
-        // Simple loop through all buildings with distance calculation
-        for (let i = 0; i < this.spatialAnalyzer.buildings.features.length; i++) {
-            const building = this.spatialAnalyzer.buildings.features[i];
+        for (let i = 0; i < buildings.length; i++) {
+            const building = buildings[i];
             
-            // Calculate building centroid for distance calculation
+            // Calculate building centroid
             let buildingCentroid;
             if (building.geometry.type === 'Point') {
                 buildingCentroid = building.geometry.coordinates;
             } else if (building.geometry.type === 'Polygon') {
-                // Calculate centroid of polygon
-                const coords = building.geometry.coordinates[0]; // First ring (exterior)
+                // Fast centroid calculation for polygons
+                const coords = building.geometry.coordinates[0];
                 let sumX = 0, sumY = 0;
-                for (let j = 0; j < coords.length - 1; j++) { // Skip last point (same as first)
+                for (let j = 0; j < coords.length - 1; j++) {
                     sumX += coords[j][0];
                     sumY += coords[j][1];
                 }
                 buildingCentroid = [sumX / (coords.length - 1), sumY / (coords.length - 1)];
             } else {
-                // Skip if not point or polygon
                 continue;
             }
             
-            // Calculate squared distance (faster than sqrt)
-            const dx = buildingCentroid[0] - shelterCoords[0];
-            const dy = buildingCentroid[1] - shelterCoords[1];
-            const distanceSquared = dx * dx + dy * dy;
-            
-            if (distanceSquared <= coverageRadiusSquared) {
-                coveredBuildings.push(i); // Use array index as building ID
+            // Fast distance check using spherical approximation
+            const distance = this.calculateDistance(shelterCoords, buildingCentroid);
+            if (distance <= coverageRadiusMeters) {
+                coveredBuildings.push(i);
             }
         }
         
@@ -1765,14 +1766,29 @@ class ShelterAccessApp {
     }
     
     /**
+     * Calculate distance between two coordinates in meters (optimized)
+     */
+    calculateDistance(coord1, coord2) {
+        const R = 6371000; // Earth's radius in meters
+        const lat1 = coord1[1] * Math.PI / 180;
+        const lat2 = coord2[1] * Math.PI / 180;
+        const deltaLat = (coord2[1] - coord1[1]) * Math.PI / 180;
+        const deltaLng = (coord2[0] - coord1[0]) * Math.PI / 180;
+        
+        const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        return R * c;
+    }
+    
+    /**
      * Select a shelter and highlight its coverage
      */
     selectShelter(shelter) {
         this.selectedShelter = shelter;
-        // Use cached coverage for consistency with hover optimization
-        this.highlightedBuildings = this.getCachedCoverage(shelter);
-        
-        // Layer caching removed - no longer needed
+        this.highlightedBuildings = this.getShelterCoverage(shelter);
         
         this.updateVisualization();
         this.updateSelectionUI();
@@ -1784,8 +1800,6 @@ class ShelterAccessApp {
     clearShelterSelection() {
         this.selectedShelter = null;
         this.highlightedBuildings = [];
-        
-        // Layer caching removed - no longer needed
         
         this.updateVisualization();
         this.updateSelectionUI();
@@ -1888,7 +1902,7 @@ class ShelterAccessApp {
         if (this.hoverState.currentShelter !== shelter) {
             this.hoverState.currentShelter = shelter;
             this.hoveredShelter = shelter;
-            this.hoveredBuildings = this.getCachedCoverage(shelter);
+            this.hoveredBuildings = this.getShelterCoverage(shelter);
             this.updateCoverageLayersOnly();
         }
         
@@ -1923,151 +1937,7 @@ class ShelterAccessApp {
     // createLayersWithCache method removed - using createLayers directly
     
     /**
-     * Create accessibility heatmap layer
-     */
-    createAccessibilityHeatmapLayer() {
-        if (!this.accessibilityData || this.accessibilityData.length === 0) return null;
-        
-        const coveredCount = this.accessibilityData.filter(d => d.type === 'covered').length;
-        const uncoveredCount = this.accessibilityData.filter(d => d.type === 'uncovered').length;
-        console.log(`🔥 Unified Heatmap data: ${this.accessibilityData.length} total points`);
-        console.log(`   🟢 Covered: ${coveredCount} buildings (${(coveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
-        console.log(`   🔴 Uncovered: ${uncoveredCount} buildings (${(uncoveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
-        
-        return new deck.ScreenGridLayer({
-            id: 'accessibility-grid-unified',
-            data: this.accessibilityData,
-            getPosition: d => d.position,
-            getWeight: d => d.weight, // Simple: +1 for covered, -1 for uncovered
-            cellSizePixels: 8,  // Smaller cells for better detail when zoomed in
-            cellMarginPixels: 0,
-            gpuAggregation: true,
-            aggregation: 'MEAN',
-            // Proportional color scheme: Red (100% uncovered) → Yellow (50/50) → Green (100% covered)
-            colorRange: [
-                [200, 20, 20, 255],     // Pure red: 100% uncovered buildings
-                [255, 255, 0, 255],     // Pure yellow: 50/50 split
-                [20, 180, 20, 255]      // Pure green: 100% covered buildings
-            ],
-            // Perfect proportional domain: -1 = 100% uncovered, 0 = 50/50, +1 = 100% covered
-            colorDomain: [-1, 0, 1],
-            pickable: false, // Disabled tooltips
-            opacity: 0.85
-        });
-    }
-    
-    /**
-     * Create existing shelters layer
-     */
-    createExistingSheltersLayer() {
-        const currentData = this.spatialAnalyzer.getCurrentData();
-        const existingShelters = currentData.shelters.features.filter(shelter => 
-            shelter.properties && shelter.properties.status === 'Built'
-        );
-        
-        if (existingShelters.length === 0) return null;
-        
-        return new deck.IconLayer({
-            id: 'existing-shelters',
-            data: existingShelters,
-            pickable: true,
-            getIcon: () => this.getShelterIcon('existing'),
-            getPosition: d => d.geometry.coordinates,
-            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
-            getColor: d => {
-                // Highlight selected shelter
-                if (this.selectedShelter && this.selectedShelter.properties && 
-                    this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                    return [255, 255, 255, 255]; // White for selected (100% opacity)
-                }
-                return [255, 255, 255, 230]; // White tint (90% opacity)
-            },
-            sizeScale: this.ICON_SIZE_SCALE,
-            sizeUnits: 'meters',
-            sizeMinPixels: this.ICON_MIN_PIXELS,
-            sizeMaxPixels: this.ICON_MAX_PIXELS,
-            onHover: (info) => this.handleHover(info),
-            onClick: (info) => this.handleClick(info)
-        });
-    }
-    
-    /**
-     * Create requested shelters layer
-     */
-    createRequestedSheltersLayer() {
-        const currentData = this.spatialAnalyzer.getCurrentData();
-        const requestedShelters = currentData.shelters.features.filter(shelter => 
-            shelter.properties && shelter.properties.status === 'Request'
-        );
-        
-        if (requestedShelters.length === 0) return null;
-        
-        return new deck.IconLayer({
-            id: 'requested-shelters',
-            data: requestedShelters,
-            pickable: true,
-            getIcon: () => this.getShelterIcon('requested'),
-            getPosition: d => d.geometry.coordinates,
-            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
-            getColor: d => {
-                // Highlight selected shelter
-                if (this.selectedShelter && this.selectedShelter.properties && 
-                    this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                    return [255, 255, 255, 255]; // White for selected (100% opacity)
-                }
-                return [255, 255, 255, 230]; // White tint (90% opacity)
-            },
-            sizeScale: this.ICON_SIZE_SCALE,
-            sizeUnits: 'meters',
-            sizeMinPixels: this.ICON_MIN_PIXELS,
-            sizeMaxPixels: this.ICON_MAX_PIXELS,
-            onHover: (info) => this.handleHover(info),
-            onClick: (info) => this.handleClick(info)
-        });
-    }
-    
-    /**
-     * Create optimal shelters layer
-     */
-    createOptimalSheltersLayer() {
-        if (this.proposedShelters.length === 0) return null;
-        
-        return new deck.IconLayer({
-            id: 'proposed-shelters',
-            data: this.proposedShelters.map((shelter, index) => ({
-                coordinates: [shelter.lon, shelter.lat],
-                rank: index + 1,
-                ...shelter
-            })),
-            pickable: true,
-            getIcon: () => this.getShelterIcon('optimal'),
-            getPosition: d => d.coordinates,
-            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
-            getColor: d => {
-                // Highlight selected shelter
-                if (this.selectedShelter && this.selectedShelter.coordinates && 
-                    this.selectedShelter.coordinates[0] === d.coordinates[0] && 
-                    this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                    return [255, 255, 255, 255]; // White for selected (100% opacity)
-                }
-                return [255, 255, 255, 230]; // White tint (90% opacity)
-            },
-            sizeScale: this.ICON_SIZE_SCALE,
-            sizeUnits: 'meters',
-            sizeMinPixels: this.ICON_MIN_PIXELS,
-            sizeMaxPixels: this.ICON_MAX_PIXELS,
-            onHover: (info) => this.handleHover(info),
-            onClick: (info) => {
-                if (info.object) {
-                    this.selectShelter(info.object);
-                    this.jumpToOptimalSite(info.object.coordinates[1], info.object.coordinates[0]);
-                }
-            }
-        });
-    }
-    
-    /**
-     * Create buildings layer specifically (simplified)
+     * Create buildings layer for coverage updates (simplified inline version)
      */
     createBuildingsLayer() {
         const currentData = this.spatialAnalyzer.getCurrentData();
@@ -2149,87 +2019,7 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create statistical areas layer specifically
-     */
-    createStatisticalAreasLayer() {
-        const currentData = this.spatialAnalyzer.getCurrentData();
-        
-        if (!currentData.statisticalAreas || currentData.statisticalAreas.length === 0) {
-            return null;
-        }
-        
-        return new deck.GeoJsonLayer({
-            id: 'statistical-areas-geojson',
-            data: currentData.statisticalAreas.map((feature, index) => ({
-                ...feature,
-                _layerType: 'statisticalArea',
-                _index: index
-            })),
-            pickable: true,
-            stroked: true,
-            filled: true,
-            lineWidthMinPixels: 2,
-            lineWidthMaxPixels: 4,
-            getFillColor: d => {
-                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                 this.selectedPolygon?._index === d._index;
-                return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
-            },
-            getLineColor: d => {
-                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                 this.selectedPolygon?._index === d._index;
-                return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
-            },
-            getLineWidth: d => {
-                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
-                                 this.selectedPolygon?._index === d._index;
-                return isSelected ? 4 : 2;
-            }
-        });
-    }
-    
-    /**
-     * Create habitation clusters layer specifically (simplified)
-     */
-    createHabitationClustersLayer() {
-        const currentData = this.spatialAnalyzer.getCurrentData();
-        
-        if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
-            return null;
-        }
-        
-        return new deck.GeoJsonLayer({
-            id: 'habitation-clusters-geojson',
-            data: currentData.habitationClusters.map((feature, index) => ({
-                ...feature,
-                _layerType: 'habitationCluster',
-                _index: index
-            })),
-            pickable: true,
-            stroked: true,
-            filled: true,
-            lineWidthMinPixels: 1,
-            lineWidthMaxPixels: 2,
-            getFillColor: d => {
-                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                 this.selectedPolygon?._index === d._index;
-                return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
-            },
-            getLineColor: d => {
-                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                 this.selectedPolygon?._index === d._index;
-                return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
-            },
-            getLineWidth: d => {
-                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                 this.selectedPolygon?._index === d._index;
-                return isSelected ? 3 : 1;
-            }
-        });
-    }
-    
-    /**
-     * Create coverage brush layer specifically
+     * Create coverage brush layer for coverage updates (simplified inline version)
      */
     createCoverageBrushLayer() {
         if (!this.spatialAnalyzer.buildings) return null;
@@ -2244,7 +2034,7 @@ class ShelterAccessApp {
         // Create a brush layer to highlight covered buildings
         const coveredBuildings = coveredBuildingIndices.map(index => 
             this.spatialAnalyzer.buildings.features[index]
-        ).filter(building => building); // Filter out any undefined buildings
+        ).filter(building => building);
         
         if (coveredBuildings.length === 0) {
             return null;
@@ -2258,9 +2048,6 @@ class ShelterAccessApp {
             filled: true,
             lineWidthMinPixels: 2,
             lineWidthMaxPixels: 4,
-            // Use brush extension for better visual effect (if available)
-            extensions: deck.BrushingExtension ? [new deck.BrushingExtension()] : [],
-            // High opacity for coverage highlighting
             getFillColor: () => {
                 if (this.selectedShelter) {
                     return [0, 255, 0, 180]; // Bright green for selected coverage
@@ -2289,88 +2076,67 @@ class ShelterAccessApp {
      * Clear hover state immediately 
      */
     clearShelterHover() {
-        // Always clear state - don't check if there was a previous shelter
         this.hoverState.currentShelter = null;
         this.hoveredShelter = null;
         this.hoveredBuildings = [];
         
-        // Hide tooltip immediately and ensure it's hidden
+        // Hide tooltip immediately
         const tooltip = document.getElementById('tooltip');
         if (tooltip) {
             tooltip.style.display = 'none';
-            tooltip.innerHTML = ''; // Clear content too
+            tooltip.innerHTML = '';
         }
         
-        // Update visualization only if we actually had hover state
+        // Update visualization
         this.updateCoverageLayersOnly();
     }
     
     /**
      * Lightweight update that only refreshes coverage-related layers
-     * Bypasses full visualization pipeline for instant clearing
      */
     updateCoverageLayersOnly() {
         if (!this.deckgl || !this.currentLayers) return;
         
-        // Only update if we have coverage data that needs updating
         const hasHoverData = this.hoveredShelter && this.hoveredBuildings.length > 0;
         const hasSelectedData = this.selectedShelter && this.highlightedBuildings.length > 0;
         
-        // Track if we actually need to update
-        let needsUpdate = false;
+        if (!hasHoverData && !hasSelectedData) {
+            // No coverage data to show, just update existing layers
+            this.updateVisualization();
+            return;
+        }
         
-        // Create minimal layer updates
+        // Quick update: only recreate coverage-sensitive layers
         const updatedLayers = [];
         
-        // Copy all non-coverage layers unchanged
+        // Copy non-coverage layers unchanged
         for (const layer of this.currentLayers) {
-            if (layer.id !== 'coverage-brush' && 
-                layer.id !== 'buildings-geojson') {
+            if (layer.id !== 'coverage-brush' && layer.id !== 'buildings-geojson') {
                 updatedLayers.push(layer);
-            } else {
-                needsUpdate = true; // Found a layer that needs updating
             }
         }
         
-        // Add buildings layer with updated highlighting (only if buildings are visible)
+        // Add buildings layer with coverage highlighting
         if (this.layerVisibility.buildings || hasHoverData || hasSelectedData) {
             const buildingsLayer = this.createBuildingsLayer();
             if (buildingsLayer) {
                 updatedLayers.push(buildingsLayer);
-                needsUpdate = true;
             }
         }
         
-        // Add coverage brush layer if needed
+        // Add coverage brush layer
         if (hasHoverData || hasSelectedData) {
             const coverageBrushLayer = this.createCoverageBrushLayer();
             if (coverageBrushLayer) {
                 updatedLayers.push(coverageBrushLayer);
-                needsUpdate = true;
             }
         }
         
-        // Only update deck.gl if something actually changed
-        if (needsUpdate) {
-            this.currentLayers = updatedLayers;
-            this.deckgl.setProps({ layers: this.currentLayers });
-        }
+        // Update deck.gl
+        this.currentLayers = updatedLayers;
+        this.deckgl.setProps({ layers: this.currentLayers });
     }
-    
 
-    
-    /**
-     * Get layer ID for a shelter to pass to showShelterTooltip
-     */
-    getLayerIdForShelter(shelter) {
-        if (shelter.properties && shelter.properties.status === 'Built') {
-            return 'existing-shelters';
-        } else if (shelter.properties && shelter.properties.status === 'Request') {
-            return 'requested-shelters';
-        } else {
-            return 'proposed-shelters';
-        }
-    }
 }
 
 // Initialize app when DOM is loaded
