@@ -245,101 +245,31 @@ class ShelterAccessApp {
 
         
         // Handle layers modal
-        this.setupLayersModal();
+        this.setupModal('layers');
     }
     
     /**
-     * Setup layers modal functionality
+     * Setup modal functionality for any modal by name
      */
-    setupLayersModal() {
-        const layersButton = document.getElementById('layersButton');
-        const layersModal = document.getElementById('layersModal');
-        const closeLayersModal = document.getElementById('closeLayersModal');
+    setupModal(modalName) {
+        const button = document.getElementById(`${modalName}Button`);
+        const modal = document.getElementById(`${modalName}Modal`);
+        const closeButton = document.getElementById(`close${modalName.charAt(0).toUpperCase() + modalName.slice(1)}Modal`);
         
         // Open modal
-        if (layersButton) {
-            layersButton.addEventListener('click', () => {
-                layersModal.classList.add('show');
-            });
+        if (button) {
+            button.addEventListener('click', () => modal.classList.add('show'));
         }
         
         // Close modal - close button
-        if (closeLayersModal) {
-            closeLayersModal.addEventListener('click', () => {
-                layersModal.classList.remove('show');
-            });
+        if (closeButton) {
+            closeButton.addEventListener('click', () => modal.classList.remove('show'));
         }
         
         // Close modal - click outside
-        if (layersModal) {
-            layersModal.addEventListener('click', (e) => {
-                if (e.target === layersModal) {
-                    layersModal.classList.remove('show');
-                }
-            });
-        }
-    }
-    
-    /**
-     * Setup about modal functionality
-     */
-    setupAboutModal() {
-        const aboutButton = document.getElementById('aboutButton');
-        const aboutModal = document.getElementById('aboutModal');
-        const closeAboutModal = document.getElementById('closeAboutModal');
-        
-        // Open modal
-        if (aboutButton) {
-            aboutButton.addEventListener('click', () => {
-                aboutModal.classList.add('show');
-            });
-        }
-        
-        // Close modal - close button
-        if (closeAboutModal) {
-            closeAboutModal.addEventListener('click', () => {
-                aboutModal.classList.remove('show');
-            });
-        }
-        
-        // Close modal - click outside
-        if (aboutModal) {
-            aboutModal.addEventListener('click', (e) => {
-                if (e.target === aboutModal) {
-                    aboutModal.classList.remove('show');
-                }
-            });
-        }
-    }
-    
-    /**
-     * Setup methods modal functionality
-     */
-    setupMethodsModal() {
-        const methodsButton = document.getElementById('methodsButton');
-        const methodsModal = document.getElementById('methodsModal');
-        const closeMethodsModal = document.getElementById('closeMethodsModal');
-        
-        // Open modal
-        if (methodsButton) {
-            methodsButton.addEventListener('click', () => {
-                methodsModal.classList.add('show');
-            });
-        }
-        
-        // Close modal - close button
-        if (closeMethodsModal) {
-            closeMethodsModal.addEventListener('click', () => {
-                methodsModal.classList.remove('show');
-            });
-        }
-        
-        // Close modal - click outside
-        if (methodsModal) {
-            methodsModal.addEventListener('click', (e) => {
-                if (e.target === methodsModal) {
-                    methodsModal.classList.remove('show');
-                }
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('show');
             });
         }
     }
@@ -348,27 +278,16 @@ class ShelterAccessApp {
      * Setup event listeners for UI controls
      */
     setupEventListeners() {
-        // Setup about modal
-        this.setupAboutModal();
-        
-        // Setup methods modal
-        this.setupMethodsModal();
+        // Setup modals using generic setup function
+        this.setupModal('about');
+        this.setupModal('methods');
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                // Priority: close modals first, then clear shelter selection
-                const aboutModal = document.getElementById('aboutModal');
-                const methodsModal = document.getElementById('methodsModal');
-                const layersModal = document.getElementById('layersModal');
-                
-                if (aboutModal && aboutModal.classList.contains('show')) {
-                    aboutModal.classList.remove('show');
-                } else if (methodsModal && methodsModal.classList.contains('show')) {
-                    methodsModal.classList.remove('show');
-                } else if (layersModal && layersModal.classList.contains('show')) {
-                    layersModal.classList.remove('show');
-                }
+                // Close any open modal
+                const openModal = document.querySelector('.modal.show');
+                if (openModal) openModal.classList.remove('show');
             }
         });
         
@@ -452,48 +371,25 @@ class ShelterAccessApp {
             });
         });
         
-        // Layer visibility toggles - only setup if elements exist
-        if (this.elements.buildingsLayer) {
-            this.elements.buildingsLayer.addEventListener('change', (e) => {
-                this.layerVisibility.buildings = e.target.checked;
-                this.updateVisualization();
-            });
-        }
+        // Layer visibility toggles - simplified using mapping
+        const layerMappings = {
+            buildingsLayer: 'buildings',
+            existingSheltersLayer: 'existingShelters',
+            requestedSheltersLayer: 'requestedShelters',
+            optimalSheltersLayer: 'proposedShelters',
+            statisticalAreasLayer: 'statisticalAreas',
+            habitationClustersLayer: 'habitationClusters'
+        };
         
-        if (this.elements.existingSheltersLayer) {
-            this.elements.existingSheltersLayer.addEventListener('change', (e) => {
-                this.layerVisibility.existingShelters = e.target.checked;
-                this.updateVisualization();
-            });
-        }
-        
-        if (this.elements.requestedSheltersLayer) {
-            this.elements.requestedSheltersLayer.addEventListener('change', (e) => {
-                this.layerVisibility.requestedShelters = e.target.checked;
-                this.updateVisualization();
-            });
-        }
-        
-        if (this.elements.optimalSheltersLayer) {
-            this.elements.optimalSheltersLayer.addEventListener('change', (e) => {
-                this.layerVisibility.proposedShelters = e.target.checked;
-                this.updateVisualization();
-            });
-        }
-        
-        if (this.elements.statisticalAreasLayer) {
-            this.elements.statisticalAreasLayer.addEventListener('change', (e) => {
-                this.layerVisibility.statisticalAreas = e.target.checked;
-                this.updateVisualization();
-            });
-        }
-        
-        if (this.elements.habitationClustersLayer) {
-            this.elements.habitationClustersLayer.addEventListener('change', (e) => {
-                this.layerVisibility.habitationClusters = e.target.checked;
-                this.updateVisualization();
-            });
-        }
+        Object.entries(layerMappings).forEach(([elementKey, visibilityKey]) => {
+            const element = this.elements[elementKey];
+            if (element) {
+                element.addEventListener('change', (e) => {
+                    this.layerVisibility[visibilityKey] = e.target.checked;
+                    this.updateVisualization();
+                });
+            }
+        });
         
         // Accessibility heatmap toggle - only if it exists
         const heatmapToggle = document.getElementById('accessibilityHeatmapLayer');
@@ -1203,7 +1099,7 @@ class ShelterAccessApp {
      */
     getIconSizeConfig() {
         return {
-            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
+            getSize: () => this.ICON_SIZE * 10000, // Scale up for visibility
             sizeScale: this.ICON_SIZE_SCALE,
             sizeUnits: 'meters',
             sizeMinPixels: this.ICON_MIN_PIXELS,
@@ -1563,12 +1459,7 @@ class ShelterAccessApp {
         console.error(message);
     }
     
-    /**
-     * Get current basemap URL
-     */
-    getBasemapUrl() {
-        return this.basemaps[this.currentBasemap].url;
-    }
+
     
     /**
      * Change basemap
@@ -1953,39 +1844,6 @@ class ShelterAccessApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize the application
     window.app = new ShelterAccessApp();
     window.app.initializeApp();
-    
-    // Add global debug functions
-    
-
-    
-
-    
-    window.toggleBuildings = () => {
-        if (window.app) {
-            const checkbox = document.getElementById('buildingsLayer');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                checkbox.dispatchEvent(new Event('change'));
-                console.log('🔄 Toggled buildings layer');
-            }
-        } else {
-            console.log('❌ App not initialized yet');
-        }
-    };
-    
-    window.toggleHeatmap = () => {
-        if (window.app) {
-            const checkbox = document.getElementById('accessibilityHeatmapLayer');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                checkbox.dispatchEvent(new Event('change'));
-                console.log('🔥 Toggled accessibility heatmap');
-            }
-        } else {
-            console.log('❌ App not initialized yet');
-        }
-    };
 });
