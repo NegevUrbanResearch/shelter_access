@@ -1879,7 +1879,7 @@ class ShelterAccessApp {
     // findNearestShelterWithinRadius method removed - no longer needed with simplified hover logic
     
     /**
-     * Show tooltip for a specific shelter (simplified)
+     * Show tooltip for a specific shelter (simplified and compact)
      */
     showShelterTooltip(shelter, layerId, x, y) {
         const tooltip = document.getElementById('tooltip');
@@ -1892,66 +1892,24 @@ class ShelterAccessApp {
             this.updateCoverageLayersOnly();
         }
         
-        // Generate tooltip content based on shelter type
+        // Generate compact tooltip content
         let content = '';
         
         if (layerId === 'existing-shelters') {
-            const coveredBuildings = this.hoveredBuildings;
-            const buildingsCovered = coveredBuildings.length;
-            const peopleCovered = buildingsCovered * 7;
-            
-            content = `
-                <strong>🔍 Existing Shelter</strong><br>
-                Buildings covered: ${buildingsCovered}<br>
-                Estimated people in range: ${peopleCovered}
-            `;
+            const buildingsCovered = this.hoveredBuildings.length;
+            content = `Existing • ${buildingsCovered} buildings covered`;
             
         } else if (layerId === 'requested-shelters') {
-            const coveredBuildings = this.hoveredBuildings;
-            const buildingsCovered = coveredBuildings.length;
-            const peopleCovered = buildingsCovered * 7;
-            
-            // Check for better replacement logic (simplified)
-            let replacementInfo = '';
-            const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
-            if (requestedEval && requestedEval.pairedShelters) {
-                const pairing = requestedEval.pairedShelters.find(pair => 
-                    pair.requested.properties && pair.requested.properties.shelter_id === shelter.properties.shelter_id
-                );
-                
-                if (pairing) {
-                    replacementInfo = `
-                        <br><strong>⚠️ Better location available!</strong><br>
-                        Current: ${pairing.requestedCoverage} people<br>
-                        Better site: ${pairing.optimalCoverage} people<br>
-                        Improvement: +${pairing.improvement} people<br>
-                        <button onclick="app.jumpToOptimalSite(${pairing.optimal.lat}, ${pairing.optimal.lon})" 
-                                style="margin-top:5px; padding:2px 6px; font-size:11px; cursor:pointer;">
-                            Jump to Better Site
-                        </button>
-                    `;
-                }
-            }
-            
-            content = `
-                <strong>🔍 Requested Shelter</strong><br>
-                Buildings covered: ${buildingsCovered}<br>
-                Estimated people in range: ${peopleCovered}${replacementInfo}
-            `;
+            const buildingsCovered = this.hoveredBuildings.length;
+            content = `Requested • ${buildingsCovered} buildings covered`;
             
         } else if (layerId === 'proposed-shelters') {
             const buildingsCovered = shelter.buildings_covered || 0;
-            const peopleCovered = buildingsCovered * 7;
             const rank = shelter.rank || 1;
-            
-            content = `
-                <strong>🔍 Optimal New Site #${rank}</strong><br>
-                Buildings covered: ${buildingsCovered}<br>
-                Estimated people in range: ${peopleCovered}
-            `;
+            content = `New Site #${rank} • ${buildingsCovered} buildings covered`;
         }
         
-        // Show tooltip
+        // Show compact tooltip
         if (content) {
             tooltip.innerHTML = content;
             tooltip.style.display = 'block';
