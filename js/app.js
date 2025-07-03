@@ -1,6 +1,6 @@
 /**
  * Main Application for Shelter Access Analysis
- * Uses deck.gl for visualization and spatial analysis with optimized tile layers
+ * Uses deck.gl for visualization and spatial analysis
  */
 
 class ShelterAccessApp {
@@ -1461,7 +1461,7 @@ class ShelterAccessApp {
                 // Statistical area has lowest priority
                 this.showPolygonTooltip(object, 'statisticalArea', x, y);
                 return;
-            } else if (info.layer.id === 'buildings' || info.layer.id === 'buildings-tiles' || info.layer.id === 'coverage-brush') {
+            } else if (info.layer.id === 'buildings' || info.layer.id === 'buildings-geojson' || info.layer.id === 'coverage-brush') {
                 // Clear shelter hover when hovering over buildings
                 this.clearShelterHover();
                 tooltip.style.display = 'none';
@@ -2463,16 +2463,15 @@ class ShelterAccessApp {
         // Create minimal layer updates
         const updatedLayers = [];
         
-            // Copy all non-coverage layers unchanged
-    for (const layer of this.currentLayers) {
-        if (layer.id !== 'coverage-brush' && 
-            layer.id !== 'buildings-geojson' && 
-            layer.id !== 'buildings-tiles') {
-            updatedLayers.push(layer);
-        } else {
-            needsUpdate = true; // Found a layer that needs updating
+        // Copy all non-coverage layers unchanged
+        for (const layer of this.currentLayers) {
+            if (layer.id !== 'coverage-brush' && 
+                layer.id !== 'buildings-geojson') {
+                updatedLayers.push(layer);
+            } else {
+                needsUpdate = true; // Found a layer that needs updating
+            }
         }
-    }
         
         // Add buildings layer with updated highlighting (only if buildings are visible)
         if (this.layerVisibility.buildings || hasHoverData || hasSelectedData) {

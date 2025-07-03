@@ -59,10 +59,10 @@ class SimpleSpatialAnalyzer {
             // Load statistical areas directly from GeoJSON (no tiles)
             console.log('📊 Loading statistical areas GeoJSON...');
             await this.loadStatisticalAreasGeoJson();
-            
-            console.log('🏘️ Setting up habitation cluster tiles...');
-            this.habitationClusters = []; // Will be loaded via tiles or on-demand
-            console.log('✓ Habitation cluster tiles configured');
+        
+            console.log('🏘️ Setting up habitation clusters...');
+            this.habitationClusters = []; // Will be loaded on-demand
+            console.log('✓ Habitation clusters configured');
             
         } catch (error) {
             console.error('❌ Error loading polygon layers:', error);
@@ -72,7 +72,7 @@ class SimpleSpatialAnalyzer {
     }
     
     /**
-     * Load habitation clusters GeoJSON for fallback (when not using tiles)
+     * Load habitation clusters GeoJSON
      */
     async loadHabitationClustersGeoJson() {
         if (this.habitationClusters && this.habitationClusters.length > 0) {
@@ -80,12 +80,12 @@ class SimpleSpatialAnalyzer {
         }
         
         try {
-            console.log('🏘️ Loading habitation clusters GeoJSON (fallback)...');
+            console.log('🏘️ Loading habitation clusters GeoJSON...');
             const response = await fetch('data/tribes_polygons_filtered.geojson');
             if (response.ok) {
                 const data = await response.json();
                 this.habitationClusters = data.features || [];
-                console.log(`✓ Loaded ${this.habitationClusters.length} habitation clusters (fallback)`);
+                console.log(`✓ Loaded ${this.habitationClusters.length} habitation clusters`);
             }
         } catch (error) {
             console.error('❌ Error loading habitation clusters GeoJSON:', error);
@@ -94,7 +94,7 @@ class SimpleSpatialAnalyzer {
     }
     
     /**
-     * Load statistical areas GeoJSON for fallback (when not using tiles)
+     * Load statistical areas GeoJSON
      */
     async loadStatisticalAreasGeoJson() {
         if (this.statisticalAreas && this.statisticalAreas.length > 0) {
@@ -102,12 +102,12 @@ class SimpleSpatialAnalyzer {
         }
         
         try {
-            console.log('📊 Loading statistical areas GeoJSON (fallback)...');
+            console.log('📊 Loading statistical areas GeoJSON...');
             const response = await fetch('data/statistical_areas_simplified.geojson');
             if (response.ok) {
                 const data = await response.json();
                 this.statisticalAreas = data.features || [];
-                console.log(`✓ Loaded ${this.statisticalAreas.length} statistical areas (fallback)`);
+                console.log(`✓ Loaded ${this.statisticalAreas.length} statistical areas`);
             }
         } catch (error) {
             console.error('❌ Error loading statistical areas GeoJSON:', error);
