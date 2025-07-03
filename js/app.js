@@ -14,10 +14,10 @@ class ShelterAccessApp {
         this.isAnalyzing = false;
         
         // Icon sizing constants - tunable in one place
-        this.ICON_SIZE = 0.003; 
+        this.ICON_SIZE = 0.006; // Increased from 0.003 for better visibility
         this.ICON_SIZE_SCALE = 2; 
-        this.ICON_MIN_PIXELS = 14; // Minimum size in pixels (icons never smaller than this)
-        this.ICON_MAX_PIXELS = 124; // Maximum size in pixels (icons never larger than this)
+        this.ICON_MIN_PIXELS = 20; // Increased from 14 for better visibility
+        this.ICON_MAX_PIXELS = 140; // Increased from 124 for better visibility
         
         // Add state for hover highlighting
         this.hoveredShelter = null;
@@ -1811,10 +1811,15 @@ class ShelterAccessApp {
         
         // Quick update: only recreate coverage-sensitive layers
         const updatedLayers = [];
+        const shelterLayers = [];
         
-        // Copy non-coverage layers unchanged
+        // Separate shelter layers from other layers to ensure correct ordering
         for (const layer of this.currentLayers) {
-            if (layer.id !== 'coverage-brush' && layer.id !== 'buildings-geojson') {
+            if (layer.id === 'existing-shelters' || layer.id === 'requested-shelters' || layer.id === 'proposed-shelters') {
+                // Store shelter layers to add last (on top)
+                shelterLayers.push(layer);
+            } else if (layer.id !== 'coverage-brush' && layer.id !== 'buildings-geojson') {
+                // Add non-coverage, non-shelter layers first
                 updatedLayers.push(layer);
             }
         }
@@ -1834,6 +1839,9 @@ class ShelterAccessApp {
                 updatedLayers.push(coverageBrushLayer);
             }
         }
+        
+        // Add shelter layers last to ensure they're always on top
+        updatedLayers.push(...shelterLayers);
         
         // Update deck.gl
         this.currentLayers = updatedLayers;
