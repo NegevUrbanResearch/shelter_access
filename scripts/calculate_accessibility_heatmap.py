@@ -168,17 +168,138 @@ def calculate_optimized_accessibility(buildings_gdf, existing_shelters_gdf, cove
     
     return optimized_result
 
+def calculate_individual_shelter_coverage(buildings_gdf, shelters_gdf, coverage_radii=[100, 150, 200, 250, 300]):
+    """
+    Pre-compute coverage for each individual shelter for instant frontend lookup.
+    Creates a map: shelter_key -> {radius -> [building_indices]}
+    This eliminates the need for expensive real-time spatial calculations.
+    """
+    print(f"\n🏗️ Pre-computing individual shelter coverage...")
+    print(f"   • {len(shelters_gdf)} shelters")
+    print(f"   • {len(buildings_gdf)} buildings") 
+    print(f"   • {len(coverage_radii)} radii: {coverage_radii}")
+    
+    start_time = time.time()
+    
+    # Extract building centroids with indices
+    building_points = []
+    for i, building in enumerate(buildings_gdf.itertuples()):
+        centroid = get_building_centroid(building.geometry)
+        if centroid:
+            building_points.append({
+                'index': i,
+                'coord': centroid
+            })
+    
+    print(f"✓ Extracted {len(building_points)} valid building centroids")
+    
+    # Process each shelter
+    shelter_coverage_map = {}
+    
+    for shelter_idx, shelter_row in shelters_gdf.iterrows():
+        if shelter_row.geometry.geom_type != 'Point':
+            continue
+            
+        shelter_coord = [shelter_row.geometry.x, shelter_row.geometry.y]
+        
+        # Create unique shelter key using coordinates (6 decimal precision ~1m accuracy)
+        shelter_key = f"{shelter_coord[0]:.6f}_{shelter_coord[1]:.6f}"
+        
+        # Add shelter properties for identification
+        shelter_info = {
+            'coordinates': shelter_coord,
+            'properties': {}
+        }
+        
+        # Extract useful properties
+        for prop in ['shelter_id', 'status', 'name', 'type']:
+            if prop in shelter_row:
+                shelter_info['properties'][prop] = shelter_row[prop]
+        
+        # Calculate coverage for all radii
+        coverage_by_radius = {}
+        
+        for radius_m in coverage_radii:
+            radius_degrees = radius_m / 100000  # Convert to degrees
+            covered_buildings = []
+            
+            # Check each building
+            for building in building_points:
+                distance = calculate_distance_degrees(shelter_coord, building['coord'])
+                if distance <= radius_degrees:
+                    covered_buildings.append(building['index'])
+            
+            coverage_by_radius[f"{radius_m}m"] = {
+                'building_indices': covered_buildings,
+                'buildings_count': len(covered_buildings),
+                'estimated_people': len(covered_buildings) * 7  # 7 people per building assumption
+            }
+        
+        shelter_coverage_map[shelter_key] = {
+            'shelter_info': shelter_info,
+            'coverage_by_radius': coverage_by_radius
+        }
+        
+        # Progress reporting
+        if (shelter_idx + 1) % 10 == 0:
+            progress = (shelter_idx + 1) / len(shelters_gdf) * 100
+            print(f"   Progress: {progress:.1f}% ({shelter_idx + 1}/{len(shelters_gdf)} shelters)")
+    
+    elapsed_time = time.time() - start_time
+    print(f"✅ Pre-computed shelter coverage in {elapsed_time:.2f}s")
+    
+    # Create summary statistics
+    total_shelters = len(shelter_coverage_map)
+    summary_stats = {}
+    
+    for radius_m in coverage_radii:
+        radius_key = f"{radius_m}m"
+        total_coverage = 0
+        max_coverage = 0
+        min_coverage = float('inf')
+        
+        for shelter_data in shelter_coverage_map.values():
+            coverage_count = shelter_data['coverage_by_radius'][radius_key]['buildings_count']
+            total_coverage += coverage_count
+            max_coverage = max(max_coverage, coverage_count)
+            min_coverage = min(min_coverage, coverage_count)
+        
+        avg_coverage = total_coverage / total_shelters if total_shelters > 0 else 0
+        
+        summary_stats[radius_key] = {
+            'average_buildings_per_shelter': round(avg_coverage, 1),
+            'max_buildings_per_shelter': max_coverage,
+            'min_buildings_per_shelter': min_coverage if min_coverage != float('inf') else 0,
+            'total_shelter_coverages': total_coverage
+        }
+        
+        print(f"   📊 {radius_key}: avg {avg_coverage:.1f} buildings/shelter (range: {min_coverage}-{max_coverage})")
+    
+    return {
+        'shelter_coverage_map': shelter_coverage_map,
+        'summary_statistics': summary_stats,
+        'generation_info': {
+            'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'total_shelters': total_shelters,
+            'total_buildings': len(building_points),
+            'radii_processed': coverage_radii,
+            'calculation_method': 'individual_shelter_preprocessing'
+        }
+    }
+
 def main():
     print("🚀 Optimized Accessibility Heatmap Calculator")
     print("   • 5x smaller file size")
     print("   • No unused buildingIndex")
     print("   • Single pass through buildings")
+    print("   • Pre-computed shelter coverage for instant lookup")
     
     # Define file paths
     data_dir = Path("data")
     buildings_path = data_dir / "buildings.geojson"
     shelters_path = data_dir / "shelters.geojson"
     output_path = data_dir / "accessibility_heatmap.json"
+    shelter_coverage_path = data_dir / "shelter_coverage_precomputed.json"
     
     # Check if input files exist
     if not buildings_path.exists():
@@ -219,6 +340,14 @@ def main():
         print("❌ Failed to calculate accessibility data")
         sys.exit(1)
     
+    # Calculate individual shelter coverage (all shelters, not just existing)
+    print("\n🔄 Calculating individual shelter coverage...")
+    shelter_coverage_data = calculate_individual_shelter_coverage(buildings_gdf, shelters_gdf)
+    
+    if not shelter_coverage_data:
+        print("❌ Failed to calculate shelter coverage data")
+        sys.exit(1)
+    
     # Save results
     print(f"\n💾 Saving results to {output_path}...")
     try:
@@ -252,8 +381,36 @@ def main():
         print(f"❌ Error saving results: {e}")
         sys.exit(1)
     
-    print("\n✅ Optimized accessibility heatmap calculation complete!")
-    print("   Use this data with the updated JavaScript loader for better performance.")
+    # Save shelter coverage data
+    print(f"\n💾 Saving shelter coverage data to {shelter_coverage_path}...")
+    try:
+        with open(shelter_coverage_path, 'w', encoding='utf-8') as f:
+            json.dump(shelter_coverage_data, f, indent=2)
+        
+        coverage_file_size_mb = shelter_coverage_path.stat().st_size / (1024 * 1024)
+        print(f"✅ Saved shelter coverage data: {coverage_file_size_mb:.2f} MB")
+        
+        # Print shelter coverage summary
+        print(f"\n📊 Shelter Coverage Summary:")
+        total_shelters = shelter_coverage_data['generation_info']['total_shelters']
+        print(f"   Total shelters processed: {total_shelters}")
+        print(f"   Radii calculated: {', '.join(map(str, shelter_coverage_data['generation_info']['radii_processed']))}")
+        
+        for radius_key, stats in shelter_coverage_data['summary_statistics'].items():
+            avg_buildings = stats['average_buildings_per_shelter']
+            min_buildings = stats['min_buildings_per_shelter']  
+            max_buildings = stats['max_buildings_per_shelter']
+            print(f"   {radius_key}: avg {avg_buildings} buildings/shelter (range: {min_buildings}-{max_buildings})")
+        
+    except Exception as e:
+        print(f"❌ Error saving shelter coverage data: {e}")
+        sys.exit(1)
+    
+    print("\n✅ Optimized accessibility heatmap and shelter coverage calculation complete!")
+    print("   📁 Generated files:")
+    print(f"      • {output_path.name} - Accessibility heatmap data")
+    print(f"      • {shelter_coverage_path.name} - Pre-computed shelter coverage (instant lookup)")
+    print("   🚀 Use these files with the updated JavaScript loader for much better performance!")
 
 if __name__ == "__main__":
     main() 
