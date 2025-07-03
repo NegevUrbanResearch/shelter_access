@@ -106,25 +106,10 @@ class ShelterAccessApp {
         // Performance monitoring
         this.lastCoverageCalculation = 0;
         
-        // Hover optimization system
-        this.hoverOptimization = {
-            debounceTimeout: null,
+        // Simple hover state
+        this.hoverState = {
             coverageCache: new Map(), // Cache coverage results per shelter
-            lastHoveredShelter: null,
-            minMovementThreshold: 5, // Minimum pixel movement to trigger recalculation
-            lastMousePosition: { x: 0, y: 0 },
-            immediate: {
-                timeout: null,
-                delay: 20 // Show immediate feedback after 20ms
-            },
-            fast: {
-                timeout: null,
-                delay: 50 // Show building highlights after 50ms
-            },
-            debounced: {
-                timeout: null,
-                delay: 100 // Full tooltip update after 100ms of no movement
-            }
+            currentShelter: null
         };
         
         // UI Elements - simplified
@@ -399,21 +384,19 @@ class ShelterAccessApp {
         if (!cacheKey) return [];
         
         // Check cache first
-        if (this.hoverOptimization.coverageCache.has(cacheKey)) {
-            console.log('🚀 Coverage cache hit (fallback)');
-            return this.hoverOptimization.coverageCache.get(cacheKey);
+        if (this.hoverState.coverageCache.has(cacheKey)) {
+            return this.hoverState.coverageCache.get(cacheKey);
         }
         
         // Calculate and cache (slowest option)
-        console.log('🔄 Coverage cache miss - calculating (fallback)');
         const coverage = this.calculateShelterCoverageOptimized(shelter);
-        this.hoverOptimization.coverageCache.set(cacheKey, coverage);
+        this.hoverState.coverageCache.set(cacheKey, coverage);
         
         // Limit cache size to prevent memory issues
-        if (this.hoverOptimization.coverageCache.size > 100) {
+        if (this.hoverState.coverageCache.size > 100) {
             // Remove oldest entries (FIFO)
-            const firstKey = this.hoverOptimization.coverageCache.keys().next().value;
-            this.hoverOptimization.coverageCache.delete(firstKey);
+            const firstKey = this.hoverState.coverageCache.keys().next().value;
+            this.hoverState.coverageCache.delete(firstKey);
         }
         
         return coverage;
@@ -423,7 +406,7 @@ class ShelterAccessApp {
      * Clear coverage cache when radius changes
      */
     clearCoverageCache() {
-        this.hoverOptimization.coverageCache.clear();
+        this.hoverState.coverageCache.clear();
         console.log('🧹 Cleared coverage cache');
     }
     
@@ -501,14 +484,9 @@ class ShelterAccessApp {
         
         const coverage = this.precomputedCoverage.shelterCoverageMap.get(shelterKey);
         if (coverage) {
-            // Only log occasionally to avoid console spam
-            if (Math.random() < 0.1) {
-                console.log('⚡ Pre-computed coverage hit - instant result!');
-            }
             return coverage.buildingIndices;
         }
         
-        console.log('❌ Pre-computed coverage miss for key:', shelterKey);
         return null; // Fall back to calculation
     }
     
@@ -613,7 +591,7 @@ class ShelterAccessApp {
             this.hideLoading();
             
             console.log('✅ Layer caching system initialized');
-            console.log('✅ Hover optimization system initialized');
+            console.log('✅ Simple hover system initialized');
             console.log('✅ Pre-computed shelter coverage system initialized');
             
         } catch (error) {
@@ -2102,14 +2080,26 @@ class ShelterAccessApp {
                 return;
             } else if (info.layer.id === 'accessibility-grid-unified') {
                 // Heatmap active - no tooltips for grid cells
+                // But still clear shelter hover when hovering over grid
+                this.clearShelterHover();
+                tooltip.style.display = 'none';
                 return;
             } else if (info.layer.id === 'habitation-clusters') {
+                // Clear shelter hover when hovering over other objects
+                this.clearShelterHover();
                 // Habitation cluster has medium priority
                 this.showPolygonTooltip(object, 'habitationCluster', x, y);
                 return;
             } else if (info.layer.id === 'statistical-areas-geojson') {
+                // Clear shelter hover when hovering over other objects
+                this.clearShelterHover();
                 // Statistical area has lowest priority
                 this.showPolygonTooltip(object, 'statisticalArea', x, y);
+                return;
+            } else if (info.layer.id === 'buildings' || info.layer.id === 'buildings-tiles' || info.layer.id === 'coverage-brush') {
+                // Clear shelter hover when hovering over buildings
+                this.clearShelterHover();
+                tooltip.style.display = 'none';
                 return;
             }
         }
@@ -2123,9 +2113,8 @@ class ShelterAccessApp {
             }
         }
         
-        // No object or shelter nearby - clear hover with optimized system
-        this.clearShelterHoverOptimized();
-        tooltip.style.display = 'none';
+        // No object or shelter nearby - clear hover
+        this.clearShelterHover();
     }
     
     /**
@@ -2175,21 +2164,16 @@ class ShelterAccessApp {
 
 
     /**
-     * Handle click events
+     * Handle click events (shelter clicking disabled - hover only)
      */
     handleClick(info) {
         const { object } = info;
         
         if (object) {
-            // Priority system: shelter > habitation cluster > statistical areas
-            if (info.layer.id === 'existing-shelters' || info.layer.id === 'requested-shelters') {
-                // Select existing or requested shelter (highest priority)
-                this.selectShelter(object);
-                this.clearPolygonSelection();
-            } else if (info.layer.id === 'proposed-shelters') {
-                // Select proposed shelter (highest priority)
-                this.selectShelter(object);
-                this.clearPolygonSelection();
+            // Shelter clicking disabled - hover only mode
+            if (info.layer.id === 'existing-shelters' || info.layer.id === 'requested-shelters' || info.layer.id === 'proposed-shelters') {
+                // Shelter clicks disabled - do nothing
+                return;
             } else if (info.layer.id === 'habitation-clusters') {
                 // Select habitation cluster (medium priority)
                 this.selectPolygon(object, 'habitationCluster');
@@ -2548,20 +2532,7 @@ class ShelterAccessApp {
     
 
     
-    /**
-     * Handle shelter hover for coverage preview (legacy method - redirects to optimized version)
-     */
-    handleShelterHover(shelter) {
-        // Legacy method - redirect to optimized version with default coordinates
-        this.handleShelterHoverOptimized(shelter, 0, 0);
-    }
-    
-    /**
-     * Clear shelter hover highlighting (legacy method - redirects to optimized version)
-     */
-    clearShelterHover() {
-        this.clearShelterHoverOptimized();
-    }
+
     
     /**
      * Select a polygon and highlight its coverage
@@ -2657,8 +2628,8 @@ class ShelterAccessApp {
         let content = '';
         
         if (layerId === 'existing-shelters') {
-            // Handle hover highlighting with optimized system
-            this.handleShelterHoverOptimized(shelter, x, y);
+            // Handle hover highlighting
+            this.handleShelterHover(shelter, x, y);
             
             // Get cached coverage for performance
             const coveredBuildings = this.getCachedCoverage(shelter);
@@ -2668,13 +2639,12 @@ class ShelterAccessApp {
             content = `
                 <strong>🔍 Existing Shelter</strong><br>
                 Buildings covered: ${buildingsCovered}<br>
-                Estimated people in range: ${peopleCovered}<br>
-                <em>Click to highlight coverage area</em>
+                Estimated people in range: ${peopleCovered}
             `;
             
         } else if (layerId === 'requested-shelters') {
-            // Handle hover highlighting with optimized system
-            this.handleShelterHoverOptimized(shelter, x, y);
+            // Handle hover highlighting
+            this.handleShelterHover(shelter, x, y);
             
             // Get cached coverage for performance
             const coveredBuildings = this.getCachedCoverage(shelter);
@@ -2706,13 +2676,12 @@ class ShelterAccessApp {
             content = `
                 <strong>🔍 Requested Shelter</strong><br>
                 Buildings covered: ${buildingsCovered}<br>
-                Estimated people in range: ${peopleCovered}<br>
-                <em>Click to highlight coverage area</em>${replacementInfo}
+                Estimated people in range: ${peopleCovered}${replacementInfo}
             `;
             
         } else if (layerId === 'proposed-shelters') {
-            // Handle hover highlighting with optimized system  
-            this.handleShelterHoverOptimized(shelter, x, y);
+            // Handle hover highlighting
+            this.handleShelterHover(shelter, x, y);
             
             const buildingsCovered = shelter.buildings_covered || 0;
             const peopleCovered = buildingsCovered * 7; // 7 people per building (same logic as existing shelters)
@@ -2721,8 +2690,7 @@ class ShelterAccessApp {
             content = `
                 <strong>🔍 Optimal New Site #${rank}</strong><br>
                 Buildings covered: ${buildingsCovered}<br>
-                Estimated people in range: ${peopleCovered}<br>
-                <em>Click to highlight coverage area</em>
+                Estimated people in range: ${peopleCovered}
             `;
         }
         
@@ -3051,142 +3019,101 @@ class ShelterAccessApp {
     }
     
     /**
-     * Optimized hover handler with three-tier response system
+     * Simple hover handler - shows tooltip and highlights buildings immediately
      */
-    handleShelterHoverOptimized(shelter, x, y) {
-        // Clear existing timeouts
-        if (this.hoverOptimization.immediate.timeout) {
-            clearTimeout(this.hoverOptimization.immediate.timeout);
-        }
-        if (this.hoverOptimization.fast.timeout) {
-            clearTimeout(this.hoverOptimization.fast.timeout);
-        }
-        if (this.hoverOptimization.debounced.timeout) {
-            clearTimeout(this.hoverOptimization.debounced.timeout);
-        }
-        
-        // Check if mouse moved significantly
-        const mouseMoved = Math.abs(x - this.hoverOptimization.lastMousePosition.x) > this.hoverOptimization.minMovementThreshold ||
-                          Math.abs(y - this.hoverOptimization.lastMousePosition.y) > this.hoverOptimization.minMovementThreshold;
-        
-        this.hoverOptimization.lastMousePosition = { x, y };
-        
-        // If same shelter and mouse didn't move much, skip
-        if (this.hoverOptimization.lastHoveredShelter === shelter && !mouseMoved) {
+    handleShelterHover(shelter, x, y) {
+        // Skip if same shelter
+        if (this.hoverState.currentShelter === shelter) {
             return;
         }
         
-        this.hoverOptimization.lastHoveredShelter = shelter;
-        
-        // Check if we have pre-computed coverage for instant highlighting
-        const hasPrecomputedCoverage = this.getPrecomputedCoverage(shelter) !== null;
-        
-        if (hasPrecomputedCoverage) {
-            // Instant highlighting with pre-computed coverage (0ms delay)
-            this.hoveredShelter = shelter;
-            this.hoveredBuildings = this.getCachedCoverage(shelter);
-            
-            // Fast update - only clear buildings cache, not all layers
-            this.clearLayerCache(['buildings', 'coverageBrush']);
-            
-            // Direct visualization update for instant highlighting
-            this.updateVisualization();
-            
-            // Show immediate tooltip with coverage info
-            this.showShelterTooltip(shelter, this.getLayerIdForShelter(shelter), x, y);
-        } else {
-            // Fall back to optimized tiered system for non-pre-computed shelters
-            
-            // Tier 1: Immediate lightweight feedback (20ms)
-            this.hoverOptimization.immediate.timeout = setTimeout(() => {
-                if (this.hoverOptimization.lastHoveredShelter === shelter) {
-                    // Light tooltip update without coverage calculation
-                    this.showLightweightTooltip(shelter, x, y);
-                }
-            }, this.hoverOptimization.immediate.delay);
-            
-            // Tier 2: Fast building highlighting (50ms)
-            this.hoverOptimization.fast.timeout = setTimeout(() => {
-                if (this.hoverOptimization.lastHoveredShelter === shelter) {
-                    // Get cached coverage and update immediately
-                    this.hoveredShelter = shelter;
-                    this.hoveredBuildings = this.getCachedCoverage(shelter);
-                    
-                    // Fast update - only clear buildings cache, not all layers
-                    this.clearLayerCache(['buildings', 'coverageBrush']);
-                    
-                    // Direct visualization update for responsive highlighting
-                    this.updateVisualization();
-                }
-            }, this.hoverOptimization.fast.delay);
-        }
-        
-        // Tier 3: Full tooltip with coverage numbers (100ms) - only for non-pre-computed shelters
-        if (!hasPrecomputedCoverage) {
-            this.hoverOptimization.debounced.timeout = setTimeout(() => {
-                if (this.hoverOptimization.lastHoveredShelter === shelter) {
-                    // Update tooltip with full coverage info
-                    this.showShelterTooltip(shelter, this.getLayerIdForShelter(shelter), x, y);
-                }
-            }, this.hoverOptimization.debounced.delay);
-        }
-    }
-    
-    /**
-     * Clear optimized hover state
-     */
-    clearShelterHoverOptimized() {
-        // Clear all hover timeouts
-        if (this.hoverOptimization.immediate.timeout) {
-            clearTimeout(this.hoverOptimization.immediate.timeout);
-            this.hoverOptimization.immediate.timeout = null;
-        }
-        if (this.hoverOptimization.fast.timeout) {
-            clearTimeout(this.hoverOptimization.fast.timeout);
-            this.hoverOptimization.fast.timeout = null;
-        }
-        if (this.hoverOptimization.debounced.timeout) {
-            clearTimeout(this.hoverOptimization.debounced.timeout);
-            this.hoverOptimization.debounced.timeout = null;
-        }
-        
-        // Clear hover state
-        this.hoverOptimization.lastHoveredShelter = null;
-        this.hoveredShelter = null;
-        this.hoveredBuildings = [];
-        
-        // Clear cache for layers affected by hover
-        this.clearLayerCache(['buildings', 'coverageBrush']);
+        // Update hover state
+        this.hoverState.currentShelter = shelter;
+        this.hoveredShelter = shelter;
+        this.hoveredBuildings = this.getCachedCoverage(shelter);
         
         // Update visualization
-        this.updateVisualization();
+        this.updateCoverageLayersOnly();
+        
+        // Show tooltip immediately
+        this.showShelterTooltip(shelter, this.getLayerIdForShelter(shelter), x, y);
     }
     
     /**
-     * Show lightweight tooltip without coverage calculation
+     * Clear hover state immediately
      */
-    showLightweightTooltip(shelter, x, y) {
-        const tooltip = document.getElementById('tooltip');
-        if (!tooltip) return;
-        
-        let content = '';
-        
-        if (shelter.properties && shelter.properties.status === 'Built') {
-            content = `<strong>🔍 Existing Shelter</strong><br><em>Calculating coverage...</em>`;
-        } else if (shelter.properties && shelter.properties.status === 'Request') {
-            content = `<strong>🔍 Requested Shelter</strong><br><em>Calculating coverage...</em>`;
-        } else if (shelter.coordinates || (shelter.lat && shelter.lon)) {
-            const rank = shelter.rank || 1;
-            content = `<strong>🔍 Optimal New Site #${rank}</strong><br><em>Calculating coverage...</em>`;
-        }
-        
-        if (content) {
-            tooltip.innerHTML = content;
-            tooltip.style.display = 'block';
-            tooltip.style.left = `${x + 10}px`;
-            tooltip.style.top = `${y - 10}px`;
+    clearShelterHover() {
+        // Clear hover state only if there was a previously hovered shelter
+        if (this.hoveredShelter || this.hoveredBuildings.length > 0) {
+            this.hoverState.currentShelter = null;
+            this.hoveredShelter = null;
+            this.hoveredBuildings = [];
+            
+            // Hide tooltip immediately
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+            
+            // Update visualization
+            this.updateCoverageLayersOnly();
         }
     }
+    
+    /**
+     * Lightweight update that only refreshes coverage-related layers
+     * Bypasses full visualization pipeline for instant clearing
+     */
+    updateCoverageLayersOnly() {
+        if (!this.deckgl || !this.currentLayers) return;
+        
+        // Only update if we have coverage data that needs updating
+        const hasHoverData = this.hoveredShelter && this.hoveredBuildings.length > 0;
+        const hasSelectedData = this.selectedShelter && this.highlightedBuildings.length > 0;
+        
+        // Track if we actually need to update
+        let needsUpdate = false;
+        
+        // Create minimal layer updates
+        const updatedLayers = [];
+        
+        // Copy all non-coverage layers unchanged
+        for (const layer of this.currentLayers) {
+            if (layer.id !== 'coverage-brush' && layer.id !== 'buildings' && layer.id !== 'buildings-tiles') {
+                updatedLayers.push(layer);
+            } else {
+                needsUpdate = true; // Found a layer that needs updating
+            }
+        }
+        
+        // Add buildings layer with updated highlighting (only if buildings are visible)
+        if (this.layerVisibility.buildings || hasHoverData || hasSelectedData) {
+            const buildingsLayer = this.createBuildingsLayer();
+            if (buildingsLayer) {
+                updatedLayers.push(buildingsLayer);
+                needsUpdate = true;
+            }
+        }
+        
+        // Add coverage brush layer if needed
+        if (hasHoverData || hasSelectedData) {
+            const coverageBrushLayer = this.createCoverageBrushLayer();
+            if (coverageBrushLayer) {
+                updatedLayers.push(coverageBrushLayer);
+                needsUpdate = true;
+            }
+        }
+        
+        // Only update deck.gl if something actually changed
+        if (needsUpdate) {
+            this.currentLayers = updatedLayers;
+            this.deckgl.setProps({ layers: this.currentLayers });
+        }
+        
+        // Skip expensive operations like updateCoverageAnalysis and updateLegend
+    }
+    
+
     
     /**
      * Get layer ID for a shelter to pass to showShelterTooltip
