@@ -11,18 +11,13 @@ class ShelterAccessApp {
         this.proposedShelters = [];
         this.coverageRadius = 100;
         this.numNewShelters = 0;
-        this.maxShelters = 500; // Updated to match script's TARGET_SHELTERS
         this.isAnalyzing = false;
         
         // Icon sizing constants - tunable in one place
-        this.ICON_SIZE = 0.0015; // Common units (0.0015 * 2^zoom pixels, before scale/constraints) - tripled for better visibility
-        this.ICON_SIZE_SCALE = 2; // Global size multiplier (doubles the effective size)
+        this.ICON_SIZE = 0.003; 
+        this.ICON_SIZE_SCALE = 2; 
         this.ICON_MIN_PIXELS = 14; // Minimum size in pixels (icons never smaller than this)
         this.ICON_MAX_PIXELS = 124; // Maximum size in pixels (icons never larger than this)
-        
-        // Add state for selected shelter and coverage highlighting
-        this.selectedShelter = null;
-        this.highlightedBuildings = [];
         
         // Add state for hover highlighting
         this.hoveredShelter = null;
@@ -30,7 +25,6 @@ class ShelterAccessApp {
         
         // Add state for selected polygons
         this.selectedPolygon = null;
-        this.selectedPolygonType = null;
         
         // Layer visibility state
         this.layerVisibility = {
@@ -50,8 +44,6 @@ class ShelterAccessApp {
         this.accessibilityData = null;
         this.allAccessibilityData = null; // Stores all radii data
         this.isCalculatingAccessibility = false;
-        
-        // Simplified - no tile system needed
         
         // Mapbox token for terrain and other services
         this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
@@ -76,14 +68,6 @@ class ShelterAccessApp {
         // Current zoom and view state for zoom-dependent features
         this._currentZoom = 12;
         this._currentViewState = null;
-        
-        // Performance monitoring
-        this.lastCoverageCalculation = 0;
-        
-        // Simplified hover state - no complex caching needed with precomputed data
-        this.hoverState = {
-            currentShelter: null
-        };
         
         // UI Elements - simplified
         this.elements = {
@@ -384,8 +368,6 @@ class ShelterAccessApp {
                     methodsModal.classList.remove('show');
                 } else if (layersModal && layersModal.classList.contains('show')) {
                     layersModal.classList.remove('show');
-                } else {
-                    this.clearShelterSelection();
                 }
             }
         });
@@ -407,7 +389,6 @@ class ShelterAccessApp {
                     
                     // Update spatial analyzer and refresh
                     await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
-                    this.clearShelterSelection(); // Clear selection when radius changes
                     await this.updateOptimalLocations();
                 }
             });
@@ -590,8 +571,6 @@ class ShelterAccessApp {
             }
         });
         
-        // Status indicators removed - no longer needed
-        
         // Initialize widgets (zoom, fullscreen, compass)
         this.initializeWidgets();
         
@@ -708,8 +687,7 @@ class ShelterAccessApp {
         
         // === BUILDINGS LAYER (Simplified GeoJSON) ===
         const shouldShowBuildings = this.layerVisibility.buildings || 
-                                  (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
-                                  (this.selectedShelter && this.highlightedBuildings.length > 0);
+                                  (this.hoveredShelter && this.hoveredBuildings.length > 0);
         
         if (shouldShowBuildings && currentData.buildings && currentData.buildings.features.length > 0) {
             let buildingsToShow;
@@ -719,8 +697,7 @@ class ShelterAccessApp {
             } else {
                 // Only show covered buildings when layer is disabled (highlighting mode)
                 const coveredIndices = new Set([
-                    ...(this.hoveredShelter ? this.hoveredBuildings : []),
-                    ...(this.selectedShelter ? this.highlightedBuildings : [])
+                    ...(this.hoveredShelter ? this.hoveredBuildings : [])
                 ]);
                 buildingsToShow = currentData.buildings.features.filter((_, index) => 
                     coveredIndices.has(index)
@@ -747,10 +724,6 @@ class ShelterAccessApp {
                             if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                                 return [0, 255, 0, 150]; // Bright green for hover coverage
                             }
-                            // Check if this building is covered by selected shelter (turn green)
-                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 200]; // Bright green for selected coverage
-                            }
                             return [255, 0, 0, 120]; // Red for all other buildings when layer is enabled
                         } else {
                             // Buildings layer is disabled - only show covered buildings in green
@@ -765,10 +738,6 @@ class ShelterAccessApp {
                             if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                                 return [0, 255, 0, 255]; // Bright green outline for hover
                             }
-                            // Check if this building is covered by selected shelter (turn green)
-                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 255]; // Bright green outline for selected
-                            }
                             return [255, 0, 0, 180]; // Red outline for all other buildings
                         } else {
                             // Buildings layer is disabled - only show covered building outlines in green
@@ -779,9 +748,6 @@ class ShelterAccessApp {
                         const buildingIndex = d._index || 0;
                         
                         // Thicker outline for highlighted buildings
-                        if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                            return 3;
-                        }
                         if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                             return 2;
                         }
@@ -890,10 +856,10 @@ class ShelterAccessApp {
             }
         }
         
-        // === COVERAGE BRUSH LAYER (for selected/hovered shelters) ===
-        if ((this.selectedShelter || this.hoveredShelter) && this.spatialAnalyzer.buildings) {
-            const activeShelter = this.selectedShelter || this.hoveredShelter;
-            const coveredBuildingIndices = this.selectedShelter ? this.highlightedBuildings : this.hoveredBuildings;
+        // === COVERAGE BRUSH LAYER (for hovered shelters) ===
+        if (this.hoveredShelter && this.spatialAnalyzer.buildings) {
+            const activeShelter = this.hoveredShelter;
+            const coveredBuildingIndices = this.hoveredBuildings;
             
             if (coveredBuildingIndices.length > 0) {
                 // Create a brush layer to highlight covered buildings
@@ -913,27 +879,9 @@ class ShelterAccessApp {
                         // Use brush extension for better visual effect
                         extensions: [new deck.BrushingExtension()],
                         // High opacity for coverage highlighting
-                        getFillColor: () => {
-                            if (this.selectedShelter) {
-                                return [0, 255, 0, 180]; // Bright green for selected coverage
-                            } else {
-                                return [0, 255, 0, 120]; // Lighter green for hover coverage
-                            }
-                        },
-                        getLineColor: () => {
-                            if (this.selectedShelter) {
-                                return [0, 200, 0, 255]; // Darker green outline for selected
-                            } else {
-                                return [0, 200, 0, 200]; // Lighter green outline for hover
-                            }
-                        },
-                        getLineWidth: () => {
-                            if (this.selectedShelter) {
-                                return 3; // Thicker for selected
-                            } else {
-                                return 2; // Thinner for hover
-                            }
-                        }
+                        getFillColor: () => [0, 255, 0, 120], // Green for hover coverage
+                        getLineColor: () => [0, 200, 0, 200], // Green outline for hover
+                        getLineWidth: () => 2 // Standard width for hover
                     }));
                 }
             }
@@ -953,21 +901,10 @@ class ShelterAccessApp {
                     pickable: true,
                     getIcon: () => this.getShelterIcon('existing'),
                     getPosition: d => d.geometry.coordinates,
-                    getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
-                    getColor: d => {
-                        // Highlight selected shelter
-                        if (this.selectedShelter && this.selectedShelter.properties && 
-                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [255, 255, 255, 255]; // White for selected (100% opacity)
-                        }
-                        return [255, 255, 255, 230]; // White tint (90% opacity)
-                    },
-                    sizeScale: this.ICON_SIZE_SCALE,
-                    sizeUnits: 'meters',
-                    sizeMinPixels: this.ICON_MIN_PIXELS,
-                    sizeMaxPixels: this.ICON_MAX_PIXELS,
+                    getColor: () => [255, 255, 255, 230], // White tint (90% opacity)
                     onHover: (info) => this.handleHover(info),
-                    onClick: (info) => this.handleClick(info)
+                    onClick: (info) => this.handleClick(info),
+                    ...this.getIconSizeConfig()
                 }));
             }
         }
@@ -987,21 +924,10 @@ class ShelterAccessApp {
                     pickable: true,
                     getIcon: () => this.getShelterIcon('requested'),
                     getPosition: d => d.geometry.coordinates,
-                    getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
-                    getColor: d => {
-                        // Highlight selected shelter
-                        if (this.selectedShelter && this.selectedShelter.properties && 
-                            this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
-                            return [255, 255, 255, 255]; // White for selected (100% opacity)
-                        }
-                        return [255, 255, 255, 230]; // White tint (90% opacity)
-                    },
-                    sizeScale: this.ICON_SIZE_SCALE,
-                    sizeUnits: 'meters',
-                    sizeMinPixels: this.ICON_MIN_PIXELS,
-                    sizeMaxPixels: this.ICON_MAX_PIXELS,
+                    getColor: () => [255, 255, 255, 230], // White tint (90% opacity)
                     onHover: (info) => this.handleHover(info),
-                    onClick: (info) => this.handleClick(info)
+                    onClick: (info) => this.handleClick(info),
+                    ...this.getIconSizeConfig()
                 }));
             }
         }
@@ -1019,27 +945,14 @@ class ShelterAccessApp {
                 pickable: true,
                 getIcon: () => this.getShelterIcon('optimal'),
                 getPosition: d => d.coordinates,
-                getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
-                getColor: d => {
-                        // Highlight selected shelter
-                        if (this.selectedShelter && this.selectedShelter.coordinates && 
-                            this.selectedShelter.coordinates[0] === d.coordinates[0] && 
-                            this.selectedShelter.coordinates[1] === d.coordinates[1]) {
-                            return [255, 255, 255, 255]; // White for selected (100% opacity)
-                        }
-                        return [255, 255, 255, 230]; // White tint (90% opacity)
-                    },
-                sizeScale: this.ICON_SIZE_SCALE,
-                sizeUnits: 'meters',
-                sizeMinPixels: this.ICON_MIN_PIXELS,
-                sizeMaxPixels: this.ICON_MAX_PIXELS,
+                getColor: () => [255, 255, 255, 230], // White tint (90% opacity)
                 onHover: (info) => this.handleHover(info),
                 onClick: (info) => {
                     if (info.object) {
-                        this.selectShelter(info.object);
                         this.jumpToOptimalSite(info.object.coordinates[1], info.object.coordinates[0]);
                     }
-                }
+                },
+                ...this.getIconSizeConfig()
             }));
         }
 
@@ -1134,31 +1047,7 @@ class ShelterAccessApp {
         });
     }
     
-    /**
-     * Handle heatmap mode zoom behavior without breaking controls
-     */
-    adjustZoomForHeatmap(isHeatmapActive) {
-        if (!this.deckgl) return;
-        
-        if (isHeatmapActive) {
-            // Optional: Zoom to a good level for heatmap viewing without breaking controls
-            const currentViewState = this.deckgl.viewState || this.deckgl.props.initialViewState;
-            const currentZoom = currentViewState.zoom;
-            
-            // Only auto-zoom if currently zoomed too far in (beyond zoom 14)
-            if (currentZoom > 14) {
-                this.deckgl.setProps({
-                    viewState: {
-                        ...currentViewState,
-                        zoom: 12, // Zoom to a reasonable level for heatmap viewing
-                        transitionDuration: 800,
-                        transitionInterpolator: new deck.FlyToInterpolator()
-                    }
-                });
-            }
-        }
-        // Note: No longer modifying controller properties to avoid breaking zoom controls
-    }
+
 
     /**
      * Create simple heatmap legend
@@ -1245,12 +1134,11 @@ class ShelterAccessApp {
     }
 
     /**
-     * Update visualization layers (simplified)
+     * Update visualization layers
      */
     updateVisualization() {
         if (!this.deckgl) return;
 
-        // Create layers directly - much simpler
         const layers = [];
         
         // Base layer
@@ -1308,6 +1196,19 @@ class ShelterAccessApp {
                     id: 'default-shelter'
                 };
         }
+    }
+    
+    /**
+     * Get common icon sizing configuration for all shelter types
+     */
+    getIconSizeConfig() {
+        return {
+            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
+            sizeScale: this.ICON_SIZE_SCALE,
+            sizeUnits: 'meters',
+            sizeMinPixels: this.ICON_MIN_PIXELS,
+            sizeMaxPixels: this.ICON_MAX_PIXELS
+        };
     }
     
     /**
@@ -1370,8 +1271,6 @@ class ShelterAccessApp {
             // Store directly - they're already in the right format
             this.proposedShelters = optimalLocations;
             
-            // Layer caching removed - no longer needed
-            
             // Update visualization
             this.updateVisualization();
             
@@ -1391,7 +1290,6 @@ class ShelterAccessApp {
     updateCoverageAnalysis() {
         const cacheKey = `optimal_shelters_${this.coverageRadius}m`;
         const data = this.spatialAnalyzer.optimalData.get(cacheKey);
-        const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
         
         if (!data || !data.statistics) {
             return;
@@ -1402,20 +1300,14 @@ class ShelterAccessApp {
         
         // Calculate coverage from selected optimal shelters
         let newBuildingsCovered = 0;
-        let newPeopleCovered = 0;
         if (newSheltersSelected > 0) {
             newBuildingsCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.buildings_covered || 0), 0);
-            newPeopleCovered = this.proposedShelters.reduce((sum, shelter) => sum + ((shelter.buildings_covered || 0) * 7), 0); // Use consistent 7 people per building calculation
         }
         
         const existingCoverage = (stats.total_buildings_covered || 0) - (stats.new_buildings_covered || 0);
         const totalBuildingsCovered = existingCoverage + newBuildingsCovered;
-        const totalPeopleCovered = ((totalBuildingsCovered) * 7); // 7 people per building
         const totalCoveragePercentage = (totalBuildingsCovered / stats.total_buildings) * 100;
         const currentCoveragePercentage = (existingCoverage / stats.total_buildings) * 100;
-        
-        // Calculate net additional buildings (new coverage minus existing coverage)
-        const netAdditionalBuildings = newBuildingsCovered - (existingCoverage * 0); // No overlap in this case since we're adding to existing
         
         // Update main statistics
         if (this.elements.currentCoverage) {
@@ -1428,10 +1320,8 @@ class ShelterAccessApp {
             this.elements.buildingsCovered.textContent = totalBuildingsCovered.toLocaleString();
         }
         if (this.elements.additionalPeople) {
-            this.elements.additionalPeople.textContent = Math.max(0, netAdditionalBuildings).toLocaleString();
+            this.elements.additionalPeople.textContent = Math.max(0, newBuildingsCovered).toLocaleString();
         }
-        
-        // Requested shelter analysis removed - these statistics were confusing and not needed
     }
     
     /**
@@ -1516,7 +1406,6 @@ class ShelterAccessApp {
             tooltip.style.top = `${y - 10}px`;
         }
     }
-    
 
 
     /**
@@ -1533,15 +1422,12 @@ class ShelterAccessApp {
             } else if (info.layer.id === 'habitation-clusters') {
                 // Select habitation cluster (medium priority)
                 this.selectPolygon(object, 'habitationCluster');
-                this.clearShelterSelection();
             } else if (info.layer.id === 'statistical-areas-geojson') {
                 // Select statistical area (lowest priority)
                 this.selectPolygon(object, 'statisticalArea');
-                this.clearShelterSelection();
             }
         } else {
             // Clicked on empty space - clear all selections
-            this.clearShelterSelection();
             this.clearPolygonSelection();
         }
     }
@@ -1572,8 +1458,6 @@ class ShelterAccessApp {
         const previousZoom = this._currentZoom;
         this._currentViewState = viewState;
         this._currentZoom = viewState.zoom;
-        
-        // Building layer status indicators removed
         
         // Update scale bar
         this.updateScaleBar();
@@ -1686,8 +1570,6 @@ class ShelterAccessApp {
         return this.basemaps[this.currentBasemap].url;
     }
     
-    // Tile utility methods removed - no longer needed
-
     /**
      * Change basemap
      */
@@ -1701,8 +1583,6 @@ class ShelterAccessApp {
         } else {
             body.classList.remove('light-basemap');
         }
-        
-        // Layer caching removed - no longer needed
         
         this.updateAttribution();
         this.updateVisualization();
@@ -1783,34 +1663,9 @@ class ShelterAccessApp {
         return R * c;
     }
     
-    /**
-     * Select a shelter and highlight its coverage
-     */
-    selectShelter(shelter) {
-        this.selectedShelter = shelter;
-        this.highlightedBuildings = this.getShelterCoverage(shelter);
-        
-        this.updateVisualization();
-        this.updateSelectionUI();
-    }
+
     
-    /**
-     * Clear shelter selection
-     */
-    clearShelterSelection() {
-        this.selectedShelter = null;
-        this.highlightedBuildings = [];
-        
-        this.updateVisualization();
-        this.updateSelectionUI();
-    }
-    
-    /**
-     * Update UI to show selection status
-     */
-    updateSelectionUI() {
-        // Selection status updated - UI changes handled by layer updates
-    }
+
     
     /**
      * Load optimized accessibility data for heatmap visualization
@@ -1861,8 +1716,6 @@ class ShelterAccessApp {
             weight: point.coverage[radiusKey] ? 1 : -1  // +1 for covered (green), -1 for uncovered (red)
         }));
         
-        // Layer caching removed - no longer needed
-        
         console.log(`🔄 Extracted ${radiusKey} data: ${this.accessibilityData.length} points`);
     }
     
@@ -1875,9 +1728,7 @@ class ShelterAccessApp {
      */
     selectPolygon(polygon, type) {
         this.selectedPolygon = polygon;
-        this.selectedPolygonType = type;
         this.updateVisualization();
-        this.updateSelectionUI();
     }
     
     /**
@@ -1885,12 +1736,8 @@ class ShelterAccessApp {
      */
     clearPolygonSelection() {
         this.selectedPolygon = null;
-        this.selectedPolygonType = null;
         this.updateVisualization();
-        this.updateSelectionUI();
     }
-    
-    // findNearestShelterWithinRadius method removed - no longer needed with simplified hover logic
     
     /**
      * Show tooltip for a specific shelter (simplified and compact)
@@ -1899,8 +1746,7 @@ class ShelterAccessApp {
         const tooltip = document.getElementById('tooltip');
         
         // Handle hover state directly here - no recursive calls
-        if (this.hoverState.currentShelter !== shelter) {
-            this.hoverState.currentShelter = shelter;
+        if (this.hoveredShelter !== shelter) {
             this.hoveredShelter = shelter;
             this.hoveredBuildings = this.getShelterCoverage(shelter);
             this.updateCoverageLayersOnly();
@@ -1931,10 +1777,6 @@ class ShelterAccessApp {
             tooltip.style.top = `${y - 10}px`;
         }
     }
-
-    // Building layer status indicators removed - no longer needed
-
-    // createLayersWithCache method removed - using createLayers directly
     
     /**
      * Create buildings layer for coverage updates (simplified inline version)
@@ -1951,8 +1793,7 @@ class ShelterAccessApp {
             buildingsToShow = currentData.buildings.features;
         } else {
             const coveredIndices = new Set([
-                ...(this.hoveredShelter ? this.hoveredBuildings : []),
-                ...(this.selectedShelter ? this.highlightedBuildings : [])
+                ...(this.hoveredShelter ? this.hoveredBuildings : [])
             ]);
             buildingsToShow = currentData.buildings.features.filter((_, index) => 
                 coveredIndices.has(index)
@@ -1981,9 +1822,6 @@ class ShelterAccessApp {
                     if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                         return [0, 255, 0, 150];
                     }
-                    if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                        return [0, 255, 0, 200];
-                    }
                     return [255, 0, 0, 120];
                 } else {
                     return [0, 255, 0, 200];
@@ -1996,9 +1834,6 @@ class ShelterAccessApp {
                     if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                         return [0, 255, 0, 255];
                     }
-                    if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                        return [0, 255, 0, 255];
-                    }
                     return [255, 0, 0, 180];
                 } else {
                     return [0, 255, 0, 255];
@@ -2007,9 +1842,6 @@ class ShelterAccessApp {
             getLineWidth: d => {
                 const buildingIndex = d._index || 0;
                 
-                if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                    return 3;
-                }
                 if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                     return 2;
                 }
@@ -2024,8 +1856,8 @@ class ShelterAccessApp {
     createCoverageBrushLayer() {
         if (!this.spatialAnalyzer.buildings) return null;
         
-        const activeShelter = this.selectedShelter || this.hoveredShelter;
-        const coveredBuildingIndices = this.selectedShelter ? this.highlightedBuildings : this.hoveredBuildings;
+        const activeShelter = this.hoveredShelter;
+        const coveredBuildingIndices = this.hoveredBuildings;
         
         if (!activeShelter || coveredBuildingIndices.length === 0) {
             return null;
@@ -2048,27 +1880,9 @@ class ShelterAccessApp {
             filled: true,
             lineWidthMinPixels: 2,
             lineWidthMaxPixels: 4,
-            getFillColor: () => {
-                if (this.selectedShelter) {
-                    return [0, 255, 0, 180]; // Bright green for selected coverage
-                } else {
-                    return [0, 255, 0, 120]; // Lighter green for hover coverage
-                }
-            },
-            getLineColor: () => {
-                if (this.selectedShelter) {
-                    return [0, 200, 0, 255]; // Darker green outline for selected
-                } else {
-                    return [0, 200, 0, 200]; // Lighter green outline for hover
-                }
-            },
-            getLineWidth: () => {
-                if (this.selectedShelter) {
-                    return 3; // Thicker for selected
-                } else {
-                    return 2; // Thinner for hover
-                }
-            }
+            getFillColor: () => [0, 255, 0, 120], // Green for hover coverage
+            getLineColor: () => [0, 200, 0, 200], // Green outline for hover
+            getLineWidth: () => 2 // Standard width for hover
         });
     }
    
@@ -2076,7 +1890,6 @@ class ShelterAccessApp {
      * Clear hover state immediately 
      */
     clearShelterHover() {
-        this.hoverState.currentShelter = null;
         this.hoveredShelter = null;
         this.hoveredBuildings = [];
         
@@ -2098,9 +1911,8 @@ class ShelterAccessApp {
         if (!this.deckgl || !this.currentLayers) return;
         
         const hasHoverData = this.hoveredShelter && this.hoveredBuildings.length > 0;
-        const hasSelectedData = this.selectedShelter && this.highlightedBuildings.length > 0;
         
-        if (!hasHoverData && !hasSelectedData) {
+        if (!hasHoverData) {
             // No coverage data to show, just update existing layers
             this.updateVisualization();
             return;
@@ -2117,7 +1929,7 @@ class ShelterAccessApp {
         }
         
         // Add buildings layer with coverage highlighting
-        if (this.layerVisibility.buildings || hasHoverData || hasSelectedData) {
+        if (this.layerVisibility.buildings || hasHoverData) {
             const buildingsLayer = this.createBuildingsLayer();
             if (buildingsLayer) {
                 updatedLayers.push(buildingsLayer);
@@ -2125,7 +1937,7 @@ class ShelterAccessApp {
         }
         
         // Add coverage brush layer
-        if (hasHoverData || hasSelectedData) {
+        if (hasHoverData) {
             const coverageBrushLayer = this.createCoverageBrushLayer();
             if (coverageBrushLayer) {
                 updatedLayers.push(coverageBrushLayer);
@@ -2146,35 +1958,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.initializeApp();
     
     // Add global debug functions
-    window.debugCoverage = () => {
-        if (window.app) {
-            window.app.debugCoverageCalculation();
-        } else {
-            console.log('❌ App not initialized yet');
-        }
-    };
     
-    window.testShelterSelection = (shelterIndex = 0) => {
-        if (window.app && window.app.spatialAnalyzer.shelters) {
-            const shelter = window.app.spatialAnalyzer.shelters.features[shelterIndex];
-            if (shelter) {
-                window.app.selectShelter(shelter);
-                console.log(`✅ Selected shelter ${shelterIndex}:`, shelter.properties?.shelter_id);
-            } else {
-                console.log('❌ Shelter not found at index:', shelterIndex);
-            }
-        } else {
-            console.log('❌ App or data not ready');
-        }
-    };
+
     
-    window.debugLayers = () => {
-        if (window.app) {
-            window.app.debugLayerVisibility();
-        } else {
-            console.log('❌ App not initialized yet');
-        }
-    };
+
     
     window.toggleBuildings = () => {
         if (window.app) {
