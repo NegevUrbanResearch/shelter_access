@@ -1431,55 +1431,42 @@ class ShelterAccessApp {
     }
     
     /**
-     * Handle hover events
+     * Handle hover events (simplified for better clearing)
      */
     handleHover(info) {
-        const { object, x, y, coordinate } = info;
+        const { object, x, y } = info;
         const tooltip = this.elements.tooltip;
         
-        // Priority system for hover tooltips: shelter > grid > habitation cluster > statistical areas
+        // Direct object detection only - no nearby shelter searching
         if (object) {
+            // Shelter objects have highest priority
             if (info.layer.id === 'existing-shelters' || info.layer.id === 'requested-shelters' || info.layer.id === 'proposed-shelters') {
-                // Shelter objects have highest priority
                 this.showShelterTooltip(object, info.layer.id, x, y);
                 return;
-            } else if (info.layer.id === 'accessibility-grid-unified') {
+            } 
+            
+            // Handle other object types - clear shelter hover first
+            this.clearShelterHover();
+            
+            if (info.layer.id === 'accessibility-grid-unified') {
                 // Heatmap active - no tooltips for grid cells
-                // But still clear shelter hover when hovering over grid
-                this.clearShelterHover();
                 tooltip.style.display = 'none';
                 return;
             } else if (info.layer.id === 'habitation-clusters') {
-                // Clear shelter hover when hovering over other objects
-                this.clearShelterHover();
-                // Habitation cluster has medium priority
                 this.showPolygonTooltip(object, 'habitationCluster', x, y);
                 return;
             } else if (info.layer.id === 'statistical-areas-geojson') {
-                // Clear shelter hover when hovering over other objects
-                this.clearShelterHover();
-                // Statistical area has lowest priority
                 this.showPolygonTooltip(object, 'statisticalArea', x, y);
                 return;
             } else if (info.layer.id === 'buildings' || info.layer.id === 'buildings-geojson' || info.layer.id === 'coverage-brush') {
-                // Clear shelter hover when hovering over buildings
-                this.clearShelterHover();
                 tooltip.style.display = 'none';
                 return;
             }
         }
         
-        // If hovering over coordinate but no direct object, check for nearby shelters within 100m
-        if (coordinate && this.spatialAnalyzer.isDataReady() && !object) {
-            const nearbyShelter = this.findNearestShelterWithinRadius(coordinate, 100); // 100 meters
-            if (nearbyShelter) {
-                this.showShelterTooltip(nearbyShelter.shelter, nearbyShelter.layerId, x, y);
-                return;
-            }
-        }
-        
-        // No object or shelter nearby - clear hover
+        // No object - clear everything
         this.clearShelterHover();
+        tooltip.style.display = 'none';
     }
     
     /**
@@ -1889,87 +1876,29 @@ class ShelterAccessApp {
         this.updateSelectionUI();
     }
     
-    /**
-     * Find the nearest shelter within a given radius (in meters)
-     */
-    findNearestShelterWithinRadius(coordinate, radiusMeters) {
-        if (!this.spatialAnalyzer.shelters) return null;
-        
-        const [hoverLon, hoverLat] = coordinate;
-        const radiusKm = radiusMeters / 1000;
-        let nearestShelter = null;
-        let minDistance = Infinity;
-        
-        // Check existing shelters
-        if (this.layerVisibility.existingShelters) {
-            const existingShelters = this.spatialAnalyzer.shelters.features.filter(shelter => 
-                shelter.properties && shelter.properties.status === 'Built'
-            );
-            
-            for (const shelter of existingShelters) {
-                const [shelterLon, shelterLat] = shelter.geometry.coordinates;
-                const distance = turf.distance([hoverLon, hoverLat], [shelterLon, shelterLat], { units: 'kilometers' });
-                
-                if (distance <= radiusKm && distance < minDistance) {
-                    minDistance = distance;
-                    nearestShelter = { shelter, layerId: 'existing-shelters' };
-                }
-            }
-        }
-        
-        // Check requested shelters
-        if (this.layerVisibility.requestedShelters) {
-            const requestedShelters = this.spatialAnalyzer.shelters.features.filter(shelter => 
-                shelter.properties && shelter.properties.status === 'Request'
-            );
-            
-            for (const shelter of requestedShelters) {
-                const [shelterLon, shelterLat] = shelter.geometry.coordinates;
-                const distance = turf.distance([hoverLon, hoverLat], [shelterLon, shelterLat], { units: 'kilometers' });
-                
-                if (distance <= radiusKm && distance < minDistance) {
-                    minDistance = distance;
-                    nearestShelter = { shelter, layerId: 'requested-shelters' };
-                }
-            }
-        }
-        
-        // Check proposed/optimal shelters
-        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
-            for (const shelter of this.proposedShelters) {
-                const distance = turf.distance([hoverLon, hoverLat], [shelter.lon, shelter.lat], { units: 'kilometers' });
-                
-                if (distance <= radiusKm && distance < minDistance) {
-                    minDistance = distance;
-                    // Convert to format expected by showShelterTooltip
-                    const shelterObject = {
-                        coordinates: [shelter.lon, shelter.lat],
-                        rank: shelter.rank || 1,
-                        ...shelter
-                    };
-                    nearestShelter = { shelter: shelterObject, layerId: 'proposed-shelters' };
-                }
-            }
-        }
-        
-        return nearestShelter;
-    }
+    // findNearestShelterWithinRadius method removed - no longer needed with simplified hover logic
     
     /**
-     * Show tooltip for a specific shelter
+     * Show tooltip for a specific shelter (simplified)
      */
     showShelterTooltip(shelter, layerId, x, y) {
         const tooltip = document.getElementById('tooltip');
+        
+        // Handle hover state directly here - no recursive calls
+        if (this.hoverState.currentShelter !== shelter) {
+            this.hoverState.currentShelter = shelter;
+            this.hoveredShelter = shelter;
+            this.hoveredBuildings = this.getCachedCoverage(shelter);
+            this.updateCoverageLayersOnly();
+        }
+        
+        // Generate tooltip content based on shelter type
         let content = '';
         
         if (layerId === 'existing-shelters') {
-            // Handle hover highlighting
-            this.handleShelterHover(shelter, x, y);
-            
-            // Get cached coverage for performance
-            const coveredBuildings = this.getCachedCoverage(shelter);
+            const coveredBuildings = this.hoveredBuildings;
             const buildingsCovered = coveredBuildings.length;
-            const peopleCovered = buildingsCovered * 7; // 7 people per building
+            const peopleCovered = buildingsCovered * 7;
             
             content = `
                 <strong>🔍 Existing Shelter</strong><br>
@@ -1978,15 +1907,11 @@ class ShelterAccessApp {
             `;
             
         } else if (layerId === 'requested-shelters') {
-            // Handle hover highlighting
-            this.handleShelterHover(shelter, x, y);
-            
-            // Get cached coverage for performance
-            const coveredBuildings = this.getCachedCoverage(shelter);
+            const coveredBuildings = this.hoveredBuildings;
             const buildingsCovered = coveredBuildings.length;
-            const peopleCovered = buildingsCovered * 7; // 7 people per building
+            const peopleCovered = buildingsCovered * 7;
             
-            // Check if this requested shelter has a better replacement
+            // Check for better replacement logic (simplified)
             let replacementInfo = '';
             const requestedEval = this.spatialAnalyzer.getRequestedShelterEvaluation(this.proposedShelters.length);
             if (requestedEval && requestedEval.pairedShelters) {
@@ -2015,11 +1940,8 @@ class ShelterAccessApp {
             `;
             
         } else if (layerId === 'proposed-shelters') {
-            // Handle hover highlighting
-            this.handleShelterHover(shelter, x, y);
-            
             const buildingsCovered = shelter.buildings_covered || 0;
-            const peopleCovered = buildingsCovered * 7; // 7 people per building (same logic as existing shelters)
+            const peopleCovered = buildingsCovered * 7;
             const rank = shelter.rank || 1;
             
             content = `
@@ -2029,6 +1951,7 @@ class ShelterAccessApp {
             `;
         }
         
+        // Show tooltip
         if (content) {
             tooltip.innerHTML = content;
             tooltip.style.display = 'block';
@@ -2403,47 +2326,25 @@ class ShelterAccessApp {
             }
         });
     }
-    
+   
     /**
-     * Simple hover handler - shows tooltip and highlights buildings immediately
-     */
-    handleShelterHover(shelter, x, y) {
-        // Skip if same shelter
-        if (this.hoverState.currentShelter === shelter) {
-            return;
-        }
-        
-        // Update hover state
-        this.hoverState.currentShelter = shelter;
-        this.hoveredShelter = shelter;
-        this.hoveredBuildings = this.getCachedCoverage(shelter);
-        
-        // Update visualization
-        this.updateCoverageLayersOnly();
-        
-        // Show tooltip immediately
-        this.showShelterTooltip(shelter, this.getLayerIdForShelter(shelter), x, y);
-    }
-    
-    /**
-     * Clear hover state immediately
+     * Clear hover state immediately 
      */
     clearShelterHover() {
-        // Clear hover state only if there was a previously hovered shelter
-        if (this.hoveredShelter || this.hoveredBuildings.length > 0) {
-            this.hoverState.currentShelter = null;
-            this.hoveredShelter = null;
-            this.hoveredBuildings = [];
-            
-            // Hide tooltip immediately
-            const tooltip = document.getElementById('tooltip');
-            if (tooltip) {
-                tooltip.style.display = 'none';
-            }
-            
-            // Update visualization
-            this.updateCoverageLayersOnly();
+        // Always clear state - don't check if there was a previous shelter
+        this.hoverState.currentShelter = null;
+        this.hoveredShelter = null;
+        this.hoveredBuildings = [];
+        
+        // Hide tooltip immediately and ensure it's hidden
+        const tooltip = document.getElementById('tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+            tooltip.innerHTML = ''; // Clear content too
         }
+        
+        // Update visualization only if we actually had hover state
+        this.updateCoverageLayersOnly();
     }
     
     /**
@@ -2496,8 +2397,6 @@ class ShelterAccessApp {
             this.currentLayers = updatedLayers;
             this.deckgl.setProps({ layers: this.currentLayers });
         }
-        
-        // Skip expensive operations like updateCoverageAnalysis and updateLegend
     }
     
 
@@ -2518,22 +2417,6 @@ class ShelterAccessApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Validate required libraries
-    if (typeof deck === 'undefined') {
-        console.error('deck.gl library not loaded');
-        return;
-    }
-    
-    if (typeof turf === 'undefined') {
-        console.error('Turf.js library not loaded');
-        return;
-    }
-    
-    if (typeof SimpleSpatialAnalyzer === 'undefined') {
-        console.error('SimpleSpatialAnalyzer not loaded');
-        return;
-    }
-    
     // Initialize the application
     window.app = new ShelterAccessApp();
     window.app.initializeApp();
@@ -2589,39 +2472,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkbox.checked = !checkbox.checked;
                 checkbox.dispatchEvent(new Event('change'));
                 console.log('🔥 Toggled accessibility heatmap');
-            }
-        } else {
-            console.log('❌ App not initialized yet');
-        }
-    };
-    
-    window.debugHeatmap = () => {
-        if (window.app) {
-            console.log('🔥 Heatmap Debug Info:');
-            console.log('   Layer visible:', window.app.layerVisibility.accessibilityHeatmap);
-            console.log('   Data loaded:', !!window.app.accessibilityData);
-            console.log('   All data loaded:', !!window.app.allAccessibilityData);
-            console.log('   Current radius:', window.app.coverageRadius + 'm');
-            console.log('   HeatmapLayer available:', typeof deck !== 'undefined' && !!deck.HeatmapLayer);
-            
-            // Check UI element
-            const checkbox = document.getElementById('accessibilityHeatmapLayer');
-            if (checkbox) {
-                console.log('   Checkbox element exists:', true);
-                console.log('   Checkbox checked:', checkbox.checked);
-                console.log('   Parent visible:', checkbox.parentElement.offsetHeight > 0);
-                console.log('   Layer menu visible:', checkbox.parentElement.parentElement.style.maxHeight);
-            } else {
-                console.log('   Checkbox element exists:', false);
-            }
-            
-            if (window.app.accessibilityData) {
-                console.log('   Points count:', window.app.accessibilityData.length);
-                console.log('   Sample point:', window.app.accessibilityData[0]);
-            }
-            
-            if (window.app.allAccessibilityData) {
-                console.log('   Available radii:', Object.keys(window.app.allAccessibilityData));
             }
         } else {
             console.log('❌ App not initialized yet');
