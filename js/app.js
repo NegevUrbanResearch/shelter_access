@@ -72,34 +72,138 @@ class ShelterAccessApp {
             }
         };
         
-        // Widgets
-        this.widgets = [];
+        // Current zoom and view state for zoom-dependent features
+        this._currentZoom = 12;
+        this._currentViewState = null;
         
-        // UI elements
+        // Spatial indexing for performance
+        this.buildingSpatialGrid = null;
+        this.gridCellSize = 0.001; // ~100m at these latitudes
+        
+        // Performance monitoring
+        this.lastCoverageCalculation = 0;
+        
+        // UI Elements - simplified
         this.elements = {
+            loading: document.getElementById('loading'),
+            attribution: document.getElementById('attribution'),
+            tooltip: document.getElementById('tooltip'),
+            // Core controls
             distanceButtons: document.getElementById('distanceButtons'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
-            basemapRadios: document.querySelectorAll('input[name="basemap"]'),
+            heatmapToggle: document.getElementById('heatmapToggle'),
+            heatmapToggleText: document.getElementById('heatmapToggleText'),
+            // Statistics
+            currentCoverage: document.getElementById('currentCoverage'),
+            newCoverage: document.getElementById('newCoverage'),
+            buildingsCovered: document.getElementById('buildingsCovered'),
+            additionalPeople: document.getElementById('additionalPeople'),
+            // Legend
+            legendItems: document.getElementById('legend-items'),
+            // Layer toggles
             buildingsLayer: document.getElementById('buildingsLayer'),
             existingSheltersLayer: document.getElementById('existingSheltersLayer'),
             requestedSheltersLayer: document.getElementById('requestedSheltersLayer'),
             optimalSheltersLayer: document.getElementById('optimalSheltersLayer'),
             statisticalAreasLayer: document.getElementById('statisticalAreasLayer'),
-            habitationClustersLayer: document.getElementById('habitationClustersLayer'),
-            heatmapToggle: document.getElementById('heatmapToggle'),
-            heatmapToggleText: document.getElementById('heatmapToggleText'),
-            loading: document.getElementById('loading'),
-            tooltip: document.getElementById('tooltip'),
-            attribution: document.getElementById('attribution'),
-            currentCoverage: document.getElementById('currentCoverage'),
-            newCoverage: document.getElementById('newCoverage'),
-            buildingsCovered: document.getElementById('buildingsCovered'),
-            additionalPeople: document.getElementById('additionalPeople'),
-
-
-            legendItems: document.getElementById('legend-items')
+            habitationClustersLayer: document.getElementById('habitationClustersLayer')
         };
+    }
+    
+    /**
+     * Build spatial grid index for fast building lookups
+     */
+    buildSpatialIndex() {
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        if (!currentData.buildings || !currentData.buildings.features) {
+            console.warn('No building data available for spatial indexing');
+            return;
+        }
+        
+        console.log('🗂️ Building spatial index for', currentData.buildings.features.length, 'buildings...');
+        
+        this.buildingSpatialGrid = new Map();
+        
+        currentData.buildings.features.forEach((building, index) => {
+            // Calculate building centroid
+            let centroid;
+            if (building.geometry.type === 'Point') {
+                centroid = building.geometry.coordinates;
+            } else if (building.geometry.type === 'Polygon') {
+                // Calculate centroid of polygon
+                const coords = building.geometry.coordinates[0]; // First ring (exterior)
+                let sumX = 0, sumY = 0;
+                for (let j = 0; j < coords.length - 1; j++) { // Skip last point (same as first)
+                    sumX += coords[j][0];
+                    sumY += coords[j][1];
+                }
+                centroid = [sumX / (coords.length - 1), sumY / (coords.length - 1)];
+            } else {
+                return; // Skip unsupported geometry types
+            }
+            
+            // Calculate grid cell coordinates
+            const gridX = Math.floor(centroid[0] / this.gridCellSize);
+            const gridY = Math.floor(centroid[1] / this.gridCellSize);
+            const cellKey = `${gridX},${gridY}`;
+            
+            // Add building to grid cell
+            if (!this.buildingSpatialGrid.has(cellKey)) {
+                this.buildingSpatialGrid.set(cellKey, []);
+            }
+            this.buildingSpatialGrid.get(cellKey).push({
+                index: index,
+                centroid: centroid,
+                feature: building
+            });
+        });
+        
+        console.log('✅ Spatial index built:', this.buildingSpatialGrid.size, 'grid cells');
+    }
+    
+    /**
+     * Fast building coverage calculation using spatial index
+     */
+    calculateShelterCoverageOptimized(shelter) {
+        if (!this.buildingSpatialGrid || !shelter) {
+            // Fallback to original method if no spatial index
+            return this.calculateShelterCoverage(shelter);
+        }
+        
+        const shelterCoords = shelter.geometry ? shelter.geometry.coordinates : [shelter.lon, shelter.lat];
+        const coverageRadiusDeg = this.coverageRadius / 111000; // Approximate conversion to degrees
+        const coverageRadiusSquared = coverageRadiusDeg * coverageRadiusDeg; // Use squared distance for efficiency
+        
+        const coveredBuildings = [];
+        
+        // Calculate which grid cells to check (expand search area by radius)
+        const gridRadius = Math.ceil(coverageRadiusDeg / this.gridCellSize);
+        const centerGridX = Math.floor(shelterCoords[0] / this.gridCellSize);
+        const centerGridY = Math.floor(shelterCoords[1] / this.gridCellSize);
+        
+        // Check only nearby grid cells instead of all buildings
+        for (let gridX = centerGridX - gridRadius; gridX <= centerGridX + gridRadius; gridX++) {
+            for (let gridY = centerGridY - gridRadius; gridY <= centerGridY + gridRadius; gridY++) {
+                const cellKey = `${gridX},${gridY}`;
+                const cellBuildings = this.buildingSpatialGrid.get(cellKey);
+                
+                if (cellBuildings) {
+                    for (const building of cellBuildings) {
+                        // Calculate squared distance (faster than sqrt)
+                        const dx = building.centroid[0] - shelterCoords[0];
+                        const dy = building.centroid[1] - shelterCoords[1];
+                        const distanceSquared = dx * dx + dy * dy;
+                        
+                        if (distanceSquared <= coverageRadiusSquared) {
+                            coveredBuildings.push(building.index);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return coveredBuildings;
     }
     
     /**
@@ -110,7 +214,11 @@ class ShelterAccessApp {
             this.setupEventListeners();
             this.setupMainMenu();
             await this.spatialAnalyzer.loadData();
-            this.initializeMap();
+            
+            // Build spatial index for fast coverage calculations
+            this.buildSpatialIndex();
+            
+            await this.initializeMap();
             this.updateAttribution();
             
             // Initial load of optimal locations and coverage analysis
@@ -284,61 +392,90 @@ class ShelterAccessApp {
                 // Priority: close modals first, then clear shelter selection
                 const aboutModal = document.getElementById('aboutModal');
                 const methodsModal = document.getElementById('methodsModal');
+                const layersModal = document.getElementById('layersModal');
                 
                 if (aboutModal && aboutModal.classList.contains('show')) {
                     aboutModal.classList.remove('show');
                 } else if (methodsModal && methodsModal.classList.contains('show')) {
                     methodsModal.classList.remove('show');
+                } else if (layersModal && layersModal.classList.contains('show')) {
+                    layersModal.classList.remove('show');
                 } else {
                     this.clearShelterSelection();
                 }
             }
         });
         
-        // Distance buttons
-        this.elements.distanceButtons.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('distance-button')) {
-                const newDistance = parseInt(e.target.dataset.distance);
-                
-                // Update active state
-                this.elements.distanceButtons.querySelectorAll('.distance-button').forEach(btn => 
-                    btn.classList.remove('active')
-                );
-                e.target.classList.add('active');
-                
-                // Update distance
-                this.coverageRadius = newDistance;
-                
-                const maxShelters = await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
-                this.maxShelters = maxShelters;
-                
-                // Update slider max
-                this.elements.newSheltersSlider.max = this.maxShelters;
-                if (this.numNewShelters > this.maxShelters) {
-                    this.numNewShelters = this.maxShelters;
-                    this.elements.newSheltersSlider.value = this.maxShelters;
-                    this.elements.newSheltersValue.textContent = this.maxShelters;
+        // Distance buttons - only if they exist
+        if (this.elements.distanceButtons) {
+            this.elements.distanceButtons.addEventListener('click', async (e) => {
+                if (e.target.classList.contains('distance-button')) {
+                    const newDistance = parseInt(e.target.dataset.distance);
+                    
+                    // Update active state
+                    this.elements.distanceButtons.querySelectorAll('.distance-button').forEach(btn => 
+                        btn.classList.remove('active')
+                    );
+                    e.target.classList.add('active');
+                    
+                    // Update distance
+                    this.coverageRadius = newDistance;
+                    
+                    // Update spatial analyzer and refresh
+                    await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
+                    this.clearShelterSelection(); // Clear selection when radius changes
+                    await this.updateOptimalLocations();
                 }
-                
-                // Clear previous analysis and update
-                this.proposedShelters = [];
-                this.clearShelterSelection(); // Clear selection when radius changes
-                
-                // Update accessibility data when radius changes
-                if (this.layerVisibility.accessibilityHeatmap && this.allAccessibilityData) {
-                    this.updateAccessibilityDataForRadius();
-                }
-                
-                await this.updateOptimalLocations();
-            }
-        });
+            });
+        }
         
-        // Added shelters slider - real-time updates
-        this.elements.newSheltersSlider.addEventListener('input', async (e) => {
-            this.numNewShelters = parseInt(e.target.value);
-            this.elements.newSheltersValue.textContent = this.numNewShelters;
-            await this.updateOptimalLocations();
-        });
+        // New shelters slider - only if it exists
+        if (this.elements.newSheltersSlider) {
+            this.elements.newSheltersSlider.addEventListener('input', async (e) => {
+                this.numNewShelters = parseInt(e.target.value);
+                if (this.elements.newSheltersValue) {
+                    this.elements.newSheltersValue.textContent = this.numNewShelters;
+                }
+                await this.updateOptimalLocations();
+            });
+        }
+        
+        // Heatmap toggle - only if it exists
+        if (this.elements.heatmapToggle) {
+            this.elements.heatmapToggle.addEventListener('click', async (e) => {
+                const isActive = !this.layerVisibility.accessibilityHeatmap;
+                this.layerVisibility.accessibilityHeatmap = isActive;
+                
+                // Update button state
+                const button = e.target.closest('button');
+                if (this.elements.heatmapToggleText) {
+                    this.elements.heatmapToggleText.textContent = isActive ? 'Hide Grid' : 'Accessibility Grid';
+                }
+                
+                if (isActive) {
+                    button.classList.add('active');
+                    // Reset shelters when enabling heatmap
+                    this.numNewShelters = 0;
+                    if (this.elements.newSheltersSlider) {
+                        this.elements.newSheltersSlider.value = 0;
+                    }
+                    if (this.elements.newSheltersValue) {
+                        this.elements.newSheltersValue.textContent = '0';
+                    }
+                    
+                    // First time enabling - load precomputed accessibility data
+                    if (!this.accessibilityData) {
+                        await this.loadAccessibilityData();
+                    }
+                } else {
+                    button.classList.remove('active');
+                    // Update optimal locations when disabling heatmap
+                    await this.updateOptimalLocations();
+                }
+                
+                this.updateVisualization();
+            });
+        }
         
         // Basemap radio selection
         const basemapRadios = document.querySelectorAll('input[name="basemap"]');
@@ -350,149 +487,143 @@ class ShelterAccessApp {
             });
         });
         
-        // Layer visibility toggles
-        this.elements.buildingsLayer.addEventListener('change', (e) => {
-            this.layerVisibility.buildings = e.target.checked;
-            this.updateVisualization();
-            this.updateLegend();
-        });
+        // Layer visibility toggles - only setup if elements exist
+        if (this.elements.buildingsLayer) {
+            this.elements.buildingsLayer.addEventListener('change', (e) => {
+                this.layerVisibility.buildings = e.target.checked;
+                this.updateVisualization();
+            });
+        }
         
-        this.elements.existingSheltersLayer.addEventListener('change', (e) => {
-            this.layerVisibility.existingShelters = e.target.checked;
-            this.updateVisualization();
-            this.updateLegend();
-        });
+        if (this.elements.existingSheltersLayer) {
+            this.elements.existingSheltersLayer.addEventListener('change', (e) => {
+                this.layerVisibility.existingShelters = e.target.checked;
+                this.updateVisualization();
+            });
+        }
         
-        this.elements.requestedSheltersLayer.addEventListener('change', (e) => {
-            this.layerVisibility.requestedShelters = e.target.checked;
-            this.updateVisualization();
-            this.updateLegend();
-        });
+        if (this.elements.requestedSheltersLayer) {
+            this.elements.requestedSheltersLayer.addEventListener('change', (e) => {
+                this.layerVisibility.requestedShelters = e.target.checked;
+                this.updateVisualization();
+            });
+        }
         
-        this.elements.optimalSheltersLayer.addEventListener('change', (e) => {
-            this.layerVisibility.optimalShelters = e.target.checked;
-            this.updateVisualization();
-            this.updateLegend();
-        });
+        if (this.elements.optimalSheltersLayer) {
+            this.elements.optimalSheltersLayer.addEventListener('change', (e) => {
+                this.layerVisibility.proposedShelters = e.target.checked;
+                this.updateVisualization();
+            });
+        }
         
-        this.elements.statisticalAreasLayer.addEventListener('change', (e) => {
-            this.layerVisibility.statisticalAreas = e.target.checked;
-            this.updateVisualization();
-            this.updateLegend();
-        });
+        if (this.elements.statisticalAreasLayer) {
+            this.elements.statisticalAreasLayer.addEventListener('change', (e) => {
+                this.layerVisibility.statisticalAreas = e.target.checked;
+                this.updateVisualization();
+            });
+        }
         
-        this.elements.habitationClustersLayer.addEventListener('change', (e) => {
-            this.layerVisibility.habitationClusters = e.target.checked;
-            this.updateVisualization();
-            this.updateLegend();
-        });
+        if (this.elements.habitationClustersLayer) {
+            this.elements.habitationClustersLayer.addEventListener('change', (e) => {
+                this.layerVisibility.habitationClusters = e.target.checked;
+                this.updateVisualization();
+            });
+        }
         
-        this.elements.heatmapToggle.addEventListener('click', async (e) => {
-            const isActive = !this.layerVisibility.accessibilityHeatmap;
-            this.layerVisibility.accessibilityHeatmap = isActive;
-            
-            // Update button state
-            const button = e.target.closest('button');
-            const text = this.elements.heatmapToggleText;
-            const addedSheltersSection = document.getElementById('addedSheltersSection');
-            
-            if (isActive) {
-                button.classList.add('active');
-                text.textContent = 'Hide Grid';
+        // Accessibility heatmap toggle - only if it exists
+        const heatmapToggle = document.getElementById('accessibilityHeatmapLayer');
+        if (heatmapToggle) {
+            heatmapToggle.addEventListener('change', async (e) => {
+                const isActive = e.target.checked;
+                this.layerVisibility.accessibilityHeatmap = isActive;
                 
-                // Reset and lock added shelters section
-                this.numNewShelters = 0;
-                this.elements.newSheltersSlider.value = 0;
-                this.elements.newSheltersValue.textContent = '0';
-                addedSheltersSection.classList.add('disabled');
-                
-                // Clear existing proposed shelters since we reset to 0
-                this.proposedShelters = [];
-                
-                // First time enabling - load precomputed accessibility data
-                if (!this.accessibilityData) {
+                if (isActive && !this.accessibilityData) {
+                    // First time enabling - load precomputed accessibility data
                     await this.loadAccessibilityData();
                 }
-            } else {
-                button.classList.remove('active');
-                text.textContent = 'Accessibility Grid';
                 
-                // Unlock added shelters section
-                addedSheltersSection.classList.remove('disabled');
-                
-                // Keep the default at 0 instead of resetting to 10
-                this.numNewShelters = 0;
-                this.elements.newSheltersSlider.value = 0;
-                this.elements.newSheltersValue.textContent = '0';
-                
-                // Update optimal locations with default count
-                await this.updateOptimalLocations();
-            }
-            
-            // Adjust zoom constraints for heatmap mode
-            this.adjustZoomForHeatmap(isActive);
-            
-            this.updateVisualization();
-            this.updateLegend();
-        });
-        
-        // Initial load of optimal locations
-        this.updateOptimalLocations();
+                this.updateVisualization();
+            });
+        }
     }
     
     /**
-     * Initialize deck.gl map with widgets and terrain support
+     * Initialize deck.gl map
      */
-    initializeMap() {
-        // Use precalculated mean point of all building coordinates for optimal centering
-        const centerLng = 34.91862620;
-        const centerLat = 31.20737085;
+    async initializeMap() {
+        // Calculate center from loaded spatial data if available
+        let centerLat = 31.25;  // Fallback center (Israel)
+        let centerLng = 34.95;  // Fallback center (Israel)
         
-        // Initialize deck.gl widgets first
-        this.initializeWidgets();
+        // Try to get center from buildings data if available
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        if (currentData.buildings && currentData.buildings.features && currentData.buildings.features.length > 0) {
+            // Calculate center from building bounds
+            const features = currentData.buildings.features;
+            let sumLat = 0, sumLng = 0, count = 0;
+            
+            features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    if (feature.geometry.type === 'Point') {
+                        sumLng += feature.geometry.coordinates[0];
+                        sumLat += feature.geometry.coordinates[1];
+                        count++;
+                    } else if (feature.geometry.type === 'Polygon') {
+                        // Use first coordinate of polygon
+                        const coords = feature.geometry.coordinates[0][0];
+                        sumLng += coords[0];
+                        sumLat += coords[1];
+                        count++;
+                    }
+                }
+            });
+            
+            if (count > 0) {
+                centerLng = sumLng / count;
+                centerLat = sumLat / count;
+            }
+        }
         
-        // Initialize deck.gl with enhanced features and widgets
+        // Create and set up deck.gl
         this.deckgl = new deck.DeckGL({
             container: 'map',
+            mapboxApiAccessToken: this.mapboxToken,
             initialViewState: {
                 longitude: centerLng,
                 latitude: centerLat,
-                zoom: 11,
+                zoom: 12,
                 pitch: 0,
                 bearing: 0,
-                minZoom: 7,  // Prevent zooming out beyond level 7
+                minZoom: 7,
                 maxZoom: 19
             },
-            controller: {
-                minZoom: 7,  // Enforce minimum zoom level
-                maxZoom: 19
-            },
-            onHover: (info) => this.handleHover(info),
-            onClick: (info) => this.handleClick(info),
+            controller: true,
             onViewStateChange: ({viewState}) => this.handleViewStateChange(viewState),
-            // Enable WebGL features for better performance
-            parameters: {
-                clearColor: [0.1, 0.1, 0.1, 1],
-                blend: true,
-                blendFunc: [770, 771, 1, 0]
-            },
-            // Use high DPI for crisp rendering
-            useDevicePixels: true,
-            // Add widgets to deck.gl
-            widgets: this.widgets
+            getCursor: ({isDragging, isHovering}) => {
+                if (isDragging) return 'grabbing';
+                if (isHovering) return 'pointer';
+                return 'grab';
+            }
         });
+        
+        // Initialize status indicators
+        this.updateBuildingLayerStatus();
+        
+        // Initialize widgets (zoom, fullscreen, compass)
+        this.initializeWidgets();
+        
+        // Create initial layers
+        this.currentLayers = this.createLayers();
+        this.deckgl.setProps({layers: this.currentLayers});
         
         // Store initial zoom level
-        this._currentZoom = 11;
-        
-        // Initial layer setup
-        this.updateVisualization();
+        this._currentZoom = 12;
         
         // Initialize scale bar
-        this.updateScaleBar(this.deckgl.viewState || {
-            zoom: 11,
-            latitude: centerLat
-        });
+        this.updateScaleBar();
+        
+        // Initial visualization update
+        this.updateVisualization();
     }
     
     /**
@@ -502,6 +633,7 @@ class ShelterAccessApp {
         try {
             // Check if widgets are available in this deck.gl version
             if (!deck.ZoomWidget || !deck.FullscreenWidget || !deck.CompassWidget) {
+                console.warn('Deck.gl widgets not available in this version');
                 return;
             }
             
@@ -535,8 +667,15 @@ class ShelterAccessApp {
             // Store widgets for later use
             this.widgets = [zoomWidget, fullscreenWidget, compassWidget];
             
+            // Attach widgets to deck.gl instance
+            this.deckgl.setProps({
+                widgets: this.widgets
+            });
+            
+            console.log('✅ Deck.gl widgets initialized:', this.widgets.length);
+            
         } catch (error) {
-            // Widgets might not be available in all deck.gl versions
+            console.warn('Widgets initialization failed:', error);
             // Fall back to basic functionality
         }
     }
@@ -606,15 +745,18 @@ class ShelterAccessApp {
         if (shouldShowBuildings) {
             const currentZoom = this._currentZoom || 12;
             
-            if (this.useBuildingTiles && this.layerVisibility.buildings && currentZoom >= 7) {
-                // Use optimized tile layer for zoom levels 7+ when layer is enabled
+            // Building tiles are available for zoom levels 7-13
+            // At higher zooms (14+), fall back to GeoJSON for highlighting functionality
+            if (this.useBuildingTiles && this.layerVisibility.buildings && currentZoom >= 7 && currentZoom <= 13) {
+                // Use optimized tile layer for zoom levels 7-13 when layer is enabled
+                // Note: Highlighting is disabled at this zoom level for performance
                 layers.push(new deck.TileLayer({
                     id: 'buildings-tiles',
                     data: this.buildingTileUrl,
-                    minZoom: 7, // Tiles now available from zoom 7
-                    maxZoom: 16,
+                    minZoom: 7,
+                    maxZoom: 13, // Updated to match actual available data (7-13)
                     tileSize: 256,
-                    pickable: false,
+                    pickable: false, // Keep pickable false - highlighting doesn't work with tiles
                     // Add bounds to limit tile requests to data area
                     extent: [34.673474, 30.628270, 35.285314, 31.433190], // From building tiles metadata
                     // Custom tile data loading with bounds checking
@@ -687,6 +829,7 @@ class ShelterAccessApp {
                             getFillColor: [255, 0, 0, 120], // Red for all buildings
                             getLineColor: [255, 0, 0, 180], // Red outline
                             getLineWidth: 1,
+                            pickable: false, // Ensure tile sublayers are not pickable
                             // Performance optimizations
                             updateTriggers: {
                                 getFillColor: [this._currentZoom],
@@ -698,24 +841,16 @@ class ShelterAccessApp {
             } else if (currentData.buildings && currentData.buildings.features.length > 0) {
                 // Fallback to GeoJSON layer for:
                 // 1. Coverage highlighting when layer is disabled
-                // 2. Zoom levels below 7 when tiles aren't available (shouldn't happen with minZoom=7)
+                // 2. Zoom levels above 13 where tiles aren't available - HIGHLIGHTING WORKS HERE  
                 // 3. When tiles are disabled
                 
                 let buildingsToShow;
                 if (this.layerVisibility.buildings) {
-                    // Show all buildings when layer is enabled
-                    if (currentZoom < 7) {
-                        // For zoom levels below 7, show simplified buildings for performance
-                        // Only show every nth building to avoid performance issues
-                        const simplificationFactor = Math.max(1, Math.floor(Math.pow(2, 10 - currentZoom)));
-                        buildingsToShow = currentData.buildings.features.filter((_, index) => 
-                            index % simplificationFactor === 0
-                        );
-                    } else {
-                        buildingsToShow = currentData.buildings.features;
-                    }
+                    // Show all buildings when layer is enabled (zoom 14+ where tiles aren't available)
+                    // This enables full highlighting functionality at high zoom levels
+                    buildingsToShow = currentData.buildings.features;
                 } else {
-                    // Only show covered buildings when layer is disabled
+                    // Only show covered buildings when layer is disabled (highlighting mode)
                     const coveredIndices = new Set([
                         ...(this.hoveredShelter ? this.hoveredBuildings : []),
                         ...(this.selectedShelter ? this.highlightedBuildings : [])
@@ -1375,15 +1510,14 @@ class ShelterAccessApp {
         
         // Get current basemap configuration
         const basemapConfig = this.basemaps[this.currentBasemap];
-        let baseLayer;
         
         // Standard raster tile layer for all basemaps
-        baseLayer = this.createStandardTileLayer(basemapConfig);
+        const baseLayer = this.createStandardTileLayer(basemapConfig);
         
         // Combine base layer with data layers
-        const allLayers = [baseLayer, ...dataLayers];
+        this.currentLayers = [baseLayer, ...dataLayers];
         
-        this.deckgl.setProps({ layers: allLayers });
+        this.deckgl.setProps({ layers: this.currentLayers });
         
         this.updateCoverageAnalysis();
         this.updateLegend();
@@ -1693,22 +1827,27 @@ class ShelterAccessApp {
      * Handle viewport changes 
      */
     handleViewStateChange(viewState) {
+        const previousZoom = this._currentZoom;
+        this._currentViewState = viewState;
         this._currentZoom = viewState.zoom;
         
-        // Update scale bar
-        this.updateScaleBar(viewState);
+        // Update building layer status indicators
+        this.updateBuildingLayerStatus();
         
-        // Clear hover states when view changes significantly
-        if (Math.abs(this._currentZoom - viewState.zoom) > 0.5) {
-            this.clearShelterHover();
-            this.clearPolygonSelection();
+        // Update scale bar
+        this.updateScaleBar();
+        
+        // Only recreate layers if zoom level significantly changed (affects tile/geojson choice)
+        if (!previousZoom || Math.abs(this._currentZoom - previousZoom) > 0.5) {
+            const layers = this.createLayers();
+            this.deckgl.setProps({layers});
         }
     }
     
     /**
      * Initialize and update scale bar
      */
-    updateScaleBar(viewState) {
+    updateScaleBar() {
         const scaleBar = document.getElementById('scaleBar');
         const scaleLine = document.getElementById('scaleLine');
         const scaleText = document.getElementById('scaleText');
@@ -1716,8 +1855,8 @@ class ShelterAccessApp {
         if (!scaleBar || !scaleLine || !scaleText) return;
         
         // Calculate scale based on zoom and latitude
-        const zoom = viewState.zoom;
-        const latitude = viewState.latitude;
+        const zoom = this._currentZoom || 12;
+        const latitude = (this._currentViewState && this._currentViewState.latitude) || 31.25; // Fallback to center of Israel
         
         // Earth circumference in meters at the equator
         const earthCircumference = 40075016.686;
@@ -1810,22 +1949,27 @@ class ShelterAccessApp {
      * Calculate tile bounds in geographic coordinates
      */
     getTileBounds(x, y, z) {
-        const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
-        const west = x / Math.pow(2, z) * 360 - 180;
-        const east = (x + 1) / Math.pow(2, z) * 360 - 180;
-        const north = Math.atan(Math.sinh(n)) * 180 / Math.PI;
-        const south = Math.atan(Math.sinh(Math.PI - 2 * Math.PI * (y + 1) / Math.pow(2, z))) * 180 / Math.PI;
-        return [west, south, east, north];
+        // Calculate tile bounds in WGS84 coordinates
+        const n = Math.pow(2, z);
+        const lonMin = (x / n) * 360 - 180;
+        const lonMax = ((x + 1) / n) * 360 - 180;
+        const latMin = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+        const latMax = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+        return [lonMin, latMin, lonMax, latMax];
     }
     
     /**
      * Check if two bounding boxes intersect
      */
     boundsIntersect(bounds1, bounds2) {
-        const [west1, south1, east1, north1] = bounds1;
-        const [west2, south2, east2, north2] = bounds2;
-        
-        return !(east1 < west2 || west1 > east2 || north1 < south2 || south1 > north2);
+        // Check if two bounding boxes intersect
+        // bounds format: [minLon, minLat, maxLon, maxLat]
+        return !(
+            bounds1[2] < bounds2[0] || // bounds1 is left of bounds2
+            bounds1[0] > bounds2[2] || // bounds1 is right of bounds2
+            bounds1[3] < bounds2[1] || // bounds1 is below bounds2
+            bounds1[1] > bounds2[3]    // bounds1 is above bounds2
+        );
     }
 
     /**
@@ -1911,7 +2055,7 @@ class ShelterAccessApp {
      */
     selectShelter(shelter) {
         this.selectedShelter = shelter;
-        this.highlightedBuildings = this.calculateShelterCoverage(shelter);
+        this.highlightedBuildings = this.calculateShelterCoverageOptimized(shelter);
         this.updateVisualization();
         this.updateSelectionUI();
     }
@@ -1988,11 +2132,18 @@ class ShelterAccessApp {
 
     
     /**
-     * Handle shelter hover for building highlighting
+     * Handle shelter hover for coverage preview
      */
     handleShelterHover(shelter) {
+        // Throttle hover calculations for performance
+        const now = performance.now();
+        if (now - this.lastCoverageCalculation < 16) { // ~60fps
+            return;
+        }
+        this.lastCoverageCalculation = now;
+        
         this.hoveredShelter = shelter;
-        this.hoveredBuildings = this.calculateShelterCoverage(shelter);
+        this.hoveredBuildings = this.calculateShelterCoverageOptimized(shelter);
         this.updateVisualization();
     }
     
@@ -2095,15 +2246,15 @@ class ShelterAccessApp {
      * Show tooltip for a specific shelter
      */
     showShelterTooltip(shelter, layerId, x, y) {
-        const tooltip = this.elements.tooltip;
+        const tooltip = document.getElementById('tooltip');
         let content = '';
         
         if (layerId === 'existing-shelters') {
             // Handle hover highlighting
             this.handleShelterHover(shelter);
             
-            // Calculate coverage for this specific shelter
-            const coveredBuildings = this.calculateShelterCoverage(shelter);
+            // Calculate coverage for this specific shelter using optimized method
+            const coveredBuildings = this.calculateShelterCoverageOptimized(shelter);
             const buildingsCovered = coveredBuildings.length;
             const peopleCovered = buildingsCovered * 7; // 7 people per building
             
@@ -2118,8 +2269,8 @@ class ShelterAccessApp {
             // Handle hover highlighting
             this.handleShelterHover(shelter);
             
-            // Calculate coverage for this specific shelter
-            const coveredBuildings = this.calculateShelterCoverage(shelter);
+            // Calculate coverage for this specific shelter using optimized method
+            const coveredBuildings = this.calculateShelterCoverageOptimized(shelter);
             const buildingsCovered = coveredBuildings.length;
             const peopleCovered = buildingsCovered * 7; // 7 people per building
             
@@ -2173,6 +2324,27 @@ class ShelterAccessApp {
             tooltip.style.display = 'block';
             tooltip.style.left = `${x + 10}px`;
             tooltip.style.top = `${y - 10}px`;
+        }
+    }
+
+    // Update building layer status indicators based on zoom level
+    updateBuildingLayerStatus() {
+        const currentZoom = this._currentZoom || 12;
+        const statusTiles = document.querySelector('.status-tiles');
+        const statusHighlighting = document.querySelector('.status-highlighting');
+        
+        if (!statusTiles || !statusHighlighting) return;
+        
+        if (currentZoom >= 7 && currentZoom <= 13 && this.useBuildingTiles && this.layerVisibility.buildings) {
+            // Show tiles status, hide highlighting status
+            statusTiles.style.display = 'inline-block';
+            statusTiles.textContent = '📐 Using tiles (zoom 7-13)';
+            statusHighlighting.style.display = 'none';
+        } else {
+            // Show highlighting status at high zoom (14+)
+            statusTiles.style.display = 'none';
+            statusHighlighting.style.display = 'inline-block';
+            statusHighlighting.textContent = '🎯 Highlighting available (zoom 14+)';
         }
     }
 }

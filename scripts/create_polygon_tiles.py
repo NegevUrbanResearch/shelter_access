@@ -100,8 +100,8 @@ def save_tile_geojson(features, output_path):
         print(f"❌ Error saving tile {output_path}: {e}")
         return 0
 
-def generate_building_tiles_low_zoom(buildings_gdf, output_dir, zoom_levels=[7, 8, 9, 10, 11]):
-    """Generate building tiles for lower zoom levels"""
+def generate_building_tiles_low_zoom(buildings_gdf, output_dir, zoom_levels=[7, 8, 9, 10, 11, 12, 13]):
+    """Generate building tiles for zoom levels 7-13"""
     print(f"\n🏢 Generating building tiles for zoom levels {zoom_levels}...")
     
     total_tiles = 0
@@ -299,11 +299,11 @@ def main():
         sys.exit(1)
     
     # Generate missing building tiles for lower zoom levels
-    print(f"\n🏢 Extending building tiles to cover zoom levels 7-11...")
+    print(f"\n🏢 Extending building tiles to cover zoom levels 7-13...")
     building_tiles_created = generate_building_tiles_low_zoom(
         buildings_gdf, 
         building_tiles_dir,
-        zoom_levels=[7, 8, 9, 10, 11]
+        zoom_levels=[7, 8, 9, 10, 11, 12, 13]
     )
     
     # Update building tiles metadata
@@ -322,9 +322,9 @@ def main():
         total_building_tiles = existing_tiles + building_tiles_created
         update_metadata(
             building_tiles_dir,
-            "building_tiles_extended",
-            "Building footprint vector tiles (extended to zoom 7-16)",
-            [7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+            "buildings",
+            "Building footprint vector tiles (zoom levels 7-13)",
+            [7, 8, 9, 10, 11, 12, 13],
             total_building_tiles,
             buildings_gdf
         )
