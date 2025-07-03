@@ -43,28 +43,14 @@ class ShelterAccessApp {
             accessibilityHeatmap: false // Off by default
         };
         
-        // Performance: Layer caching system
-        this.layerCache = new Map();
-        this.layerCacheKeys = {
-            baseLayer: null,
-            buildings: null,
-            existingShelters: null,
-            requestedShelters: null,
-            optimalShelters: null,
-            statisticalAreas: null,
-            habitationClusters: null,
-            accessibilityHeatmap: null,
-            coverageBrush: null
-        };
+        // Simplified - no layer caching needed
         
         // Accessibility heatmap data
         this.accessibilityData = null;
         this.allAccessibilityData = null; // Stores all radii data
         this.isCalculatingAccessibility = false;
         
-        // Tile layer settings
-        this.useBuildingTiles = true; // Use tiled buildings for better performance
-        this.buildingTileUrl = 'data/building_tiles/{z}/{x}/{y}.json';
+        // Simplified - no tile system needed
         
         // Mapbox token for terrain and other services
         this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
@@ -90,18 +76,7 @@ class ShelterAccessApp {
         this._currentZoom = 12;
         this._currentViewState = null;
         
-        // Spatial indexing for performance
-        this.buildingSpatialGrid = null;
-        this.gridCellSize = 0.001; // ~100m at these latitudes
-        
-        // Pre-computed coverage maps for instant lookup (much faster than on-demand calculation)
-        this.precomputedCoverage = {
-            shelterCoverageMap: new Map(), // shelter_key -> [building_indices] for current radius
-            rawData: null, // Raw loaded data from shelter_coverage_precomputed.json
-            isLoaded: false,
-            supportedRadii: [100, 150, 200, 250, 300], // Standard radii to pre-compute
-            currentRadius: 100
-        };
+        // Simplified - using direct calculations with caching
         
         // Performance monitoring
         this.lastCoverageCalculation = 0;
@@ -140,210 +115,9 @@ class ShelterAccessApp {
         };
     }
     
-    /**
-     * Build spatial grid index for fast building lookups
-     */
-    buildSpatialIndex() {
-        const currentData = this.spatialAnalyzer.getCurrentData();
-        if (!currentData.buildings || !currentData.buildings.features) {
-            console.warn('No building data available for spatial indexing');
-            return;
-        }
-        
-        console.log('🗂️ Building spatial index for', currentData.buildings.features.length, 'buildings...');
-        
-        this.buildingSpatialGrid = new Map();
-        
-        currentData.buildings.features.forEach((building, index) => {
-            // Calculate building centroid
-            let centroid;
-            if (building.geometry.type === 'Point') {
-                centroid = building.geometry.coordinates;
-            } else if (building.geometry.type === 'Polygon') {
-                // Calculate centroid of polygon
-                const coords = building.geometry.coordinates[0]; // First ring (exterior)
-                let sumX = 0, sumY = 0;
-                for (let j = 0; j < coords.length - 1; j++) { // Skip last point (same as first)
-                    sumX += coords[j][0];
-                    sumY += coords[j][1];
-                }
-                centroid = [sumX / (coords.length - 1), sumY / (coords.length - 1)];
-            } else {
-                return; // Skip unsupported geometry types
-            }
-            
-            // Calculate grid cell coordinates
-            const gridX = Math.floor(centroid[0] / this.gridCellSize);
-            const gridY = Math.floor(centroid[1] / this.gridCellSize);
-            const cellKey = `${gridX},${gridY}`;
-            
-            // Add building to grid cell
-            if (!this.buildingSpatialGrid.has(cellKey)) {
-                this.buildingSpatialGrid.set(cellKey, []);
-            }
-            this.buildingSpatialGrid.get(cellKey).push({
-                index: index,
-                centroid: centroid,
-                feature: building
-            });
-        });
-        
-        console.log('✅ Spatial index built:', this.buildingSpatialGrid.size, 'grid cells');
-    }
+
     
-    /**
-     * Generate cache keys for different layer types based on their dependencies
-     */
-    generateCacheKey(layerType) {
-        const zoom = Math.floor(this._currentZoom || 12);
-        
-        switch (layerType) {
-            case 'baseLayer':
-                return `base_${this.currentBasemap}`;
-                
-            case 'buildings':
-                // Buildings depend on: visibility, zoom, hover/selection state
-                const buildingKey = [
-                    this.layerVisibility.buildings,
-                    zoom,
-                    this.useBuildingTiles,
-                    !!this.hoveredShelter,
-                    !!this.selectedShelter,
-                    this.hoveredBuildings.length,
-                    this.highlightedBuildings.length
-                ].join('_');
-                return `buildings_${buildingKey}`;
-                
-            case 'existingShelters':
-                // Existing shelters depend on: visibility, selection state
-                const existingKey = [
-                    this.layerVisibility.existingShelters,
-                    this.layerVisibility.accessibilityHeatmap,
-                    this.selectedShelter ? JSON.stringify(this.selectedShelter.properties || {}) : 'none'
-                ].join('_');
-                return `existing_${existingKey}`;
-                
-            case 'requestedShelters':
-                // Requested shelters depend on: visibility, selection state, proposed shelters count (for pairing analysis)
-                const requestedKey = [
-                    this.layerVisibility.requestedShelters,
-                    this.layerVisibility.accessibilityHeatmap,
-                    this.proposedShelters.length,
-                    this.selectedShelter ? JSON.stringify(this.selectedShelter.properties || {}) : 'none'
-                ].join('_');
-                return `requested_${requestedKey}`;
-                
-            case 'optimalShelters':
-                // Optimal shelters depend on: visibility, proposed shelters, selection state
-                const optimalKey = [
-                    this.layerVisibility.optimalShelters,
-                    this.layerVisibility.accessibilityHeatmap,
-                    this.proposedShelters.length,
-                    JSON.stringify(this.proposedShelters.map(s => ({lat: s.lat, lon: s.lon}))),
-                    this.selectedShelter && this.selectedShelter.coordinates ? JSON.stringify(this.selectedShelter.coordinates) : 'none'
-                ].join('_');
-                return `optimal_${optimalKey}`;
-                
-            case 'statisticalAreas':
-                // Statistical areas depend on: visibility, selection state
-                const statsKey = [
-                    this.layerVisibility.statisticalAreas,
-                    this.selectedPolygon && this.selectedPolygonType === 'statisticalArea' ? this.selectedPolygon._index : 'none'
-                ].join('_');
-                return `stats_${statsKey}`;
-                
-            case 'habitationClusters':
-                // Habitation clusters depend on: visibility, zoom, selection state
-                const clustersKey = [
-                    this.layerVisibility.habitationClusters,
-                    zoom,
-                    this.selectedPolygon && this.selectedPolygonType === 'habitationCluster' ? 
-                        (this.selectedPolygon.feature?.properties?.OBJECTID || this.selectedPolygon._index) : 'none'
-                ].join('_');
-                return `clusters_${clustersKey}`;
-                
-            case 'accessibilityHeatmap':
-                // Heatmap depends on: visibility, radius, data availability
-                const heatmapKey = [
-                    this.layerVisibility.accessibilityHeatmap,
-                    this.coverageRadius,
-                    !!this.accessibilityData,
-                    this.accessibilityData ? this.accessibilityData.length : 0
-                ].join('_');
-                return `heatmap_${heatmapKey}`;
-                
-            case 'coverageBrush':
-                // Coverage brush depends on: active shelter, covered buildings
-                const brushKey = [
-                    !!this.selectedShelter,
-                    !!this.hoveredShelter,
-                    this.highlightedBuildings.length,
-                    this.hoveredBuildings.length,
-                    this.selectedShelter ? JSON.stringify(this.selectedShelter.properties || this.selectedShelter.coordinates || {}) : 'none',
-                    this.hoveredShelter ? JSON.stringify(this.hoveredShelter.properties || this.hoveredShelter.coordinates || {}) : 'none'
-                ].join('_');
-                return `brush_${brushKey}`;
-                
-            default:
-                return `${layerType}_${Date.now()}`;
-        }
-    }
-    
-    /**
-     * Get cached layer or create new one if cache is invalid
-     */
-    getCachedLayer(layerType, createLayerFn) {
-        const newCacheKey = this.generateCacheKey(layerType);
-        const currentCacheKey = this.layerCacheKeys[layerType];
-        
-        // Check if we have a valid cached layer
-        if (currentCacheKey === newCacheKey && this.layerCache.has(newCacheKey)) {
-            return this.layerCache.get(newCacheKey);
-        }
-        
-        // Create new layer
-        const newLayer = createLayerFn();
-        
-        // Update cache
-        if (currentCacheKey && currentCacheKey !== newCacheKey) {
-            // Remove old cache entry
-            this.layerCache.delete(currentCacheKey);
-        }
-        
-        // Store new layer in cache
-        this.layerCache.set(newCacheKey, newLayer);
-        this.layerCacheKeys[layerType] = newCacheKey;
-        
-        return newLayer;
-    }
-    
-    /**
-     * Clear specific cache entries (e.g., when data changes)
-     */
-    clearLayerCache(layerTypes = null) {
-        if (!layerTypes) {
-            // Clear all cache
-            this.layerCache.clear();
-            Object.keys(this.layerCacheKeys).forEach(key => {
-                this.layerCacheKeys[key] = null;
-            });
-            console.log('🧹 Cleared all layer cache');
-        } else {
-            // Clear specific layer types
-            if (typeof layerTypes === 'string') {
-                layerTypes = [layerTypes];
-            }
-            
-            layerTypes.forEach(layerType => {
-                const cacheKey = this.layerCacheKeys[layerType];
-                if (cacheKey) {
-                    this.layerCache.delete(cacheKey);
-                    this.layerCacheKeys[layerType] = null;
-                }
-            });
-            console.log('🧹 Cleared cache for:', layerTypes);
-        }
-    }
+    // Layer caching system removed - direct layer creation is simpler and fast enough
     
     /**
      * Generate cache key for shelter coverage results
@@ -369,17 +143,9 @@ class ShelterAccessApp {
     }
     
     /**
-     * Get cached coverage or calculate and cache new coverage
-     * Prioritizes pre-computed data for instant results
+     * Get cached coverage or calculate new coverage (simplified)
      */
     getCachedCoverage(shelter) {
-        // Try pre-computed data first (instant lookup)
-        const precomputedCoverage = this.getPrecomputedCoverage(shelter);
-        if (precomputedCoverage !== null) {
-            return precomputedCoverage;
-        }
-        
-        // Fall back to traditional caching system
         const cacheKey = this.generateCoverageKey(shelter);
         if (!cacheKey) return [];
         
@@ -388,8 +154,8 @@ class ShelterAccessApp {
             return this.hoverState.coverageCache.get(cacheKey);
         }
         
-        // Calculate and cache (slowest option)
-        const coverage = this.calculateShelterCoverageOptimized(shelter);
+        // Calculate and cache using simple method
+        const coverage = this.calculateShelterCoverage(shelter);
         this.hoverState.coverageCache.set(cacheKey, coverage);
         
         // Limit cache size to prevent memory issues
@@ -410,152 +176,7 @@ class ShelterAccessApp {
         console.log('🧹 Cleared coverage cache');
     }
     
-    /**
-     * Load pre-computed shelter coverage data for instant lookups
-     */
-    async loadPrecomputedShelterCoverage() {
-        if (this.precomputedCoverage.isLoaded) {
-            console.log('✅ Pre-computed shelter coverage already loaded');
-            return;
-        }
-        
-        try {
-            console.log('📥 Loading pre-computed shelter coverage data...');
-            const response = await fetch('data/shelter_coverage_precomputed.json');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            this.precomputedCoverage.rawData = await response.json();
-            this.updatePrecomputedCoverageForRadius();
-            this.precomputedCoverage.isLoaded = true;
-            
-            const totalShelters = this.precomputedCoverage.rawData.generation_info.total_shelters;
-            console.log(`✅ Loaded pre-computed coverage for ${totalShelters} shelters`);
-            console.log(`🚀 Hover performance should now be instant!`);
-            
-        } catch (error) {
-            console.warn('⚠️ Failed to load pre-computed shelter coverage:', error);
-            console.log('💡 Falling back to real-time calculations (slower)');
-            this.precomputedCoverage.isLoaded = false;
-        }
-    }
-    
-    /**
-     * Update pre-computed coverage map for current radius
-     */
-    updatePrecomputedCoverageForRadius() {
-        if (!this.precomputedCoverage.rawData) return;
-        
-        const radiusKey = `${this.coverageRadius}m`;
-        this.precomputedCoverage.currentRadius = this.coverageRadius;
-        this.precomputedCoverage.shelterCoverageMap.clear();
-        
-        // Extract coverage for current radius
-        const coverageMap = this.precomputedCoverage.rawData.shelter_coverage_map;
-        
-        for (const [shelterKey, shelterData] of Object.entries(coverageMap)) {
-            const radiusData = shelterData.coverage_by_radius[radiusKey];
-            if (radiusData) {
-                this.precomputedCoverage.shelterCoverageMap.set(shelterKey, {
-                    buildingIndices: radiusData.building_indices,
-                    buildingsCount: radiusData.buildings_count,
-                    estimatedPeople: radiusData.estimated_people,
-                    shelterInfo: shelterData.shelter_info
-                });
-            }
-        }
-        
-        console.log(`🔄 Updated pre-computed coverage for ${radiusKey}: ${this.precomputedCoverage.shelterCoverageMap.size} shelters`);
-    }
-    
-    /**
-     * Get pre-computed coverage for a shelter (instant lookup)
-     */
-    getPrecomputedCoverage(shelter) {
-        if (!this.precomputedCoverage.isLoaded) {
-            return null; // Fall back to calculation
-        }
-        
-        // Generate shelter key matching the preprocessing format
-        const shelterKey = this.generateShelterKey(shelter);
-        if (!shelterKey) return null;
-        
-        const coverage = this.precomputedCoverage.shelterCoverageMap.get(shelterKey);
-        if (coverage) {
-            return coverage.buildingIndices;
-        }
-        
-        return null; // Fall back to calculation
-    }
-    
-    /**
-     * Generate shelter key matching preprocessing format (6 decimal precision)
-     */
-    generateShelterKey(shelter) {
-        let coords = null;
-        
-        if (shelter.geometry && shelter.geometry.coordinates) {
-            // Existing/requested shelter format
-            coords = shelter.geometry.coordinates;
-        } else if (shelter.coordinates) {
-            // Optimal shelter format
-            coords = shelter.coordinates;
-        } else if (shelter.lat && shelter.lon) {
-            // Alternative format
-            coords = [shelter.lon, shelter.lat];
-        }
-        
-        if (!coords) return null;
-        
-        // Match preprocessing format: 6 decimal precision
-        return `${coords[0].toFixed(6)}_${coords[1].toFixed(6)}`;
-    }
-    
-    /**
-     * Fast building coverage calculation using spatial index
-     */
-    calculateShelterCoverageOptimized(shelter) {
-        if (!this.buildingSpatialGrid || !shelter) {
-            // Fallback to original method if no spatial index
-            return this.calculateShelterCoverage(shelter);
-        }
-        
-        const shelterCoords = shelter.geometry ? shelter.geometry.coordinates : [shelter.lon, shelter.lat];
-        const coverageRadiusDeg = this.coverageRadius / 111000; // Approximate conversion to degrees
-        const coverageRadiusSquared = coverageRadiusDeg * coverageRadiusDeg; // Use squared distance for efficiency
-        
-        const coveredBuildings = [];
-        
-        // Calculate which grid cells to check (expand search area by radius)
-        const gridRadius = Math.ceil(coverageRadiusDeg / this.gridCellSize);
-        const centerGridX = Math.floor(shelterCoords[0] / this.gridCellSize);
-        const centerGridY = Math.floor(shelterCoords[1] / this.gridCellSize);
-        
-        // Check only nearby grid cells instead of all buildings
-        for (let gridX = centerGridX - gridRadius; gridX <= centerGridX + gridRadius; gridX++) {
-            for (let gridY = centerGridY - gridRadius; gridY <= centerGridY + gridRadius; gridY++) {
-                const cellKey = `${gridX},${gridY}`;
-                const cellBuildings = this.buildingSpatialGrid.get(cellKey);
-                
-                if (cellBuildings) {
-                    for (const building of cellBuildings) {
-                        // Calculate squared distance (faster than sqrt)
-                        const dx = building.centroid[0] - shelterCoords[0];
-                        const dy = building.centroid[1] - shelterCoords[1];
-                        const distanceSquared = dx * dx + dy * dy;
-                        
-                        if (distanceSquared <= coverageRadiusSquared) {
-                            coveredBuildings.push(building.index);
-                        }
-                    }
-                }
-            }
-        }
-        
-        return coveredBuildings;
-    }
+
     
     /**
      * Initialize the application
@@ -566,17 +187,10 @@ class ShelterAccessApp {
             this.setupMainMenu();
             await this.spatialAnalyzer.loadData();
             
-            // Clear all layer cache when data loads
-            this.clearLayerCache();
+            // Layer caching removed - no longer needed
             
             // Clear coverage cache when data loads
             this.clearCoverageCache();
-            
-            // Load pre-computed shelter coverage for instant hover performance
-            await this.loadPrecomputedShelterCoverage();
-            
-            // Build spatial index for fast coverage calculations (fallback)
-            this.buildSpatialIndex();
             
             await this.initializeMap();
             this.updateAttribution();
@@ -590,9 +204,8 @@ class ShelterAccessApp {
             // Hide loading overlay
             this.hideLoading();
             
-            console.log('✅ Layer caching system initialized');
             console.log('✅ Simple hover system initialized');
-            console.log('✅ Pre-computed shelter coverage system initialized');
+            console.log('✅ Coverage calculation system initialized');
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -788,11 +401,6 @@ class ShelterAccessApp {
                     // Clear coverage cache when radius changes (important for hover optimization)
                     this.clearCoverageCache();
                     
-                    // Update pre-computed coverage for new radius
-                    if (this.precomputedCoverage.isLoaded) {
-                        this.updatePrecomputedCoverageForRadius();
-                    }
-                    
                     // Update spatial analyzer and refresh
                     await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
                     this.clearShelterSelection(); // Clear selection when radius changes
@@ -978,8 +586,7 @@ class ShelterAccessApp {
             }
         });
         
-        // Initialize status indicators
-        this.updateBuildingLayerStatus();
+        // Status indicators removed - no longer needed
         
         // Initialize widgets (zoom, fullscreen, compass)
         this.initializeWidgets();
@@ -1002,13 +609,6 @@ class ShelterAccessApp {
      * Initialize deck.gl widgets (zoom, fullscreen, compass)
      */
     initializeWidgets() {
-        try {
-            // Check if widgets are available in this deck.gl version
-            if (!deck.ZoomWidget || !deck.FullscreenWidget || !deck.CompassWidget) {
-                console.warn('Deck.gl widgets not available in this version');
-                return;
-            }
-            
             // Zoom Control Widget
             const zoomWidget = new deck.ZoomWidget({
                 id: 'zoom-widget',
@@ -1043,14 +643,7 @@ class ShelterAccessApp {
             this.deckgl.setProps({
                 widgets: this.widgets
             });
-            
-            console.log('✅ Deck.gl widgets initialized:', this.widgets.length);
-            
-        } catch (error) {
-            console.warn('Widgets initialization failed:', error);
-            // Fall back to basic functionality
         }
-    }
     
     /**
      * Create visualization layers with new color scheme
@@ -1109,199 +702,88 @@ class ShelterAccessApp {
             });
         }
         
-        // === BUILDINGS LAYER (Tiled or GeoJSON) ===
+        // === BUILDINGS LAYER (Simplified GeoJSON) ===
         const shouldShowBuildings = this.layerVisibility.buildings || 
                                   (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
                                   (this.selectedShelter && this.highlightedBuildings.length > 0);
         
-        if (shouldShowBuildings) {
-            const currentZoom = this._currentZoom || 12;
+        if (shouldShowBuildings && currentData.buildings && currentData.buildings.features.length > 0) {
+            let buildingsToShow;
+            if (this.layerVisibility.buildings) {
+                // Show all buildings when layer is enabled
+                buildingsToShow = currentData.buildings.features;
+            } else {
+                // Only show covered buildings when layer is disabled (highlighting mode)
+                const coveredIndices = new Set([
+                    ...(this.hoveredShelter ? this.hoveredBuildings : []),
+                    ...(this.selectedShelter ? this.highlightedBuildings : [])
+                ]);
+                buildingsToShow = currentData.buildings.features.filter((_, index) => 
+                    coveredIndices.has(index)
+                );
+            }
             
-            // Building tiles are available for zoom levels 7-13
-            // At higher zooms (14+), fall back to GeoJSON for highlighting functionality
-            if (this.useBuildingTiles && this.layerVisibility.buildings && currentZoom >= 7 && currentZoom <= 13) {
-                // Use optimized tile layer for zoom levels 7-13 when layer is enabled
-                // Note: Highlighting is disabled at this zoom level for performance
-                layers.push(new deck.TileLayer({
-                    id: 'buildings-tiles',
-                    data: this.buildingTileUrl,
-                    minZoom: 7,
-                    maxZoom: 13, // Updated to match actual available data (7-13)
-                    tileSize: 256,
-                    pickable: false, // Keep pickable false - highlighting doesn't work with tiles
-                    // Add bounds to limit tile requests to data area
-                    extent: [34.673474, 30.628270, 35.285314, 31.433190], // From building tiles metadata
-                    // Custom tile data loading with bounds checking
-                    getTileData: async (tile) => {
-                        try {
-                            // Extract coordinates from tile.index
-                            const {x, y, z} = tile.index;
-                            
-                            // Basic bounds check to avoid unnecessary requests
-                            const tileBounds = this.getTileBounds(x, y, z);
-                            const dataBounds = [34.673474, 30.628270, 35.285314, 31.433190];
-                            
-                            // Check if tile intersects with data bounds
-                            if (!this.boundsIntersect(tileBounds, dataBounds)) {
-                                return null; // Don't request tiles outside data area
+            if (buildingsToShow.length > 0) {
+                layers.push(new deck.GeoJsonLayer({
+                    id: 'buildings-geojson',
+                    data: buildingsToShow.map((feature, index) => ({
+                        ...feature,
+                        _index: index // Add array index for identification
+                    })),
+                    pickable: false,
+                    stroked: true,
+                    filled: true,
+                    lineWidthMinPixels: 1,
+                    lineWidthMaxPixels: 2,
+                    getFillColor: d => {
+                        const buildingIndex = d._index || 0;
+                        
+                        if (this.layerVisibility.buildings) {
+                            // Check if this building is covered by hovered shelter (turn green)
+                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 150]; // Bright green for hover coverage
                             }
-                            
-                            const response = await fetch(`data/building_tiles/${z}/${x}/${y}.json`);
-                            if (!response.ok) {
-                                if (response.status === 404) {
-                                    return null; // Handle missing tiles gracefully
-                                }
-                                throw new Error(`HTTP ${response.status}`);
+                            // Check if this building is covered by selected shelter (turn green)
+                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 200]; // Bright green for selected coverage
                             }
-                            return await response.json();
-                        } catch (error) {
-                            // Suppress 404 errors - they're expected for sparse tilesets
-                            if (error.message.includes('404')) {
-                                return null;
-                            }
-                            console.warn(`Building tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
-                            return null;
+                            return [255, 0, 0, 120]; // Red for all other buildings when layer is enabled
+                        } else {
+                            // Buildings layer is disabled - only show covered buildings in green
+                            return [0, 255, 0, 200]; // Bright green for covered buildings
                         }
                     },
-                    
-                    renderSubLayers: props => {
-                        const {data, tile} = props;
+                    getLineColor: d => {
+                        const buildingIndex = d._index || 0;
                         
-                        // Validate tile coordinates - they're nested in tile.index
-                        if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
-                            console.warn('Invalid tile coordinates:', tile);
-                            return null;
-                        }
-                        
-                        // Validate data structure
-                        if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
-                            return null;
-                        }
-                        
-                        // Validate that features have valid geometries
-                        const validFeatures = data.features.filter(feature => 
-                            feature && 
-                            feature.geometry && 
-                            feature.geometry.coordinates &&
-                            Array.isArray(feature.geometry.coordinates)
-                        );
-                        
-                        if (validFeatures.length === 0) {
-                            return null;
-                        }
-                        
-                        return new deck.GeoJsonLayer({
-                            ...props,
-                            id: `buildings-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
-                            data: validFeatures,
-                            stroked: true,
-                            filled: true,
-                            lineWidthMinPixels: 1,
-                            lineWidthMaxPixels: 2,
-                            getFillColor: [255, 0, 0, 120], // Red for all buildings
-                            getLineColor: [255, 0, 0, 180], // Red outline
-                            getLineWidth: 1,
-                            pickable: false, // Ensure tile sublayers are not pickable
-                            // Performance optimizations
-                            updateTriggers: {
-                                getFillColor: [this._currentZoom],
-                                getLineColor: [this._currentZoom]
+                        if (this.layerVisibility.buildings) {
+                            // Check if this building is covered by hovered shelter (turn green)
+                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 255]; // Bright green outline for hover
                             }
-                        });
+                            // Check if this building is covered by selected shelter (turn green)
+                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 255]; // Bright green outline for selected
+                            }
+                            return [255, 0, 0, 180]; // Red outline for all other buildings
+                        } else {
+                            // Buildings layer is disabled - only show covered building outlines in green
+                            return [0, 255, 0, 255]; // Bright green outline for covered buildings
+                        }
+                    },
+                    getLineWidth: d => {
+                        const buildingIndex = d._index || 0;
+                        
+                        // Thicker outline for highlighted buildings
+                        if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                            return 3;
+                        }
+                        if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                            return 2;
+                        }
+                        return 1;
                     }
                 }));
-            } else if (currentData.buildings && currentData.buildings.features.length > 0) {
-                // Fallback to GeoJSON layer for:
-                // 1. Coverage highlighting when layer is disabled
-                // 2. Zoom levels above 13 where tiles aren't available - HIGHLIGHTING WORKS HERE  
-                // 3. When tiles are disabled
-                
-                let buildingsToShow;
-                if (this.layerVisibility.buildings) {
-                    // Show all buildings when layer is enabled (zoom 14+ where tiles aren't available)
-                    // This enables full highlighting functionality at high zoom levels
-                    buildingsToShow = currentData.buildings.features;
-                } else {
-                    // Only show covered buildings when layer is disabled (highlighting mode)
-                    const coveredIndices = new Set([
-                        ...(this.hoveredShelter ? this.hoveredBuildings : []),
-                        ...(this.selectedShelter ? this.highlightedBuildings : [])
-                    ]);
-                    buildingsToShow = currentData.buildings.features.filter((_, index) => 
-                        coveredIndices.has(index)
-                    );
-                }
-                
-                if (buildingsToShow.length > 0) {
-                    layers.push(new deck.GeoJsonLayer({
-                        id: 'buildings-geojson',
-                        data: buildingsToShow.map((feature, index) => ({
-                            ...feature,
-                            _index: index // Add array index for identification
-                        })),
-                        pickable: false,
-                        stroked: true,
-                        filled: true,
-                        lineWidthMinPixels: 1,
-                        lineWidthMaxPixels: 2,
-                        // Performance optimizations for large datasets
-                        parameters: {
-                            blend: true,
-                            blendFunc: [770, 771, 1, 0]
-                        },
-                        // New symbology logic
-                        getFillColor: d => {
-                            const buildingIndex = d._index || 0;
-                            
-                            // If buildings layer is enabled, show all buildings in red
-                            if (this.layerVisibility.buildings) {
-                                // Check if this building is covered by hovered shelter (turn green)
-                                if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                    return [0, 255, 0, 150]; // Bright green for hover coverage
-                                }
-                                // Check if this building is covered by selected shelter (turn green)
-                                if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                    return [0, 255, 0, 200]; // Bright green for selected coverage
-                                }
-                                return [255, 0, 0, 120]; // Red for all other buildings when layer is enabled
-                            } else {
-                                // Buildings layer is disabled - only show covered buildings in green
-                                return [0, 255, 0, 200]; // Bright green for covered buildings
-                            }
-                        },
-                        getLineColor: d => {
-                            const buildingIndex = d._index || 0;
-                            
-                            // If buildings layer is enabled, show all building outlines
-                            if (this.layerVisibility.buildings) {
-                                // Check if this building is covered by hovered shelter (turn green)
-                                if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                    return [0, 255, 0, 255]; // Bright green outline for hover
-                                }
-                                // Check if this building is covered by selected shelter (turn green)
-                                if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                    return [0, 255, 0, 255]; // Bright green outline for selected
-                                }
-                                return [255, 0, 0, 180]; // Red outline for all other buildings
-                            } else {
-                                // Buildings layer is disabled - only show covered building outlines in green
-                                return [0, 255, 0, 255]; // Bright green outline for covered buildings
-                            }
-                        },
-                        getLineWidth: d => {
-                            const buildingIndex = d._index || 0;
-                            
-                            // Thicker outline for highlighted buildings
-                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                return 3;
-                            }
-                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                return 2;
-                            }
-                            return 1;
-                        }
-                    }));
-                }
             }
         }
         
@@ -1358,163 +840,49 @@ class ShelterAccessApp {
             }
         }
         
-        // === HABITATION CLUSTERS LAYER (Blue outlines) ===
+        // === HABITATION CLUSTERS LAYER (Simplified GeoJSON) ===
         if (this.layerVisibility.habitationClusters) {
-            // Use optimized tile layer for better performance
-            const currentZoom = this.map?.deck?.props?.viewState?.zoom || this.map?.viewState?.zoom || 12;
+            // Load habitation clusters if not already loaded
+            if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
+                this.spatialAnalyzer.loadHabitationClustersGeoJson().then(() => {
+                    this.updateVisualization();
+                });
+            }
             
-            if (currentZoom >= 7 && currentZoom <= 14) {
-                // Use tile layer for supported zoom levels
-                layers.push(new deck.TileLayer({
-                    id: 'habitation-clusters-tiles',
-                    data: 'data/cluster_tiles/{z}/{x}/{y}.json',
-                    minZoom: 7,
-                    maxZoom: 14,
-                    tileSize: 256,
+            if (currentData.habitationClusters && currentData.habitationClusters.length > 0) {
+                layers.push(new deck.GeoJsonLayer({
+                    id: 'habitation-clusters-geojson',
+                    data: currentData.habitationClusters.map((feature, index) => ({
+                        ...feature,
+                        _layerType: 'habitationCluster',
+                        _index: index
+                    })),
                     pickable: true,
-                    // Add bounds to limit tile requests to data area  
-                    extent: [34.672703, 30.627776, 35.285141, 31.433086], // From cluster tiles metadata
-                    // Custom tile data loading with bounds checking
-                    getTileData: async (tile) => {
-                        try {
-                            // Extract coordinates from tile.index
-                            const {x, y, z} = tile.index;
-                            
-                            // Basic bounds check to avoid unnecessary requests
-                            const tileBounds = this.getTileBounds(x, y, z);
-                            const dataBounds = [34.672703, 30.627776, 35.285141, 31.433086];
-                            
-                            // Check if tile intersects with data bounds
-                            if (!this.boundsIntersect(tileBounds, dataBounds)) {
-                                return null; // Don't request tiles outside data area
-                            }
-                            
-                            const response = await fetch(`data/cluster_tiles/${z}/${x}/${y}.json`);
-                            if (!response.ok) {
-                                if (response.status === 404) {
-                                    return null; // Handle missing tiles gracefully
-                                }
-                                throw new Error(`HTTP ${response.status}`);
-                            }
-                            return await response.json();
-                        } catch (error) {
-                            // Suppress 404 errors - they're expected for sparse tilesets
-                            if (error.message.includes('404')) {
-                                return null;
-                            }
-                            console.warn(`Cluster tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
-                            return null;
-                        }
+                    stroked: true,
+                    filled: true,
+                    lineWidthMinPixels: 1,
+                    lineWidthMaxPixels: 2,
+                    getFillColor: d => {
+                        const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                         this.selectedPolygon?._index === d._index;
+                        return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
                     },
-                    
-                    renderSubLayers: props => {
-                        const {data, tile} = props;
-                        
-                        // Validate tile coordinates - they're nested in tile.index
-                        if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
-                            console.warn('Invalid cluster tile coordinates:', tile);
-                            return null;
-                        }
-                        
-                        // Validate data structure
-                        if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
-                            return null;
-                        }
-                        
-                        // Validate that features have valid geometries
-                        const validFeatures = data.features.filter(feature => 
-                            feature && 
-                            feature.geometry && 
-                            feature.geometry.coordinates &&
-                            Array.isArray(feature.geometry.coordinates)
-                        );
-                        
-                        if (validFeatures.length === 0) {
-                            return null;
-                        }
-                        
-                        return new deck.GeoJsonLayer({
-                            ...props,
-                            id: `habitation-clusters-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
-                            data: validFeatures.map((feature, index) => ({
-                                ...feature,
-                                _layerType: 'habitationCluster',
-                                _index: index,
-                                _tileInfo: `${tile.index.z}/${tile.index.x}/${tile.index.y}`
-                            })),
-                            stroked: true,
-                            filled: true,
-                            lineWidthMinPixels: 1,
-                            lineWidthMaxPixels: 2,
-                            getFillColor: d => {
-                                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25]; // Blue fill - more transparent
-                            },
-                            getLineColor: d => {
-                                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120]; // Blue outline - much less opaque
-                            },
-                            getLineWidth: d => {
-                                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                                 this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                                return isSelected ? 3 : 1; // Thinner overall
-                            },
-                            updateTriggers: {
-                                getFillColor: [this.selectedPolygon],
-                                getLineColor: [this.selectedPolygon],
-                                getLineWidth: [this.selectedPolygon]
-                            }
-                        });
+                    getLineColor: d => {
+                        const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                         this.selectedPolygon?._index === d._index;
+                        return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
+                    },
+                    getLineWidth: d => {
+                        const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                         this.selectedPolygon?._index === d._index;
+                        return isSelected ? 3 : 1;
+                    },
+                    updateTriggers: {
+                        getFillColor: [this.selectedPolygon],
+                        getLineColor: [this.selectedPolygon],
+                        getLineWidth: [this.selectedPolygon]
                     }
                 }));
-            } else {
-                // Load habitation clusters for fallback if not already loaded
-                if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
-                    // Trigger loading in background
-                    this.spatialAnalyzer.loadHabitationClustersGeoJson().then(() => {
-                        // Redraw when data is loaded
-                        this.updateVisualization();
-                    });
-                }
-                
-                if (currentData.habitationClusters && currentData.habitationClusters.length > 0) {
-                    // Fallback GeoJSON layer for zoom levels outside tile range
-                    layers.push(new deck.GeoJsonLayer({
-                        id: 'habitation-clusters-geojson',
-                        data: currentData.habitationClusters.map((feature, index) => ({
-                            ...feature,
-                            _layerType: 'habitationCluster',
-                            _index: index
-                        })),
-                        pickable: true,
-                        stroked: true,
-                        filled: true,
-                        lineWidthMinPixels: 1,
-                        lineWidthMaxPixels: 2,
-                        getFillColor: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                             this.selectedPolygon?._index === d._index;
-                            return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
-                        },
-                        getLineColor: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                             this.selectedPolygon?._index === d._index;
-                            return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
-                        },
-                        getLineWidth: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                             this.selectedPolygon?._index === d._index;
-                            return isSelected ? 3 : 1;
-                        },
-                        updateTriggers: {
-                            getFillColor: [this.selectedPolygon],
-                            getLineColor: [this.selectedPolygon],
-                            getLineWidth: [this.selectedPolygon]
-                        }
-                    }));
-                }
             }
         }
         
@@ -1873,23 +1241,21 @@ class ShelterAccessApp {
     }
 
     /**
-     * Update visualization layers with caching for better performance
+     * Update visualization layers (simplified)
      */
     updateVisualization() {
         if (!this.deckgl) return;
 
-        // Use cached layers for better performance
+        // Create layers directly - much simpler
         const layers = [];
         
-        // Base layer (cached)
-        const baseLayer = this.getCachedLayer('baseLayer', () => {
-            const basemapConfig = this.basemaps[this.currentBasemap];
-            return this.createStandardTileLayer(basemapConfig);
-        });
+        // Base layer
+        const basemapConfig = this.basemaps[this.currentBasemap];
+        const baseLayer = this.createStandardTileLayer(basemapConfig);
         layers.push(baseLayer);
         
-        // Create data layers using cache (only recreate when dependencies change)
-        const dataLayers = this.createLayersWithCache();
+        // Data layers
+        const dataLayers = this.createLayers();
         layers.push(...dataLayers);
         
         // Update deck.gl
@@ -2000,8 +1366,7 @@ class ShelterAccessApp {
             // Store directly - they're already in the right format
             this.proposedShelters = optimalLocations;
             
-            // Clear cache for layers that depend on proposed shelters
-            this.clearLayerCache(['optimalShelters', 'requestedShelters']);
+            // Layer caching removed - no longer needed
             
             // Update visualization
             this.updateVisualization();
@@ -2217,8 +1582,7 @@ class ShelterAccessApp {
         this._currentViewState = viewState;
         this._currentZoom = viewState.zoom;
         
-        // Update building layer status indicators
-        this.updateBuildingLayerStatus();
+        // Building layer status indicators removed
         
         // Update scale bar
         this.updateScaleBar();
@@ -2331,32 +1695,7 @@ class ShelterAccessApp {
         return this.basemaps[this.currentBasemap].url;
     }
     
-    /**
-     * Calculate tile bounds in geographic coordinates
-     */
-    getTileBounds(x, y, z) {
-        // Calculate tile bounds in WGS84 coordinates
-        const n = Math.pow(2, z);
-        const lonMin = (x / n) * 360 - 180;
-        const lonMax = ((x + 1) / n) * 360 - 180;
-        const latMin = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
-        const latMax = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
-        return [lonMin, latMin, lonMax, latMax];
-    }
-    
-    /**
-     * Check if two bounding boxes intersect
-     */
-    boundsIntersect(bounds1, bounds2) {
-        // Check if two bounding boxes intersect
-        // bounds format: [minLon, minLat, maxLon, maxLat]
-        return !(
-            bounds1[2] < bounds2[0] || // bounds1 is left of bounds2
-            bounds1[0] > bounds2[2] || // bounds1 is right of bounds2
-            bounds1[3] < bounds2[1] || // bounds1 is below bounds2
-            bounds1[1] > bounds2[3]    // bounds1 is above bounds2
-        );
-    }
+    // Tile utility methods removed - no longer needed
 
     /**
      * Change basemap
@@ -2372,8 +1711,7 @@ class ShelterAccessApp {
             body.classList.remove('light-basemap');
         }
         
-        // Clear base layer cache when basemap changes
-        this.clearLayerCache(['baseLayer']);
+        // Layer caching removed - no longer needed
         
         this.updateAttribution();
         this.updateVisualization();
@@ -2404,7 +1742,7 @@ class ShelterAccessApp {
         
         const coveredBuildings = [];
         
-        // Use a more efficient loop with early termination
+        // Simple loop through all buildings with distance calculation
         for (let i = 0; i < this.spatialAnalyzer.buildings.features.length; i++) {
             const building = this.spatialAnalyzer.buildings.features[i];
             
@@ -2447,8 +1785,7 @@ class ShelterAccessApp {
         // Use cached coverage for consistency with hover optimization
         this.highlightedBuildings = this.getCachedCoverage(shelter);
         
-        // Clear cache for layers affected by shelter selection
-        this.clearLayerCache(['buildings', 'coverageBrush', 'existingShelters', 'requestedShelters', 'optimalShelters']);
+        // Layer caching removed - no longer needed
         
         this.updateVisualization();
         this.updateSelectionUI();
@@ -2461,8 +1798,7 @@ class ShelterAccessApp {
         this.selectedShelter = null;
         this.highlightedBuildings = [];
         
-        // Clear cache for layers affected by shelter selection
-        this.clearLayerCache(['buildings', 'coverageBrush', 'existingShelters', 'requestedShelters', 'optimalShelters']);
+        // Layer caching removed - no longer needed
         
         this.updateVisualization();
         this.updateSelectionUI();
@@ -2524,8 +1860,7 @@ class ShelterAccessApp {
             weight: point.coverage[radiusKey] ? 1 : -1  // +1 for covered (green), -1 for uncovered (red)
         }));
         
-        // Clear heatmap cache when data changes
-        this.clearLayerCache(['accessibilityHeatmap']);
+        // Layer caching removed - no longer needed
         
         console.log(`🔄 Extracted ${radiusKey} data: ${this.accessibilityData.length} points`);
     }
@@ -2702,134 +2037,9 @@ class ShelterAccessApp {
         }
     }
 
-    // Update building layer status indicators based on zoom level
-    updateBuildingLayerStatus() {
-        const currentZoom = this._currentZoom || 12;
-        const statusTiles = document.querySelector('.status-tiles');
-        const statusHighlighting = document.querySelector('.status-highlighting');
-        
-        if (!statusTiles || !statusHighlighting) return;
-        
-        if (currentZoom >= 7 && currentZoom <= 13 && this.useBuildingTiles && this.layerVisibility.buildings) {
-            // Show tiles status, hide highlighting status
-            statusTiles.style.display = 'inline-block';
-            statusTiles.textContent = '📐 Using tiles (zoom 7-13)';
-            statusHighlighting.style.display = 'none';
-        } else {
-            // Show highlighting status at high zoom (14+)
-            statusTiles.style.display = 'none';
-            statusHighlighting.style.display = 'inline-block';
-            statusHighlighting.textContent = '🎯 Highlighting available (zoom 14+)';
-        }
-    }
+    // Building layer status indicators removed - no longer needed
 
-    /**
-     * Create visualization layers with caching for improved performance
-     */
-    createLayersWithCache() {
-        const layers = [];
-        const currentData = this.spatialAnalyzer.getCurrentData();
-        
-        if (!currentData.shelters) return layers;
-        
-        // === ACCESSIBILITY HEATMAP LAYER (cached) ===
-        if (this.layerVisibility.accessibilityHeatmap && this.accessibilityData && this.accessibilityData.length > 0) {
-            const heatmapLayer = this.getCachedLayer('accessibilityHeatmap', () => {
-                return this.createAccessibilityHeatmapLayer();
-            });
-            
-            if (heatmapLayer) {
-                layers.push(heatmapLayer);
-                return layers; // Only show heatmap when active
-            }
-        }
-        
-        // === BUILDINGS LAYER (cached) ===
-        const shouldShowBuildings = this.layerVisibility.buildings || 
-                                  (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
-                                  (this.selectedShelter && this.highlightedBuildings.length > 0);
-        
-        if (shouldShowBuildings) {
-            const buildingsLayer = this.getCachedLayer('buildings', () => {
-                return this.createBuildingsLayer();
-            });
-            
-            if (buildingsLayer) {
-                layers.push(buildingsLayer);
-            }
-        }
-        
-        // === STATISTICAL AREAS LAYER (cached) ===
-        if (this.layerVisibility.statisticalAreas) {
-            const statsLayer = this.getCachedLayer('statisticalAreas', () => {
-                return this.createStatisticalAreasLayer();
-            });
-            
-            if (statsLayer) {
-                layers.push(statsLayer);
-            }
-        }
-        
-        // === HABITATION CLUSTERS LAYER (cached) ===
-        if (this.layerVisibility.habitationClusters) {
-            const clustersLayer = this.getCachedLayer('habitationClusters', () => {
-                return this.createHabitationClustersLayer();
-            });
-            
-            if (clustersLayer) {
-                layers.push(clustersLayer);
-            }
-        }
-        
-        // === COVERAGE BRUSH LAYER (cached) ===
-        if ((this.selectedShelter || this.hoveredShelter) && this.spatialAnalyzer.buildings) {
-            const brushLayer = this.getCachedLayer('coverageBrush', () => {
-                return this.createCoverageBrushLayer();
-            });
-            
-            if (brushLayer) {
-                layers.push(brushLayer);
-            }
-        }
-        
-        // === SHELTER LAYERS (cached) ===
-        if (!this.layerVisibility.accessibilityHeatmap) {
-            // Existing shelters
-            if (this.layerVisibility.existingShelters) {
-                const existingLayer = this.getCachedLayer('existingShelters', () => {
-                    return this.createExistingSheltersLayer();
-                });
-                
-                if (existingLayer) {
-                    layers.push(existingLayer);
-                }
-            }
-            
-            // Requested shelters
-            if (this.layerVisibility.requestedShelters) {
-                const requestedLayer = this.getCachedLayer('requestedShelters', () => {
-                    return this.createRequestedSheltersLayer();
-                });
-                
-                if (requestedLayer) {
-                    layers.push(requestedLayer);
-                }
-            }
-            
-            // Optimal shelters
-            if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
-                const optimalLayer = this.getCachedLayer('optimalShelters', () => {
-                    return this.createOptimalSheltersLayer();
-                });
-                
-                if (optimalLayer) {
-                    layers.push(optimalLayer);
-                }
-            }
-        }
-        
-        return layers;
-    }
+    // createLayersWithCache method removed - using createLayers directly
     
     /**
      * Create accessibility heatmap layer
@@ -2976,160 +2186,85 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create buildings layer specifically
+     * Create buildings layer specifically (simplified)
      */
     createBuildingsLayer() {
         const currentData = this.spatialAnalyzer.getCurrentData();
-        const currentZoom = this._currentZoom || 12;
         
-        // Building tiles are available for zoom levels 7-13
-        // At higher zooms (14+), fall back to GeoJSON for highlighting functionality
-        if (this.useBuildingTiles && this.layerVisibility.buildings && currentZoom >= 7 && currentZoom <= 13) {
-            // Use optimized tile layer for zoom levels 7-13 when layer is enabled
-            return new deck.TileLayer({
-                id: 'buildings-tiles',
-                data: this.buildingTileUrl,
-                minZoom: 7,
-                maxZoom: 13,
-                tileSize: 256,
-                pickable: false,
-                extent: [34.673474, 30.628270, 35.285314, 31.433190],
-                getTileData: async (tile) => {
-                    try {
-                        const {x, y, z} = tile.index;
-                        const tileBounds = this.getTileBounds(x, y, z);
-                        const dataBounds = [34.673474, 30.628270, 35.285314, 31.433190];
-                        
-                        if (!this.boundsIntersect(tileBounds, dataBounds)) {
-                            return null;
-                        }
-                        
-                        const response = await fetch(`data/building_tiles/${z}/${x}/${y}.json`);
-                        if (!response.ok) {
-                            if (response.status === 404) {
-                                return null;
-                            }
-                            throw new Error(`HTTP ${response.status}`);
-                        }
-                        return await response.json();
-                    } catch (error) {
-                        if (error.message.includes('404')) {
-                            return null;
-                        }
-                        console.warn(`Building tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
-                        return null;
-                    }
-                },
-                renderSubLayers: props => {
-                    const {data, tile} = props;
-                    
-                    if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
-                        return null;
-                    }
-                    
-                    if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
-                        return null;
-                    }
-                    
-                    const validFeatures = data.features.filter(feature => 
-                        feature && 
-                        feature.geometry && 
-                        feature.geometry.coordinates &&
-                        Array.isArray(feature.geometry.coordinates)
-                    );
-                    
-                    if (validFeatures.length === 0) {
-                        return null;
-                    }
-                    
-                    return new deck.GeoJsonLayer({
-                        ...props,
-                        id: `buildings-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
-                        data: validFeatures,
-                        stroked: true,
-                        filled: true,
-                        lineWidthMinPixels: 1,
-                        lineWidthMaxPixels: 2,
-                        getFillColor: [255, 0, 0, 120],
-                        getLineColor: [255, 0, 0, 180],
-                        getLineWidth: 1,
-                        pickable: false
-                    });
-                }
-            });
-        } else if (currentData.buildings && currentData.buildings.features.length > 0) {
-            // GeoJSON layer for highlighting and high zoom levels
-            let buildingsToShow;
-            if (this.layerVisibility.buildings) {
-                buildingsToShow = currentData.buildings.features;
-            } else {
-                const coveredIndices = new Set([
-                    ...(this.hoveredShelter ? this.hoveredBuildings : []),
-                    ...(this.selectedShelter ? this.highlightedBuildings : [])
-                ]);
-                buildingsToShow = currentData.buildings.features.filter((_, index) => 
-                    coveredIndices.has(index)
-                );
-            }
-            
-            if (buildingsToShow.length > 0) {
-                return new deck.GeoJsonLayer({
-                    id: 'buildings-geojson',
-                    data: buildingsToShow.map((feature, index) => ({
-                        ...feature,
-                        _index: index
-                    })),
-                    pickable: false,
-                    stroked: true,
-                    filled: true,
-                    lineWidthMinPixels: 1,
-                    lineWidthMaxPixels: 2,
-                    getFillColor: d => {
-                        const buildingIndex = d._index || 0;
-                        
-                        if (this.layerVisibility.buildings) {
-                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 150];
-                            }
-                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 200];
-                            }
-                            return [255, 0, 0, 120];
-                        } else {
-                            return [0, 255, 0, 200];
-                        }
-                    },
-                    getLineColor: d => {
-                        const buildingIndex = d._index || 0;
-                        
-                        if (this.layerVisibility.buildings) {
-                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 255];
-                            }
-                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 255];
-                            }
-                            return [255, 0, 0, 180];
-                        } else {
-                            return [0, 255, 0, 255];
-                        }
-                    },
-                    getLineWidth: d => {
-                        const buildingIndex = d._index || 0;
-                        
-                        if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
-                            return 3;
-                        }
-                        if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                            return 2;
-                        }
-                        return 1;
-                    }
-                });
-            }
+        if (!currentData.buildings || currentData.buildings.features.length === 0) {
+            return null;
         }
         
-        return null;
+        let buildingsToShow;
+        if (this.layerVisibility.buildings) {
+            buildingsToShow = currentData.buildings.features;
+        } else {
+            const coveredIndices = new Set([
+                ...(this.hoveredShelter ? this.hoveredBuildings : []),
+                ...(this.selectedShelter ? this.highlightedBuildings : [])
+            ]);
+            buildingsToShow = currentData.buildings.features.filter((_, index) => 
+                coveredIndices.has(index)
+            );
+        }
+        
+        if (buildingsToShow.length === 0) {
+            return null;
+        }
+        
+        return new deck.GeoJsonLayer({
+            id: 'buildings-geojson',
+            data: buildingsToShow.map((feature, index) => ({
+                ...feature,
+                _index: index
+            })),
+            pickable: false,
+            stroked: true,
+            filled: true,
+            lineWidthMinPixels: 1,
+            lineWidthMaxPixels: 2,
+            getFillColor: d => {
+                const buildingIndex = d._index || 0;
+                
+                if (this.layerVisibility.buildings) {
+                    if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                        return [0, 255, 0, 150];
+                    }
+                    if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                        return [0, 255, 0, 200];
+                    }
+                    return [255, 0, 0, 120];
+                } else {
+                    return [0, 255, 0, 200];
+                }
+            },
+            getLineColor: d => {
+                const buildingIndex = d._index || 0;
+                
+                if (this.layerVisibility.buildings) {
+                    if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                        return [0, 255, 0, 255];
+                    }
+                    if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                        return [0, 255, 0, 255];
+                    }
+                    return [255, 0, 0, 180];
+                } else {
+                    return [0, 255, 0, 255];
+                }
+            },
+            getLineWidth: d => {
+                const buildingIndex = d._index || 0;
+                
+                if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                    return 3;
+                }
+                if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                    return 2;
+                }
+                return 1;
+            }
+        });
     }
     
     /**
@@ -3173,136 +2308,43 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create habitation clusters layer specifically
+     * Create habitation clusters layer specifically (simplified)
      */
     createHabitationClustersLayer() {
         const currentData = this.spatialAnalyzer.getCurrentData();
-        const currentZoom = this._currentZoom || 12;
         
-        if (currentZoom >= 7 && currentZoom <= 14) {
-            // Use tile layer for supported zoom levels
-            return new deck.TileLayer({
-                id: 'habitation-clusters-tiles',
-                data: 'data/cluster_tiles/{z}/{x}/{y}.json',
-                minZoom: 7,
-                maxZoom: 14,
-                tileSize: 256,
-                pickable: true,
-                extent: [34.672703, 30.627776, 35.285141, 31.433086],
-                getTileData: async (tile) => {
-                    try {
-                        const {x, y, z} = tile.index;
-                        const tileBounds = this.getTileBounds(x, y, z);
-                        const dataBounds = [34.672703, 30.627776, 35.285141, 31.433086];
-                        
-                        if (!this.boundsIntersect(tileBounds, dataBounds)) {
-                            return null;
-                        }
-                        
-                        const response = await fetch(`data/cluster_tiles/${z}/${x}/${y}.json`);
-                        if (!response.ok) {
-                            if (response.status === 404) {
-                                return null;
-                            }
-                            throw new Error(`HTTP ${response.status}`);
-                        }
-                        return await response.json();
-                    } catch (error) {
-                        if (error.message.includes('404')) {
-                            return null;
-                        }
-                        console.warn(`Cluster tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
-                        return null;
-                    }
-                },
-                renderSubLayers: props => {
-                    const {data, tile} = props;
-                    
-                    if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
-                        return null;
-                    }
-                    
-                    if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
-                        return null;
-                    }
-                    
-                    const validFeatures = data.features.filter(feature => 
-                        feature && 
-                        feature.geometry && 
-                        feature.geometry.coordinates &&
-                        Array.isArray(feature.geometry.coordinates)
-                    );
-                    
-                    if (validFeatures.length === 0) {
-                        return null;
-                    }
-                    
-                    return new deck.GeoJsonLayer({
-                        ...props,
-                        id: `habitation-clusters-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
-                        data: validFeatures.map((feature, index) => ({
-                            ...feature,
-                            _layerType: 'habitationCluster',
-                            _index: index,
-                            _tileInfo: `${tile.index.z}/${tile.index.x}/${tile.index.y}`
-                        })),
-                        stroked: true,
-                        filled: true,
-                        lineWidthMinPixels: 1,
-                        lineWidthMaxPixels: 2,
-                        getFillColor: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                             this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                            return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25]; // Blue fill - more transparent
-                        },
-                        getLineColor: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                             this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                            return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120]; // Blue outline - much less opaque
-                        },
-                        getLineWidth: d => {
-                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                             this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
-                            return isSelected ? 3 : 1; // Thinner overall
-                        }
-                    });
-                }
-            });
-        } else {
-            // Fallback GeoJSON layer for zoom levels outside tile range
-            if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
-                return null;
-            }
-            
-            return new deck.GeoJsonLayer({
-                id: 'habitation-clusters-geojson',
-                data: currentData.habitationClusters.map((feature, index) => ({
-                    ...feature,
-                    _layerType: 'habitationCluster',
-                    _index: index
-                })),
-                pickable: true,
-                stroked: true,
-                filled: true,
-                lineWidthMinPixels: 1,
-                lineWidthMaxPixels: 2,
-                getFillColor: d => {
-                    const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                     this.selectedPolygon?._index === d._index;
-                    return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
-                },
-                getLineColor: d => {
-                    const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                     this.selectedPolygon?._index === d._index;
-                    return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
-                },
-                getLineWidth: d => {
-                    const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
-                                     this.selectedPolygon?._index === d._index;
-                    return isSelected ? 3 : 1;
-                }
-            });
+        if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
+            return null;
         }
+        
+        return new deck.GeoJsonLayer({
+            id: 'habitation-clusters-geojson',
+            data: currentData.habitationClusters.map((feature, index) => ({
+                ...feature,
+                _layerType: 'habitationCluster',
+                _index: index
+            })),
+            pickable: true,
+            stroked: true,
+            filled: true,
+            lineWidthMinPixels: 1,
+            lineWidthMaxPixels: 2,
+            getFillColor: d => {
+                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                 this.selectedPolygon?._index === d._index;
+                return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
+            },
+            getLineColor: d => {
+                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                 this.selectedPolygon?._index === d._index;
+                return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
+            },
+            getLineWidth: d => {
+                const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                 this.selectedPolygon?._index === d._index;
+                return isSelected ? 3 : 1;
+            }
+        });
     }
     
     /**
