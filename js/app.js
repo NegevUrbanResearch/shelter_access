@@ -2976,46 +2976,390 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create buildings layer (stub - falls back to original createLayers for now)
+     * Create buildings layer specifically
      */
     createBuildingsLayer() {
-        // For now, fall back to original layer creation logic
-        // This will be optimized in a future iteration
-        const originalLayers = this.createLayers();
-        return originalLayers.find(layer => 
-            layer.id === 'buildings-tiles' || 
-            layer.id === 'buildings-geojson'
-        ) || null;
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        const currentZoom = this._currentZoom || 12;
+        
+        // Building tiles are available for zoom levels 7-13
+        // At higher zooms (14+), fall back to GeoJSON for highlighting functionality
+        if (this.useBuildingTiles && this.layerVisibility.buildings && currentZoom >= 7 && currentZoom <= 13) {
+            // Use optimized tile layer for zoom levels 7-13 when layer is enabled
+            return new deck.TileLayer({
+                id: 'buildings-tiles',
+                data: this.buildingTileUrl,
+                minZoom: 7,
+                maxZoom: 13,
+                tileSize: 256,
+                pickable: false,
+                extent: [34.673474, 30.628270, 35.285314, 31.433190],
+                getTileData: async (tile) => {
+                    try {
+                        const {x, y, z} = tile.index;
+                        const tileBounds = this.getTileBounds(x, y, z);
+                        const dataBounds = [34.673474, 30.628270, 35.285314, 31.433190];
+                        
+                        if (!this.boundsIntersect(tileBounds, dataBounds)) {
+                            return null;
+                        }
+                        
+                        const response = await fetch(`data/building_tiles/${z}/${x}/${y}.json`);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                return null;
+                            }
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        if (error.message.includes('404')) {
+                            return null;
+                        }
+                        console.warn(`Building tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
+                        return null;
+                    }
+                },
+                renderSubLayers: props => {
+                    const {data, tile} = props;
+                    
+                    if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
+                        return null;
+                    }
+                    
+                    if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
+                        return null;
+                    }
+                    
+                    const validFeatures = data.features.filter(feature => 
+                        feature && 
+                        feature.geometry && 
+                        feature.geometry.coordinates &&
+                        Array.isArray(feature.geometry.coordinates)
+                    );
+                    
+                    if (validFeatures.length === 0) {
+                        return null;
+                    }
+                    
+                    return new deck.GeoJsonLayer({
+                        ...props,
+                        id: `buildings-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
+                        data: validFeatures,
+                        stroked: true,
+                        filled: true,
+                        lineWidthMinPixels: 1,
+                        lineWidthMaxPixels: 2,
+                        getFillColor: [255, 0, 0, 120],
+                        getLineColor: [255, 0, 0, 180],
+                        getLineWidth: 1,
+                        pickable: false
+                    });
+                }
+            });
+        } else if (currentData.buildings && currentData.buildings.features.length > 0) {
+            // GeoJSON layer for highlighting and high zoom levels
+            let buildingsToShow;
+            if (this.layerVisibility.buildings) {
+                buildingsToShow = currentData.buildings.features;
+            } else {
+                const coveredIndices = new Set([
+                    ...(this.hoveredShelter ? this.hoveredBuildings : []),
+                    ...(this.selectedShelter ? this.highlightedBuildings : [])
+                ]);
+                buildingsToShow = currentData.buildings.features.filter((_, index) => 
+                    coveredIndices.has(index)
+                );
+            }
+            
+            if (buildingsToShow.length > 0) {
+                return new deck.GeoJsonLayer({
+                    id: 'buildings-geojson',
+                    data: buildingsToShow.map((feature, index) => ({
+                        ...feature,
+                        _index: index
+                    })),
+                    pickable: false,
+                    stroked: true,
+                    filled: true,
+                    lineWidthMinPixels: 1,
+                    lineWidthMaxPixels: 2,
+                    getFillColor: d => {
+                        const buildingIndex = d._index || 0;
+                        
+                        if (this.layerVisibility.buildings) {
+                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 150];
+                            }
+                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 200];
+                            }
+                            return [255, 0, 0, 120];
+                        } else {
+                            return [0, 255, 0, 200];
+                        }
+                    },
+                    getLineColor: d => {
+                        const buildingIndex = d._index || 0;
+                        
+                        if (this.layerVisibility.buildings) {
+                            if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 255];
+                            }
+                            if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                                return [0, 255, 0, 255];
+                            }
+                            return [255, 0, 0, 180];
+                        } else {
+                            return [0, 255, 0, 255];
+                        }
+                    },
+                    getLineWidth: d => {
+                        const buildingIndex = d._index || 0;
+                        
+                        if (this.selectedShelter && this.highlightedBuildings.includes(buildingIndex)) {
+                            return 3;
+                        }
+                        if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                            return 2;
+                        }
+                        return 1;
+                    }
+                });
+            }
+        }
+        
+        return null;
     }
     
     /**
-     * Create statistical areas layer (stub)
+     * Create statistical areas layer specifically
      */
     createStatisticalAreasLayer() {
-        // For now, fall back to original layer creation logic
-        const originalLayers = this.createLayers();
-        return originalLayers.find(layer => layer.id === 'statistical-areas-geojson') || null;
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        
+        if (!currentData.statisticalAreas || currentData.statisticalAreas.length === 0) {
+            return null;
+        }
+        
+        return new deck.GeoJsonLayer({
+            id: 'statistical-areas-geojson',
+            data: currentData.statisticalAreas.map((feature, index) => ({
+                ...feature,
+                _layerType: 'statisticalArea',
+                _index: index
+            })),
+            pickable: true,
+            stroked: true,
+            filled: true,
+            lineWidthMinPixels: 2,
+            lineWidthMaxPixels: 4,
+            getFillColor: d => {
+                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                 this.selectedPolygon?._index === d._index;
+                return isSelected ? [128, 128, 128, 100] : [128, 128, 128, 30]; // Grey fill
+            },
+            getLineColor: d => {
+                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                 this.selectedPolygon?._index === d._index;
+                return isSelected ? [80, 80, 80, 255] : [128, 128, 128, 200]; // Grey outline
+            },
+            getLineWidth: d => {
+                const isSelected = this.selectedPolygon?.layerType === 'statisticalArea' && 
+                                 this.selectedPolygon?._index === d._index;
+                return isSelected ? 4 : 2;
+            }
+        });
     }
     
     /**
-     * Create habitation clusters layer (stub)
+     * Create habitation clusters layer specifically
      */
     createHabitationClustersLayer() {
-        // For now, fall back to original layer creation logic
-        const originalLayers = this.createLayers();
-        return originalLayers.find(layer => 
-            layer.id === 'habitation-clusters-tiles' || 
-            layer.id === 'habitation-clusters-geojson'
-        ) || null;
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        const currentZoom = this._currentZoom || 12;
+        
+        if (currentZoom >= 7 && currentZoom <= 14) {
+            // Use tile layer for supported zoom levels
+            return new deck.TileLayer({
+                id: 'habitation-clusters-tiles',
+                data: 'data/cluster_tiles/{z}/{x}/{y}.json',
+                minZoom: 7,
+                maxZoom: 14,
+                tileSize: 256,
+                pickable: true,
+                extent: [34.672703, 30.627776, 35.285141, 31.433086],
+                getTileData: async (tile) => {
+                    try {
+                        const {x, y, z} = tile.index;
+                        const tileBounds = this.getTileBounds(x, y, z);
+                        const dataBounds = [34.672703, 30.627776, 35.285141, 31.433086];
+                        
+                        if (!this.boundsIntersect(tileBounds, dataBounds)) {
+                            return null;
+                        }
+                        
+                        const response = await fetch(`data/cluster_tiles/${z}/${x}/${y}.json`);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                return null;
+                            }
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        if (error.message.includes('404')) {
+                            return null;
+                        }
+                        console.warn(`Cluster tile error for ${tile.index.z}/${tile.index.x}/${tile.index.y}:`, error);
+                        return null;
+                    }
+                },
+                renderSubLayers: props => {
+                    const {data, tile} = props;
+                    
+                    if (!tile || !tile.index || tile.index.x === undefined || tile.index.y === undefined || tile.index.z === undefined) {
+                        return null;
+                    }
+                    
+                    if (!data || !data.features || !Array.isArray(data.features) || data.features.length === 0) {
+                        return null;
+                    }
+                    
+                    const validFeatures = data.features.filter(feature => 
+                        feature && 
+                        feature.geometry && 
+                        feature.geometry.coordinates &&
+                        Array.isArray(feature.geometry.coordinates)
+                    );
+                    
+                    if (validFeatures.length === 0) {
+                        return null;
+                    }
+                    
+                    return new deck.GeoJsonLayer({
+                        ...props,
+                        id: `habitation-clusters-tile-${tile.index.x}-${tile.index.y}-${tile.index.z}`,
+                        data: validFeatures.map((feature, index) => ({
+                            ...feature,
+                            _layerType: 'habitationCluster',
+                            _index: index,
+                            _tileInfo: `${tile.index.z}/${tile.index.x}/${tile.index.y}`
+                        })),
+                        stroked: true,
+                        filled: true,
+                        lineWidthMinPixels: 1,
+                        lineWidthMaxPixels: 2,
+                        getFillColor: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                             this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                            return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25]; // Blue fill - more transparent
+                        },
+                        getLineColor: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                             this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                            return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120]; // Blue outline - much less opaque
+                        },
+                        getLineWidth: d => {
+                            const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                             this.selectedPolygon?.feature?.properties?.OBJECTID === d.properties?.OBJECTID;
+                            return isSelected ? 3 : 1; // Thinner overall
+                        }
+                    });
+                }
+            });
+        } else {
+            // Fallback GeoJSON layer for zoom levels outside tile range
+            if (!currentData.habitationClusters || currentData.habitationClusters.length === 0) {
+                return null;
+            }
+            
+            return new deck.GeoJsonLayer({
+                id: 'habitation-clusters-geojson',
+                data: currentData.habitationClusters.map((feature, index) => ({
+                    ...feature,
+                    _layerType: 'habitationCluster',
+                    _index: index
+                })),
+                pickable: true,
+                stroked: true,
+                filled: true,
+                lineWidthMinPixels: 1,
+                lineWidthMaxPixels: 2,
+                getFillColor: d => {
+                    const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                     this.selectedPolygon?._index === d._index;
+                    return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
+                },
+                getLineColor: d => {
+                    const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                     this.selectedPolygon?._index === d._index;
+                    return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
+                },
+                getLineWidth: d => {
+                    const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
+                                     this.selectedPolygon?._index === d._index;
+                    return isSelected ? 3 : 1;
+                }
+            });
+        }
     }
     
     /**
-     * Create coverage brush layer (stub)
+     * Create coverage brush layer specifically
      */
     createCoverageBrushLayer() {
-        // For now, fall back to original layer creation logic
-        const originalLayers = this.createLayers();
-        return originalLayers.find(layer => layer.id === 'coverage-brush') || null;
+        if (!this.spatialAnalyzer.buildings) return null;
+        
+        const activeShelter = this.selectedShelter || this.hoveredShelter;
+        const coveredBuildingIndices = this.selectedShelter ? this.highlightedBuildings : this.hoveredBuildings;
+        
+        if (!activeShelter || coveredBuildingIndices.length === 0) {
+            return null;
+        }
+        
+        // Create a brush layer to highlight covered buildings
+        const coveredBuildings = coveredBuildingIndices.map(index => 
+            this.spatialAnalyzer.buildings.features[index]
+        ).filter(building => building); // Filter out any undefined buildings
+        
+        if (coveredBuildings.length === 0) {
+            return null;
+        }
+        
+        return new deck.GeoJsonLayer({
+            id: 'coverage-brush',
+            data: coveredBuildings,
+            pickable: false,
+            stroked: true,
+            filled: true,
+            lineWidthMinPixels: 2,
+            lineWidthMaxPixels: 4,
+            // Use brush extension for better visual effect (if available)
+            extensions: deck.BrushingExtension ? [new deck.BrushingExtension()] : [],
+            // High opacity for coverage highlighting
+            getFillColor: () => {
+                if (this.selectedShelter) {
+                    return [0, 255, 0, 180]; // Bright green for selected coverage
+                } else {
+                    return [0, 255, 0, 120]; // Lighter green for hover coverage
+                }
+            },
+            getLineColor: () => {
+                if (this.selectedShelter) {
+                    return [0, 200, 0, 255]; // Darker green outline for selected
+                } else {
+                    return [0, 200, 0, 200]; // Lighter green outline for hover
+                }
+            },
+            getLineWidth: () => {
+                if (this.selectedShelter) {
+                    return 3; // Thicker for selected
+                } else {
+                    return 2; // Thinner for hover
+                }
+            }
+        });
     }
     
     /**
@@ -3077,14 +3421,16 @@ class ShelterAccessApp {
         // Create minimal layer updates
         const updatedLayers = [];
         
-        // Copy all non-coverage layers unchanged
-        for (const layer of this.currentLayers) {
-            if (layer.id !== 'coverage-brush' && layer.id !== 'buildings' && layer.id !== 'buildings-tiles') {
-                updatedLayers.push(layer);
-            } else {
-                needsUpdate = true; // Found a layer that needs updating
-            }
+            // Copy all non-coverage layers unchanged
+    for (const layer of this.currentLayers) {
+        if (layer.id !== 'coverage-brush' && 
+            layer.id !== 'buildings-geojson' && 
+            layer.id !== 'buildings-tiles') {
+            updatedLayers.push(layer);
+        } else {
+            needsUpdate = true; // Found a layer that needs updating
         }
+    }
         
         // Add buildings layer with updated highlighting (only if buildings are visible)
         if (this.layerVisibility.buildings || hasHoverData || hasSelectedData) {
