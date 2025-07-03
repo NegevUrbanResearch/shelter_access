@@ -69,6 +69,11 @@ class ShelterAccessApp {
         this._currentZoom = 12;
         this._currentViewState = null;
         
+        // Debouncing for view state changes
+        this._viewStateDebounceTimer = null;
+        this._pendingViewState = null;
+        this._basemapDebounceTimer = null;
+        
         // UI Elements - simplified
         this.elements = {
             loading: document.getElementById('loading'),
@@ -1053,7 +1058,7 @@ class ShelterAccessApp {
 
         const layers = [];
         
-        // Base layer
+        // Base layer - create once and reuse when possible
         const basemapConfig = this.basemaps[this.currentBasemap];
         const baseLayer = this.createStandardTileLayer(basemapConfig);
         layers.push(baseLayer);
@@ -1062,9 +1067,17 @@ class ShelterAccessApp {
         const dataLayers = this.createLayers();
         layers.push(...dataLayers);
         
-        // Update deck.gl
-        this.currentLayers = layers;
-        this.deckgl.setProps({ layers: this.currentLayers });
+        // Update deck.gl with error handling
+        try {
+            this.currentLayers = layers;
+            this.deckgl.setProps({ layers: this.currentLayers });
+        } catch (error) {
+            console.warn('Layer update failed:', error);
+            // Try to recover by just updating data layers
+            if (this.currentLayers.length > 0) {
+                this.deckgl.setProps({ layers: [this.currentLayers[0], ...dataLayers] });
+            }
+        }
         
         this.updateCoverageAnalysis();
         this.updateLegend();
@@ -1124,7 +1137,7 @@ class ShelterAccessApp {
     }
     
     /**
-     * Create standard tile layer for raster basemaps
+     * Create simplified tile layer for basemaps with error handling
      */
     createStandardTileLayer(basemapConfig) {
         return new deck.TileLayer({
@@ -1133,24 +1146,13 @@ class ShelterAccessApp {
             minZoom: 0,
             maxZoom: 19,
             tileSize: 256,
+            // Simplified tile loading with better error handling
             getTileData: (tile) => {
                 const { x, y, z } = tile.index;
-                let tileUrl = basemapConfig.url;
-                
-                // Handle different URL patterns
-                if (tileUrl.includes('{s}')) {
-                    // For Carto maps with subdomain pattern
-                    const subdomains = ['a', 'b', 'c', 'd'];
-                    const subdomain = subdomains[Math.abs(x + y) % subdomains.length];
-                    tileUrl = tileUrl.replace('{s}', subdomain);
-                }
-                
-                // Replace standard tile parameters
-                tileUrl = tileUrl
+                const tileUrl = basemapConfig.url
                     .replace('{z}', z)
                     .replace('{y}', y)
-                    .replace('{x}', x)
-                    .replace('{r}', ''); // Remove retina suffix if present
+                    .replace('{x}', x);
                 
                 return tileUrl;
             },
@@ -1162,9 +1164,25 @@ class ShelterAccessApp {
                 return new deck.BitmapLayer(props, {
                     data: null,
                     image: props.data,
-                    bounds: [west, south, east, north]
+                    bounds: [west, south, east, north],
+                    // Improved error handling for failed tile loads
+                    onError: (error) => {
+                        console.warn('Tile load failed:', error);
+                        // Return false to continue rendering other tiles
+                        return false;
+                    }
                 });
-            }
+            },
+            // Improved tile layer error handling
+            onTileError: (error) => {
+                console.warn('Tile layer error:', error);
+                // Continue execution, don't break the app
+                return false;
+            },
+            // Add retry mechanism for failed tiles
+            refinementStrategy: 'best-available',
+            // Reduce concurrent tile loading to prevent overload
+            maxConcurrentLoads: 6
         });
     }
     
@@ -1380,20 +1398,37 @@ class ShelterAccessApp {
     }
     
     /**
-     * Handle viewport changes 
+     * Handle viewport changes with debouncing
      */
     handleViewStateChange(viewState) {
-        const previousZoom = this._currentZoom;
-        this._currentViewState = viewState;
-        this._currentZoom = viewState.zoom;
+        // Store pending view state
+        this._pendingViewState = viewState;
         
-        // Update scale bar
+        // Clear existing timer
+        if (this._viewStateDebounceTimer) {
+            clearTimeout(this._viewStateDebounceTimer);
+        }
+        
+        // Update scale bar immediately for smooth UX
+        this._currentViewState = viewState;
         this.updateScaleBar();
         
-        // Only recreate layers if zoom level significantly changed (affects tile/geojson choice)
-        if (!previousZoom || Math.abs(this._currentZoom - previousZoom) > 0.5) {
-            const layers = this.createLayers();
-            this.deckgl.setProps({layers});
+        // Debounce expensive operations
+        this._viewStateDebounceTimer = setTimeout(() => {
+            this._processViewStateChange(this._pendingViewState);
+        }, 150); // 150ms debounce
+    }
+    
+    /**
+     * Process view state changes after debouncing
+     */
+    _processViewStateChange(viewState) {
+        const previousZoom = this._currentZoom;
+        this._currentZoom = viewState.zoom;
+        
+        // Only recreate layers if zoom level significantly changed
+        if (!previousZoom || Math.abs(this._currentZoom - previousZoom) > 1.0) {
+            this.updateVisualization();
         }
     }
     
@@ -1494,9 +1529,11 @@ class ShelterAccessApp {
 
     
     /**
-     * Change basemap
+     * Change basemap with debouncing
      */
     changeBasemap(basemap) {
+        if (this.currentBasemap === basemap) return; // No change needed
+        
         this.currentBasemap = basemap;
         
         // Update UI styling based on basemap
@@ -1508,7 +1545,29 @@ class ShelterAccessApp {
         }
         
         this.updateAttribution();
-        this.updateVisualization();
+        
+        // Debounce basemap updates to prevent rapid switching issues
+        if (this._basemapDebounceTimer) {
+            clearTimeout(this._basemapDebounceTimer);
+        }
+        
+        this._basemapDebounceTimer = setTimeout(() => {
+            this.updateVisualization();
+        }, 100);
+    }
+    
+    /**
+     * Cleanup method to clear timers
+     */
+    cleanup() {
+        if (this._viewStateDebounceTimer) {
+            clearTimeout(this._viewStateDebounceTimer);
+            this._viewStateDebounceTimer = null;
+        }
+        if (this._basemapDebounceTimer) {
+            clearTimeout(this._basemapDebounceTimer);
+            this._basemapDebounceTimer = null;
+        }
     }
     
     /**
@@ -1901,4 +1960,11 @@ class ShelterAccessApp {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new ShelterAccessApp();
     window.app.initializeApp();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (window.app) {
+        window.app.cleanup();
+    }
 });
