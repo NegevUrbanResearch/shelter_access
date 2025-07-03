@@ -1189,6 +1189,31 @@ body {
     font-weight: 600;
 }
 
+/* Modal link styling */
+.about-section a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.about-section a:hover {
+    color: var(--text-accent);
+    border-bottom-color: var(--accent-blue);
+    transform: translateY(-1px);
+}
+
+/* Section lead names in purple */
+.about-section a strong {
+    color: #8b5cf6;
+    font-weight: 600;
+}
+
+.about-section a:hover strong {
+    color: #a78bfa;
+}
+
 /* Heatmap legend special styling - Original */
 .heatmap-legend {
     display: flex;
