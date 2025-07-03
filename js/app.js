@@ -43,6 +43,20 @@ class ShelterAccessApp {
             accessibilityHeatmap: false // Off by default
         };
         
+        // Performance: Layer caching system
+        this.layerCache = new Map();
+        this.layerCacheKeys = {
+            baseLayer: null,
+            buildings: null,
+            existingShelters: null,
+            requestedShelters: null,
+            optimalShelters: null,
+            statisticalAreas: null,
+            habitationClusters: null,
+            accessibilityHeatmap: null,
+            coverageBrush: null
+        };
+        
         // Accessibility heatmap data
         this.accessibilityData = null;
         this.allAccessibilityData = null; // Stores all radii data
@@ -163,6 +177,160 @@ class ShelterAccessApp {
     }
     
     /**
+     * Generate cache keys for different layer types based on their dependencies
+     */
+    generateCacheKey(layerType) {
+        const zoom = Math.floor(this._currentZoom || 12);
+        
+        switch (layerType) {
+            case 'baseLayer':
+                return `base_${this.currentBasemap}`;
+                
+            case 'buildings':
+                // Buildings depend on: visibility, zoom, hover/selection state
+                const buildingKey = [
+                    this.layerVisibility.buildings,
+                    zoom,
+                    this.useBuildingTiles,
+                    !!this.hoveredShelter,
+                    !!this.selectedShelter,
+                    this.hoveredBuildings.length,
+                    this.highlightedBuildings.length
+                ].join('_');
+                return `buildings_${buildingKey}`;
+                
+            case 'existingShelters':
+                // Existing shelters depend on: visibility, selection state
+                const existingKey = [
+                    this.layerVisibility.existingShelters,
+                    this.layerVisibility.accessibilityHeatmap,
+                    this.selectedShelter ? JSON.stringify(this.selectedShelter.properties || {}) : 'none'
+                ].join('_');
+                return `existing_${existingKey}`;
+                
+            case 'requestedShelters':
+                // Requested shelters depend on: visibility, selection state, proposed shelters count (for pairing analysis)
+                const requestedKey = [
+                    this.layerVisibility.requestedShelters,
+                    this.layerVisibility.accessibilityHeatmap,
+                    this.proposedShelters.length,
+                    this.selectedShelter ? JSON.stringify(this.selectedShelter.properties || {}) : 'none'
+                ].join('_');
+                return `requested_${requestedKey}`;
+                
+            case 'optimalShelters':
+                // Optimal shelters depend on: visibility, proposed shelters, selection state
+                const optimalKey = [
+                    this.layerVisibility.optimalShelters,
+                    this.layerVisibility.accessibilityHeatmap,
+                    this.proposedShelters.length,
+                    JSON.stringify(this.proposedShelters.map(s => ({lat: s.lat, lon: s.lon}))),
+                    this.selectedShelter && this.selectedShelter.coordinates ? JSON.stringify(this.selectedShelter.coordinates) : 'none'
+                ].join('_');
+                return `optimal_${optimalKey}`;
+                
+            case 'statisticalAreas':
+                // Statistical areas depend on: visibility, selection state
+                const statsKey = [
+                    this.layerVisibility.statisticalAreas,
+                    this.selectedPolygon && this.selectedPolygonType === 'statisticalArea' ? this.selectedPolygon._index : 'none'
+                ].join('_');
+                return `stats_${statsKey}`;
+                
+            case 'habitationClusters':
+                // Habitation clusters depend on: visibility, zoom, selection state
+                const clustersKey = [
+                    this.layerVisibility.habitationClusters,
+                    zoom,
+                    this.selectedPolygon && this.selectedPolygonType === 'habitationCluster' ? 
+                        (this.selectedPolygon.feature?.properties?.OBJECTID || this.selectedPolygon._index) : 'none'
+                ].join('_');
+                return `clusters_${clustersKey}`;
+                
+            case 'accessibilityHeatmap':
+                // Heatmap depends on: visibility, radius, data availability
+                const heatmapKey = [
+                    this.layerVisibility.accessibilityHeatmap,
+                    this.coverageRadius,
+                    !!this.accessibilityData,
+                    this.accessibilityData ? this.accessibilityData.length : 0
+                ].join('_');
+                return `heatmap_${heatmapKey}`;
+                
+            case 'coverageBrush':
+                // Coverage brush depends on: active shelter, covered buildings
+                const brushKey = [
+                    !!this.selectedShelter,
+                    !!this.hoveredShelter,
+                    this.highlightedBuildings.length,
+                    this.hoveredBuildings.length,
+                    this.selectedShelter ? JSON.stringify(this.selectedShelter.properties || this.selectedShelter.coordinates || {}) : 'none',
+                    this.hoveredShelter ? JSON.stringify(this.hoveredShelter.properties || this.hoveredShelter.coordinates || {}) : 'none'
+                ].join('_');
+                return `brush_${brushKey}`;
+                
+            default:
+                return `${layerType}_${Date.now()}`;
+        }
+    }
+    
+    /**
+     * Get cached layer or create new one if cache is invalid
+     */
+    getCachedLayer(layerType, createLayerFn) {
+        const newCacheKey = this.generateCacheKey(layerType);
+        const currentCacheKey = this.layerCacheKeys[layerType];
+        
+        // Check if we have a valid cached layer
+        if (currentCacheKey === newCacheKey && this.layerCache.has(newCacheKey)) {
+            return this.layerCache.get(newCacheKey);
+        }
+        
+        // Create new layer
+        const newLayer = createLayerFn();
+        
+        // Update cache
+        if (currentCacheKey && currentCacheKey !== newCacheKey) {
+            // Remove old cache entry
+            this.layerCache.delete(currentCacheKey);
+        }
+        
+        // Store new layer in cache
+        this.layerCache.set(newCacheKey, newLayer);
+        this.layerCacheKeys[layerType] = newCacheKey;
+        
+        return newLayer;
+    }
+    
+    /**
+     * Clear specific cache entries (e.g., when data changes)
+     */
+    clearLayerCache(layerTypes = null) {
+        if (!layerTypes) {
+            // Clear all cache
+            this.layerCache.clear();
+            Object.keys(this.layerCacheKeys).forEach(key => {
+                this.layerCacheKeys[key] = null;
+            });
+            console.log('🧹 Cleared all layer cache');
+        } else {
+            // Clear specific layer types
+            if (typeof layerTypes === 'string') {
+                layerTypes = [layerTypes];
+            }
+            
+            layerTypes.forEach(layerType => {
+                const cacheKey = this.layerCacheKeys[layerType];
+                if (cacheKey) {
+                    this.layerCache.delete(cacheKey);
+                    this.layerCacheKeys[layerType] = null;
+                }
+            });
+            console.log('🧹 Cleared cache for:', layerTypes);
+        }
+    }
+    
+    /**
      * Fast building coverage calculation using spatial index
      */
     calculateShelterCoverageOptimized(shelter) {
@@ -215,6 +383,9 @@ class ShelterAccessApp {
             this.setupMainMenu();
             await this.spatialAnalyzer.loadData();
             
+            // Clear all layer cache when data loads
+            this.clearLayerCache();
+            
             // Build spatial index for fast coverage calculations
             this.buildSpatialIndex();
             
@@ -229,6 +400,8 @@ class ShelterAccessApp {
             
             // Hide loading overlay
             this.hideLoading();
+            
+            console.log('✅ Layer caching system initialized');
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -1501,22 +1674,27 @@ class ShelterAccessApp {
     }
 
     /**
-     * Update visualization layers
+     * Update visualization layers with caching for better performance
      */
     updateVisualization() {
         if (!this.deckgl) return;
 
-        const dataLayers = this.createLayers();
+        // Use cached layers for better performance
+        const layers = [];
         
-        // Get current basemap configuration
-        const basemapConfig = this.basemaps[this.currentBasemap];
+        // Base layer (cached)
+        const baseLayer = this.getCachedLayer('baseLayer', () => {
+            const basemapConfig = this.basemaps[this.currentBasemap];
+            return this.createStandardTileLayer(basemapConfig);
+        });
+        layers.push(baseLayer);
         
-        // Standard raster tile layer for all basemaps
-        const baseLayer = this.createStandardTileLayer(basemapConfig);
+        // Create data layers using cache (only recreate when dependencies change)
+        const dataLayers = this.createLayersWithCache();
+        layers.push(...dataLayers);
         
-        // Combine base layer with data layers
-        this.currentLayers = [baseLayer, ...dataLayers];
-        
+        // Update deck.gl
+        this.currentLayers = layers;
         this.deckgl.setProps({ layers: this.currentLayers });
         
         this.updateCoverageAnalysis();
@@ -1622,6 +1800,9 @@ class ShelterAccessApp {
             
             // Store directly - they're already in the right format
             this.proposedShelters = optimalLocations;
+            
+            // Clear cache for layers that depend on proposed shelters
+            this.clearLayerCache(['optimalShelters', 'requestedShelters']);
             
             // Update visualization
             this.updateVisualization();
@@ -1986,6 +2167,9 @@ class ShelterAccessApp {
             body.classList.remove('light-basemap');
         }
         
+        // Clear base layer cache when basemap changes
+        this.clearLayerCache(['baseLayer']);
+        
         this.updateAttribution();
         this.updateVisualization();
     }
@@ -2056,6 +2240,10 @@ class ShelterAccessApp {
     selectShelter(shelter) {
         this.selectedShelter = shelter;
         this.highlightedBuildings = this.calculateShelterCoverageOptimized(shelter);
+        
+        // Clear cache for layers affected by shelter selection
+        this.clearLayerCache(['buildings', 'coverageBrush', 'existingShelters', 'requestedShelters', 'optimalShelters']);
+        
         this.updateVisualization();
         this.updateSelectionUI();
     }
@@ -2066,6 +2254,10 @@ class ShelterAccessApp {
     clearShelterSelection() {
         this.selectedShelter = null;
         this.highlightedBuildings = [];
+        
+        // Clear cache for layers affected by shelter selection
+        this.clearLayerCache(['buildings', 'coverageBrush', 'existingShelters', 'requestedShelters', 'optimalShelters']);
+        
         this.updateVisualization();
         this.updateSelectionUI();
     }
@@ -2126,6 +2318,9 @@ class ShelterAccessApp {
             weight: point.coverage[radiusKey] ? 1 : -1  // +1 for covered (green), -1 for uncovered (red)
         }));
         
+        // Clear heatmap cache when data changes
+        this.clearLayerCache(['accessibilityHeatmap']);
+        
         console.log(`🔄 Extracted ${radiusKey} data: ${this.accessibilityData.length} points`);
     }
     
@@ -2144,6 +2339,10 @@ class ShelterAccessApp {
         
         this.hoveredShelter = shelter;
         this.hoveredBuildings = this.calculateShelterCoverageOptimized(shelter);
+        
+        // Clear cache for layers affected by hover (only buildings and brush need updates)
+        this.clearLayerCache(['buildings', 'coverageBrush']);
+        
         this.updateVisualization();
     }
     
@@ -2153,6 +2352,10 @@ class ShelterAccessApp {
     clearShelterHover() {
         this.hoveredShelter = null;
         this.hoveredBuildings = [];
+        
+        // Clear cache for layers affected by hover
+        this.clearLayerCache(['buildings', 'coverageBrush']);
+        
         this.updateVisualization();
     }
     
@@ -2346,6 +2549,301 @@ class ShelterAccessApp {
             statusHighlighting.style.display = 'inline-block';
             statusHighlighting.textContent = '🎯 Highlighting available (zoom 14+)';
         }
+    }
+
+    /**
+     * Create visualization layers with caching for improved performance
+     */
+    createLayersWithCache() {
+        const layers = [];
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        
+        if (!currentData.shelters) return layers;
+        
+        // === ACCESSIBILITY HEATMAP LAYER (cached) ===
+        if (this.layerVisibility.accessibilityHeatmap && this.accessibilityData && this.accessibilityData.length > 0) {
+            const heatmapLayer = this.getCachedLayer('accessibilityHeatmap', () => {
+                return this.createAccessibilityHeatmapLayer();
+            });
+            
+            if (heatmapLayer) {
+                layers.push(heatmapLayer);
+                return layers; // Only show heatmap when active
+            }
+        }
+        
+        // === BUILDINGS LAYER (cached) ===
+        const shouldShowBuildings = this.layerVisibility.buildings || 
+                                  (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
+                                  (this.selectedShelter && this.highlightedBuildings.length > 0);
+        
+        if (shouldShowBuildings) {
+            const buildingsLayer = this.getCachedLayer('buildings', () => {
+                return this.createBuildingsLayer();
+            });
+            
+            if (buildingsLayer) {
+                layers.push(buildingsLayer);
+            }
+        }
+        
+        // === STATISTICAL AREAS LAYER (cached) ===
+        if (this.layerVisibility.statisticalAreas) {
+            const statsLayer = this.getCachedLayer('statisticalAreas', () => {
+                return this.createStatisticalAreasLayer();
+            });
+            
+            if (statsLayer) {
+                layers.push(statsLayer);
+            }
+        }
+        
+        // === HABITATION CLUSTERS LAYER (cached) ===
+        if (this.layerVisibility.habitationClusters) {
+            const clustersLayer = this.getCachedLayer('habitationClusters', () => {
+                return this.createHabitationClustersLayer();
+            });
+            
+            if (clustersLayer) {
+                layers.push(clustersLayer);
+            }
+        }
+        
+        // === COVERAGE BRUSH LAYER (cached) ===
+        if ((this.selectedShelter || this.hoveredShelter) && this.spatialAnalyzer.buildings) {
+            const brushLayer = this.getCachedLayer('coverageBrush', () => {
+                return this.createCoverageBrushLayer();
+            });
+            
+            if (brushLayer) {
+                layers.push(brushLayer);
+            }
+        }
+        
+        // === SHELTER LAYERS (cached) ===
+        if (!this.layerVisibility.accessibilityHeatmap) {
+            // Existing shelters
+            if (this.layerVisibility.existingShelters) {
+                const existingLayer = this.getCachedLayer('existingShelters', () => {
+                    return this.createExistingSheltersLayer();
+                });
+                
+                if (existingLayer) {
+                    layers.push(existingLayer);
+                }
+            }
+            
+            // Requested shelters
+            if (this.layerVisibility.requestedShelters) {
+                const requestedLayer = this.getCachedLayer('requestedShelters', () => {
+                    return this.createRequestedSheltersLayer();
+                });
+                
+                if (requestedLayer) {
+                    layers.push(requestedLayer);
+                }
+            }
+            
+            // Optimal shelters
+            if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
+                const optimalLayer = this.getCachedLayer('optimalShelters', () => {
+                    return this.createOptimalSheltersLayer();
+                });
+                
+                if (optimalLayer) {
+                    layers.push(optimalLayer);
+                }
+            }
+        }
+        
+        return layers;
+    }
+    
+    /**
+     * Create accessibility heatmap layer
+     */
+    createAccessibilityHeatmapLayer() {
+        if (!this.accessibilityData || this.accessibilityData.length === 0) return null;
+        
+        const coveredCount = this.accessibilityData.filter(d => d.type === 'covered').length;
+        const uncoveredCount = this.accessibilityData.filter(d => d.type === 'uncovered').length;
+        console.log(`🔥 Unified Heatmap data: ${this.accessibilityData.length} total points`);
+        console.log(`   🟢 Covered: ${coveredCount} buildings (${(coveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
+        console.log(`   🔴 Uncovered: ${uncoveredCount} buildings (${(uncoveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
+        
+        return new deck.ScreenGridLayer({
+            id: 'accessibility-grid-unified',
+            data: this.accessibilityData,
+            getPosition: d => d.position,
+            getWeight: d => d.weight, // Simple: +1 for covered, -1 for uncovered
+            cellSizePixels: 8,  // Smaller cells for better detail when zoomed in
+            cellMarginPixels: 0,
+            gpuAggregation: true,
+            aggregation: 'MEAN',
+            // Proportional color scheme: Red (100% uncovered) → Yellow (50/50) → Green (100% covered)
+            colorRange: [
+                [200, 20, 20, 255],     // Pure red: 100% uncovered buildings
+                [255, 255, 0, 255],     // Pure yellow: 50/50 split
+                [20, 180, 20, 255]      // Pure green: 100% covered buildings
+            ],
+            // Perfect proportional domain: -1 = 100% uncovered, 0 = 50/50, +1 = 100% covered
+            colorDomain: [-1, 0, 1],
+            pickable: false, // Disabled tooltips
+            opacity: 0.85
+        });
+    }
+    
+    /**
+     * Create existing shelters layer
+     */
+    createExistingSheltersLayer() {
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        const existingShelters = currentData.shelters.features.filter(shelter => 
+            shelter.properties && shelter.properties.status === 'Built'
+        );
+        
+        if (existingShelters.length === 0) return null;
+        
+        return new deck.IconLayer({
+            id: 'existing-shelters',
+            data: existingShelters,
+            pickable: true,
+            getIcon: () => this.getShelterIcon('existing'),
+            getPosition: d => d.geometry.coordinates,
+            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
+            getColor: d => {
+                // Highlight selected shelter
+                if (this.selectedShelter && this.selectedShelter.properties && 
+                    this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
+                    return [255, 255, 255, 255]; // White for selected (100% opacity)
+                }
+                return [255, 255, 255, 230]; // White tint (90% opacity)
+            },
+            sizeScale: this.ICON_SIZE_SCALE,
+            sizeUnits: 'meters',
+            sizeMinPixels: this.ICON_MIN_PIXELS,
+            sizeMaxPixels: this.ICON_MAX_PIXELS,
+            onHover: (info) => this.handleHover(info),
+            onClick: (info) => this.handleClick(info)
+        });
+    }
+    
+    /**
+     * Create requested shelters layer
+     */
+    createRequestedSheltersLayer() {
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        const requestedShelters = currentData.shelters.features.filter(shelter => 
+            shelter.properties && shelter.properties.status === 'Request'
+        );
+        
+        if (requestedShelters.length === 0) return null;
+        
+        return new deck.IconLayer({
+            id: 'requested-shelters',
+            data: requestedShelters,
+            pickable: true,
+            getIcon: () => this.getShelterIcon('requested'),
+            getPosition: d => d.geometry.coordinates,
+            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
+            getColor: d => {
+                // Highlight selected shelter
+                if (this.selectedShelter && this.selectedShelter.properties && 
+                    this.selectedShelter.properties.shelter_id === d.properties.shelter_id) {
+                    return [255, 255, 255, 255]; // White for selected (100% opacity)
+                }
+                return [255, 255, 255, 230]; // White tint (90% opacity)
+            },
+            sizeScale: this.ICON_SIZE_SCALE,
+            sizeUnits: 'meters',
+            sizeMinPixels: this.ICON_MIN_PIXELS,
+            sizeMaxPixels: this.ICON_MAX_PIXELS,
+            onHover: (info) => this.handleHover(info),
+            onClick: (info) => this.handleClick(info)
+        });
+    }
+    
+    /**
+     * Create optimal shelters layer
+     */
+    createOptimalSheltersLayer() {
+        if (this.proposedShelters.length === 0) return null;
+        
+        return new deck.IconLayer({
+            id: 'proposed-shelters',
+            data: this.proposedShelters.map((shelter, index) => ({
+                coordinates: [shelter.lon, shelter.lat],
+                rank: index + 1,
+                ...shelter
+            })),
+            pickable: true,
+            getIcon: () => this.getShelterIcon('optimal'),
+            getPosition: d => d.coordinates,
+            getSize: () => this.ICON_SIZE * 8000, // Scale up for visibility
+            getColor: d => {
+                // Highlight selected shelter
+                if (this.selectedShelter && this.selectedShelter.coordinates && 
+                    this.selectedShelter.coordinates[0] === d.coordinates[0] && 
+                    this.selectedShelter.coordinates[1] === d.coordinates[1]) {
+                    return [255, 255, 255, 255]; // White for selected (100% opacity)
+                }
+                return [255, 255, 255, 230]; // White tint (90% opacity)
+            },
+            sizeScale: this.ICON_SIZE_SCALE,
+            sizeUnits: 'meters',
+            sizeMinPixels: this.ICON_MIN_PIXELS,
+            sizeMaxPixels: this.ICON_MAX_PIXELS,
+            onHover: (info) => this.handleHover(info),
+            onClick: (info) => {
+                if (info.object) {
+                    this.selectShelter(info.object);
+                    this.jumpToOptimalSite(info.object.coordinates[1], info.object.coordinates[0]);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Create buildings layer (stub - falls back to original createLayers for now)
+     */
+    createBuildingsLayer() {
+        // For now, fall back to original layer creation logic
+        // This will be optimized in a future iteration
+        const originalLayers = this.createLayers();
+        return originalLayers.find(layer => 
+            layer.id === 'buildings-tiles' || 
+            layer.id === 'buildings-geojson'
+        ) || null;
+    }
+    
+    /**
+     * Create statistical areas layer (stub)
+     */
+    createStatisticalAreasLayer() {
+        // For now, fall back to original layer creation logic
+        const originalLayers = this.createLayers();
+        return originalLayers.find(layer => layer.id === 'statistical-areas-geojson') || null;
+    }
+    
+    /**
+     * Create habitation clusters layer (stub)
+     */
+    createHabitationClustersLayer() {
+        // For now, fall back to original layer creation logic
+        const originalLayers = this.createLayers();
+        return originalLayers.find(layer => 
+            layer.id === 'habitation-clusters-tiles' || 
+            layer.id === 'habitation-clusters-geojson'
+        ) || null;
+    }
+    
+    /**
+     * Create coverage brush layer (stub)
+     */
+    createCoverageBrushLayer() {
+        // For now, fall back to original layer creation logic
+        const originalLayers = this.createLayers();
+        return originalLayers.find(layer => layer.id === 'coverage-brush') || null;
     }
 }
 
