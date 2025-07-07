@@ -323,7 +323,7 @@ class ShelterAccessApp {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 // Close any open modal
-                const openModal = document.querySelector('.modal.show');
+                const openModal = document.querySelector('.modal-overlay.show');
                 if (openModal) openModal.classList.remove('show');
             }
         });
@@ -1235,7 +1235,7 @@ class ShelterAccessApp {
     }
 
     /**
-     * Enhanced tile fetching with sophisticated caching
+     * Enhanced tile fetching with sophisticated caching and proper image handling
      */
     async _fetchTileWithCaching(url, tile) {
         const { x, y, z } = tile.index;
@@ -1246,36 +1246,102 @@ class ShelterAccessApp {
         const cached = this.tileCache.get(tileKey);
         if (cached && (currentTime - cached.timestamp) < this.maxTileCacheAge) {
             this.tileCacheStats.hits++;
-            return cached.data;
+            // Validate cached image before returning
+            if (this._validateImageData(cached.data)) {
+                return cached.data;
+            } else {
+                // Remove corrupted cached data
+                this.tileCache.delete(tileKey);
+            }
         }
         
         this.tileCacheStats.misses++;
         this.performanceMetrics.tileRequests++;
         
         try {
-            // Simplified fetch to avoid CORS preflight issues with Mapbox
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+            
             const response = await fetch(url, {
-                cache: 'force-cache', // Use browser cache aggressively
-                credentials: 'omit'
+                cache: 'force-cache',
+                credentials: 'omit',
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const blob = await response.blob();
+            
+            // Validate blob
+            if (!blob || blob.size === 0) {
+                throw new Error('Empty or invalid blob received');
+            }
+            
+            // Create image object instead of blob URL to prevent byteLength errors
             const imageUrl = URL.createObjectURL(blob);
             
-            // Cache the result
-            this._cacheTile(tileKey, imageUrl, currentTime);
-            
-            return imageUrl;
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                img.onload = () => {
+                    URL.revokeObjectURL(imageUrl); // Clean up blob URL
+                    
+                    // Validate image dimensions
+                    if (img.naturalWidth > 0 && img.naturalHeight > 0 && img.complete) {
+                        // Cache the image object, not the URL
+                        this._cacheTile(tileKey, img, currentTime);
+                        resolve(img);
+                    } else {
+                        reject(new Error('Invalid image dimensions'));
+                    }
+                };
+                
+                img.onerror = () => {
+                    URL.revokeObjectURL(imageUrl);
+                    reject(new Error('Image load failed'));
+                };
+                
+                // Set timeout for image loading
+                setTimeout(() => {
+                    if (!img.complete) {
+                        URL.revokeObjectURL(imageUrl);
+                        reject(new Error('Image load timeout'));
+                    }
+                }, 5000);
+                
+                img.src = imageUrl;
+            });
             
         } catch (error) {
             console.warn(`Tile fetch failed for ${tileKey}:`, error);
-            // Return null to let deck.gl handle the error gracefully
+            this.tileCacheStats.errors++;
             return null;
         }
+    }
+    
+    /**
+     * Validate image data to prevent byteLength errors
+     */
+    _validateImageData(imageData) {
+        if (!imageData) return false;
+        
+        if (imageData instanceof HTMLImageElement) {
+            return imageData.complete && 
+                   imageData.naturalWidth > 0 && 
+                   imageData.naturalHeight > 0;
+        }
+        
+        if (imageData instanceof ImageBitmap) {
+            return imageData.width > 0 && imageData.height > 0;
+        }
+        
+        return false; // For strings or other types, assume invalid
     }
 
     /**
@@ -1299,10 +1365,11 @@ class ShelterAccessApp {
         
         for (let i = 0; i < Math.min(count, entries.length); i++) {
             const [key, value] = entries[i];
-            // Clean up blob URL to prevent memory leaks
+            // Clean up blob URL to prevent memory leaks (legacy support)
             if (value.data && typeof value.data === 'string' && value.data.startsWith('blob:')) {
                 URL.revokeObjectURL(value.data);
             }
+            // For image objects, no special cleanup needed as they're handled by GC
             this.tileCache.delete(key);
             this.tileCacheStats.evictions++;
         }
@@ -1345,20 +1412,54 @@ class ShelterAccessApp {
                 return this._fetchTileWithCaching(tileUrl, tile);
             },
             renderSubLayers: props => {
-                const {
-                    bbox: {west, south, east, north}
-                } = props.tile;
+                // Enhanced validation to prevent byteLength errors
+                if (!props || !props.tile || !props.data) {
+                    return null;
+                }
                 
-                return new deck.BitmapLayer(props, {
-                    data: null,
-                    image: props.data,
-                    bounds: [west, south, east, north],
-                    // Improved error handling for failed tile loads
-                    onError: (error) => {
-                        console.warn('Tile load failed:', error);
-                        return false;
+                const { bbox } = props.tile;
+                if (!bbox || typeof bbox.west !== 'number' || typeof bbox.south !== 'number' || 
+                    typeof bbox.east !== 'number' || typeof bbox.north !== 'number') {
+                    console.warn('Invalid tile bbox:', bbox);
+                    return null;
+                }
+                
+                // Validate image data to prevent byteLength errors
+                if (props.data instanceof HTMLImageElement) {
+                    if (!props.data.complete || props.data.naturalWidth === 0) {
+                        console.warn('Incomplete image data, skipping tile');
+                        return null;
                     }
-                });
+                } else if (props.data instanceof ImageBitmap) {
+                    if (!props.data.width || !props.data.height) {
+                        console.warn('Invalid ImageBitmap dimensions, skipping tile');
+                        return null;
+                    }
+                } else {
+                    // For other data types, ensure it's not null/undefined
+                    if (!props.data) {
+                        console.warn('Invalid tile data type, skipping tile');
+                        return null;
+                    }
+                }
+                
+                const { west, south, east, north } = bbox;
+                
+                try {
+                    return new deck.BitmapLayer(props, {
+                        data: null,
+                        image: props.data,
+                        bounds: [west, south, east, north],
+                        // Improved error handling for failed tile loads
+                        onError: (error) => {
+                            console.warn('Tile load failed:', error);
+                            return false;
+                        }
+                    });
+                } catch (error) {
+                    console.warn('BitmapLayer creation failed:', error);
+                    return null;
+                }
             },
             // Improved tile layer error handling
             onTileError: (error) => {
@@ -2004,6 +2105,12 @@ class ShelterAccessApp {
      */
     showShelterTooltip(shelter, layerId, x, y) {
         const tooltip = document.getElementById('tooltip');
+        
+        // Safety check: return early if tooltip element doesn't exist
+        if (!tooltip) {
+            console.warn('Tooltip element not found');
+            return;
+        }
         
         // Handle hover state directly here - no recursive calls
         if (this.hoveredShelter !== shelter) {
