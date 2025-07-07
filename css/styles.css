@@ -420,31 +420,7 @@ body {
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* Sleek Info Button - Bottom */
-.info-button-bottom {
-    width: 32px;
-    height: 32px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-}
 
-.info-button-bottom:hover {
-    background: var(--accent-blue);
-    border-color: var(--accent-blue);
-    color: #ffffff;
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
 
 /* Modern Checkbox Toggle */
 .checkbox-toggle {
@@ -1578,4 +1554,48 @@ input:checked + .toggle-slider:before {
 input:checked + .toggle-slider:hover {
     background: #0052cc;
     box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+}
+
+/* Bottom Buttons Container - Side by Side Layout */
+.bottom-buttons {
+    display: flex;
+    gap: var(--space-md);
+    width: 100%;
+}
+
+/* Bottom Button Base Styles */
+.bottom-button {
+    background: var(--panel-border);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bottom-button:hover {
+    background: var(--hover-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific styling for info button to make it more icon-like */
+.bottom-button.info-button {
+    font-size: 16px;
+    font-weight: 700;
+    width: 48px;
+    flex: 0 0 48px;
+}
+
+/* Specific styling for about button to take remaining space */
+.bottom-button.about-button {
+    flex: 1;
 } 

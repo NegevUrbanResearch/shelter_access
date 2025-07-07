@@ -227,6 +227,14 @@ class ShelterAccessApp {
             // Hide loading overlay
             this.hideLoading();
             
+            // Show the methods modal on startup to guide users
+            setTimeout(() => {
+                const methodsModal = document.getElementById('methodsModal');
+                if (methodsModal) {
+                    methodsModal.classList.add('show');
+                }
+            }, 500); // Small delay to ensure app is fully loaded
+            
         } catch (error) {
             console.error('Failed to initialize app:', error);
             this.showError('Failed to load application. Please refresh and try again.');
