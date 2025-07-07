@@ -14,10 +14,10 @@ class ShelterAccessApp {
         this.isAnalyzing = false;
         
         // Icon sizing constants - tunable in one place
-        this.ICON_SIZE = 0.006; // Increased from 0.003 for better visibility
+        this.ICON_SIZE = 0.006; 
         this.ICON_SIZE_SCALE = 2; 
-        this.ICON_MIN_PIXELS = 20; // Increased from 14 for better visibility
-        this.ICON_MAX_PIXELS = 140; // Increased from 124 for better visibility
+        this.ICON_MIN_PIXELS = 20; 
+        this.ICON_MAX_PIXELS = 140; 
         
         // Add state for hover highlighting
         this.hoveredShelter = null;
@@ -28,16 +28,16 @@ class ShelterAccessApp {
         
         // Layer visibility state
         this.layerVisibility = {
-            buildings: true, // On by default - building footprints are useful
+            buildings: true, 
             existingShelters: true,
-            requestedShelters: true,
+            requestedShelters: false,
             optimalShelters: true,
-            statisticalAreas: false, // Off by default
-            habitationClusters: false, // Off by default
-            accessibilityHeatmap: false // Off by default
+            statisticalAreas: false, 
+            habitationClusters: false, 
+            accessibilityHeatmap: false 
         };
         
-        // Precomputed shelter coverage data - replaces expensive calculations
+        // Precomputed shelter coverage data
         this.shelterCoverageData = null;
         
         // Accessibility heatmap data
@@ -45,8 +45,29 @@ class ShelterAccessApp {
         this.allAccessibilityData = null; // Stores all radii data
         this.isCalculatingAccessibility = false;
         
+        // Layer management optimization
+        this.baseTileLayer = null;
+        this.currentBasemapConfig = null;
+        this.layerUpdateInProgress = false;
+        
+        // Performance monitoring
+        this.performanceMetrics = {
+            tileRequests: 0,
+            layerUpdates: 0,
+            viewStateChanges: 0,
+            lastUpdateTime: Date.now(),
+            averageUpdateTime: 0,
+            updateTimes: []
+        };
+        
         // Mapbox token for terrain and other services
         this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
+        
+        // Tile caching system
+        this.tileCache = new Map();
+        this.tileCacheStats = { hits: 0, misses: 0, evictions: 0 };
+        this.maxTileCacheSize = 2500; // Maximum number of cached tiles
+        this.maxTileCacheAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         
         // Simplified basemap configuration
         this.currentBasemap = 'satellite';
@@ -197,13 +218,14 @@ class ShelterAccessApp {
             // Initial load of optimal locations and coverage analysis
             await this.updateOptimalLocations();
             
+            // Start performance monitoring
+            this._startPerformanceMonitoring();
+            
             // Initialize legend
             this.updateLegend();
             
             // Hide loading overlay
             this.hideLoading();
-            
-            console.log('✅ App initialized with precomputed shelter coverage data');
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -315,7 +337,16 @@ class ShelterAccessApp {
                     
                     // Update spatial analyzer and refresh
                     await this.spatialAnalyzer.setCoverageRadius(this.coverageRadius);
-                    await this.updateOptimalLocations();
+                    
+                    // If accessibility heatmap is active, update accessibility data for new radius
+                    if (this.layerVisibility.accessibilityHeatmap && this.allAccessibilityData) {
+                        this.updateAccessibilityDataForRadius();
+                        // Update visualization to refresh the heatmap
+                        this.updateVisualization();
+                    } else {
+                        // Otherwise just update optimal locations
+                        await this.updateOptimalLocations();
+                    }
                 }
             });
         }
@@ -1054,33 +1085,92 @@ class ShelterAccessApp {
      * Update visualization layers
      */
     updateVisualization() {
-        if (!this.deckgl) return;
-
-        const layers = [];
+        if (!this.deckgl || this.layerUpdateInProgress) return;
         
-        // Base layer - create once and reuse when possible
-        const basemapConfig = this.basemaps[this.currentBasemap];
-        const baseLayer = this.createStandardTileLayer(basemapConfig);
-        layers.push(baseLayer);
+        const startTime = performance.now();
+        this.layerUpdateInProgress = true;
+        this.performanceMetrics.layerUpdates++;
         
-        // Data layers
-        const dataLayers = this.createLayers();
-        layers.push(...dataLayers);
-        
-        // Update deck.gl with error handling
         try {
+            const layers = [];
+            
+            // Optimize base tile layer - only recreate when basemap changes
+            this._ensureBaseTileLayer();
+            if (this.baseTileLayer) {
+                layers.push(this.baseTileLayer);
+            }
+            
+            // Data layers - these can be updated more frequently
+            const dataLayers = this.createLayers();
+            layers.push(...dataLayers);
+            
+            // Update deck.gl with error handling
             this.currentLayers = layers;
             this.deckgl.setProps({ layers: this.currentLayers });
+            
         } catch (error) {
             console.warn('Layer update failed:', error);
-            // Try to recover by just updating data layers
-            if (this.currentLayers.length > 0) {
-                this.deckgl.setProps({ layers: [this.currentLayers[0], ...dataLayers] });
+            // Try to recover by using existing base layer
+            if (this.baseTileLayer) {
+                const dataLayers = this.createLayers();
+                this.deckgl.setProps({ layers: [this.baseTileLayer, ...dataLayers] });
             }
+        } finally {
+            this.layerUpdateInProgress = false;
+            this._trackUpdatePerformance(startTime);
         }
         
         this.updateCoverageAnalysis();
         this.updateLegend();
+    }
+
+    /**
+     * Efficiently update only data layers, reusing base tile layer
+     */
+    updateDataLayersOnly() {
+        if (!this.deckgl || this.layerUpdateInProgress) return;
+        
+        this.layerUpdateInProgress = true;
+        
+        try {
+            const layers = [];
+            
+            // Reuse existing base tile layer
+            if (this.baseTileLayer) {
+                layers.push(this.baseTileLayer);
+            }
+            
+            // Update data layers only
+            const dataLayers = this.createLayers();
+            layers.push(...dataLayers);
+            
+            this.currentLayers = layers;
+            this.deckgl.setProps({ layers: this.currentLayers });
+            
+        } catch (error) {
+            console.warn('Data layer update failed:', error);
+        } finally {
+            this.layerUpdateInProgress = false;
+        }
+        
+        this.updateLegend();
+    }
+
+    /**
+     * Ensure base tile layer exists and is current
+     */
+    _ensureBaseTileLayer() {
+        const basemapConfig = this.basemaps[this.currentBasemap];
+        
+        // Only recreate tile layer if basemap changed or doesn't exist
+        if (!this.baseTileLayer || 
+            !this.currentBasemapConfig || 
+            this.currentBasemapConfig.url !== basemapConfig.url) {
+            
+            console.log(`🗺️ Creating new tile layer for ${this.currentBasemap}`);
+            this.baseTileLayer = this.createStandardTileLayer(basemapConfig);
+            this.currentBasemapConfig = basemapConfig;
+        }
     }
     
     /**
@@ -1135,6 +1225,95 @@ class ShelterAccessApp {
             sizeMaxPixels: this.ICON_MAX_PIXELS
         };
     }
+
+    /**
+     * Enhanced tile fetching with sophisticated caching
+     */
+    async _fetchTileWithCaching(url, tile) {
+        const { x, y, z } = tile.index;
+        const tileKey = `${z}-${x}-${y}`;
+        const currentTime = Date.now();
+        
+        // Check cache first
+        const cached = this.tileCache.get(tileKey);
+        if (cached && (currentTime - cached.timestamp) < this.maxTileCacheAge) {
+            this.tileCacheStats.hits++;
+            return cached.data;
+        }
+        
+        this.tileCacheStats.misses++;
+        this.performanceMetrics.tileRequests++;
+        
+        try {
+            // Simplified fetch to avoid CORS preflight issues with Mapbox
+            const response = await fetch(url, {
+                cache: 'force-cache', // Use browser cache aggressively
+                credentials: 'omit'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+            
+            // Cache the result
+            this._cacheTile(tileKey, imageUrl, currentTime);
+            
+            return imageUrl;
+            
+        } catch (error) {
+            console.warn(`Tile fetch failed for ${tileKey}:`, error);
+            // Return null to let deck.gl handle the error gracefully
+            return null;
+        }
+    }
+
+    /**
+     * Cache management for tiles
+     */
+    _cacheTile(key, data, timestamp) {
+        // Evict old entries if cache is full
+        if (this.tileCache.size >= this.maxTileCacheSize) {
+            this._evictOldestTiles(Math.floor(this.maxTileCacheSize * 0.2)); // Evict 20%
+        }
+        
+        this.tileCache.set(key, { data, timestamp });
+    }
+
+    /**
+     * Evict oldest tiles from cache
+     */
+    _evictOldestTiles(count) {
+        const entries = Array.from(this.tileCache.entries());
+        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+        
+        for (let i = 0; i < Math.min(count, entries.length); i++) {
+            const [key, value] = entries[i];
+            // Clean up blob URL to prevent memory leaks
+            if (value.data && typeof value.data === 'string' && value.data.startsWith('blob:')) {
+                URL.revokeObjectURL(value.data);
+            }
+            this.tileCache.delete(key);
+            this.tileCacheStats.evictions++;
+        }
+    }
+
+    /**
+     * Get tile cache statistics
+     */
+    getTileCacheStats() {
+        const total = this.tileCacheStats.hits + this.tileCacheStats.misses;
+        const hitRate = total > 0 ? (this.tileCacheStats.hits / total * 100).toFixed(1) : 0;
+        
+        return {
+            ...this.tileCacheStats,
+            cacheSize: this.tileCache.size,
+            hitRate: `${hitRate}%`,
+            totalRequests: total
+        };
+    }
     
     /**
      * Create simplified tile layer for basemaps with error handling
@@ -1146,7 +1325,7 @@ class ShelterAccessApp {
             minZoom: 0,
             maxZoom: 19,
             tileSize: 256,
-            // Simplified tile loading with better error handling
+            // Enhanced tile loading with caching support
             getTileData: (tile) => {
                 const { x, y, z } = tile.index;
                 const tileUrl = basemapConfig.url
@@ -1154,7 +1333,8 @@ class ShelterAccessApp {
                     .replace('{y}', y)
                     .replace('{x}', x);
                 
-                return tileUrl;
+                // Use fetch with cache optimization for tiles
+                return this._fetchTileWithCaching(tileUrl, tile);
             },
             renderSubLayers: props => {
                 const {
@@ -1168,7 +1348,6 @@ class ShelterAccessApp {
                     // Improved error handling for failed tile loads
                     onError: (error) => {
                         console.warn('Tile load failed:', error);
-                        // Return false to continue rendering other tiles
                         return false;
                     }
                 });
@@ -1176,13 +1355,15 @@ class ShelterAccessApp {
             // Improved tile layer error handling
             onTileError: (error) => {
                 console.warn('Tile layer error:', error);
-                // Continue execution, don't break the app
                 return false;
             },
-            // Add retry mechanism for failed tiles
+            // Optimized tile loading strategy
             refinementStrategy: 'best-available',
-            // Reduce concurrent tile loading to prevent overload
-            maxConcurrentLoads: 6
+            // Increase concurrent loads for better performance
+            maxConcurrentLoads: 12,
+            // Enhanced caching settings
+            maxCacheSize: 512, // Cache up to 512 tiles
+            maxCacheByteSize: 256 * 1024 * 1024 // 256MB tile cache
         });
     }
     
@@ -1201,8 +1382,8 @@ class ShelterAccessApp {
             // Store directly - they're already in the right format
             this.proposedShelters = optimalLocations;
             
-            // Update visualization
-            this.updateVisualization();
+            // Update data layers only - tile layer doesn't need update
+            this.updateDataLayersOnly();
             
             // Update coverage analysis
             this.updateCoverageAnalysis();
@@ -1355,54 +1536,12 @@ class ShelterAccessApp {
 
 
     /**
-     * Handle click events (shelter clicking disabled - hover only)
-     */
-    handleClick(info) {
-        const { object } = info;
-        
-        if (object) {
-            // Shelter clicking disabled - hover only mode
-            if (info.layer.id === 'existing-shelters' || info.layer.id === 'requested-shelters' || info.layer.id === 'proposed-shelters') {
-                // Shelter clicks disabled - do nothing
-                return;
-            } else if (info.layer.id === 'habitation-clusters') {
-                // Select habitation cluster (medium priority)
-                this.selectPolygon(object, 'habitationCluster');
-            } else if (info.layer.id === 'statistical-areas-geojson') {
-                // Select statistical area (lowest priority)
-                this.selectPolygon(object, 'statisticalArea');
-            }
-        } else {
-            // Clicked on empty space - clear all selections
-            this.clearPolygonSelection();
-        }
-    }
-    
-    /**
-     * Jump to a specific optimal site location
-     */
-    jumpToOptimalSite(lat, lon) {
-        if (this.deckgl) {
-            this.deckgl.setProps({
-                viewState: {
-                    longitude: lon,
-                    latitude: lat,
-                    zoom: 16,
-                    pitch: 0,
-                    bearing: 0,
-                    transitionDuration: 1000,
-                    transitionInterpolator: new deck.FlyToInterpolator()
-                }
-            });
-        }
-    }
-    
-    /**
      * Handle viewport changes with debouncing
      */
     handleViewStateChange(viewState) {
         // Store pending view state
         this._pendingViewState = viewState;
+        this.performanceMetrics.viewStateChanges++;
         
         // Clear existing timer
         if (this._viewStateDebounceTimer) {
@@ -1413,10 +1552,10 @@ class ShelterAccessApp {
         this._currentViewState = viewState;
         this.updateScaleBar();
         
-        // Debounce expensive operations
+        // Debounce expensive operations - faster response for better UX
         this._viewStateDebounceTimer = setTimeout(() => {
             this._processViewStateChange(this._pendingViewState);
-        }, 150); // 150ms debounce
+        }, 100); // 100ms debounce for better responsiveness
     }
     
     /**
@@ -1426,10 +1565,18 @@ class ShelterAccessApp {
         const previousZoom = this._currentZoom;
         this._currentZoom = viewState.zoom;
         
-        // Only recreate layers if zoom level significantly changed
-        if (!previousZoom || Math.abs(this._currentZoom - previousZoom) > 1.0) {
+        // Optimize layer updates based on zoom change
+        if (!previousZoom) {
+            // Initial load - full update needed
             this.updateVisualization();
+        } else if (Math.abs(this._currentZoom - previousZoom) > 2.0) {
+            // Significant zoom change - full update for icon sizing
+            this.updateVisualization();
+        } else if (Math.abs(this._currentZoom - previousZoom) > 0.5) {
+            // Minor zoom change - only update data layers
+            this.updateDataLayersOnly();
         }
+        // For very small zoom changes, do nothing to improve performance
     }
     
     /**
@@ -1529,12 +1676,18 @@ class ShelterAccessApp {
 
     
     /**
-     * Change basemap with debouncing
+     * Change basemap with optimized layer management
      */
     changeBasemap(basemap) {
         if (this.currentBasemap === basemap) return; // No change needed
         
+        console.log(`🔄 Changing basemap from ${this.currentBasemap} to ${basemap}`);
+        
         this.currentBasemap = basemap;
+        
+        // Invalidate cached tile layer to force recreation
+        this.baseTileLayer = null;
+        this.currentBasemapConfig = null;
         
         // Update UI styling based on basemap
         const body = document.body;
@@ -1552,12 +1705,13 @@ class ShelterAccessApp {
         }
         
         this._basemapDebounceTimer = setTimeout(() => {
+            // Full update needed for basemap change
             this.updateVisualization();
-        }, 100);
+        }, 50); // Faster response for basemap changes
     }
     
     /**
-     * Cleanup method to clear timers
+     * Cleanup method to clear timers and caches
      */
     cleanup() {
         if (this._viewStateDebounceTimer) {
@@ -1568,6 +1722,122 @@ class ShelterAccessApp {
             clearTimeout(this._basemapDebounceTimer);
             this._basemapDebounceTimer = null;
         }
+        
+        // Clean up tile cache to prevent memory leaks
+        this._cleanupTileCache();
+        
+        // Clean up performance monitoring
+        if (this.performanceMonitoringInterval) {
+            clearInterval(this.performanceMonitoringInterval);
+            this.performanceMonitoringInterval = null;
+        }
+    }
+
+    /**
+     * Clean up tile cache and blob URLs
+     */
+    _cleanupTileCache() {
+        for (const [key, value] of this.tileCache.entries()) {
+            if (value.data && typeof value.data === 'string' && value.data.startsWith('blob:')) {
+                URL.revokeObjectURL(value.data);
+            }
+        }
+        this.tileCache.clear();
+        this.tileCacheStats = { hits: 0, misses: 0, evictions: 0 };
+        console.log('🧹 Tile cache cleaned up');
+    }
+
+    /**
+     * Track performance metrics for layer updates
+     */
+    _trackUpdatePerformance(startTime) {
+        const updateTime = performance.now() - startTime;
+        this.performanceMetrics.updateTimes.push(updateTime);
+        
+        // Keep only last 100 measurements for average calculation
+        if (this.performanceMetrics.updateTimes.length > 100) {
+            this.performanceMetrics.updateTimes.shift();
+        }
+        
+        // Calculate average update time
+        this.performanceMetrics.averageUpdateTime = 
+            this.performanceMetrics.updateTimes.reduce((sum, time) => sum + time, 0) / 
+            this.performanceMetrics.updateTimes.length;
+    }
+
+    /**
+     * Get comprehensive performance report
+     */
+    getPerformanceReport() {
+        const cacheStats = this.getTileCacheStats();
+        const uptime = Date.now() - this.performanceMetrics.lastUpdateTime;
+        
+        return {
+            caching: cacheStats,
+            performance: {
+                ...this.performanceMetrics,
+                uptimeMs: uptime,
+                averageUpdateTimeMs: Math.round(this.performanceMetrics.averageUpdateTime * 100) / 100,
+                layerUpdatesPerSecond: this.performanceMetrics.layerUpdates / (uptime / 1000),
+                viewStateChangesPerSecond: this.performanceMetrics.viewStateChanges / (uptime / 1000)
+            },
+            recommendations: this._getPerformanceRecommendations(cacheStats)
+        };
+    }
+
+    /**
+     * Get performance recommendations based on metrics
+     */
+    _getPerformanceRecommendations(cacheStats) {
+        const recommendations = [];
+        
+        if (parseFloat(cacheStats.hitRate) < 50) {
+            recommendations.push('⚠️ Low tile cache hit rate. Consider increasing cache size or checking network connectivity.');
+        }
+        
+        if (this.performanceMetrics.averageUpdateTime > 50) {
+            recommendations.push('⚠️ Slow layer updates detected. Consider reducing layer complexity or data size.');
+        }
+        
+        if (this.performanceMetrics.viewStateChanges / (Date.now() - this.performanceMetrics.lastUpdateTime) * 1000 > 10) {
+            recommendations.push('⚠️ High view state change frequency. Debouncing is working to prevent excessive updates.');
+        }
+        
+        if (recommendations.length === 0) {
+            recommendations.push('✅ Performance is optimal');
+        }
+        
+        return recommendations;
+    }
+
+    /**
+     * Log performance report to console
+     */
+    logPerformanceReport() {
+        const report = this.getPerformanceReport();
+        console.group('🚀 Performance Report');
+        console.log('Cache Stats:', report.caching);
+        console.log('Performance Metrics:', report.performance);
+        console.log('Recommendations:', report.recommendations);
+        console.groupEnd();
+    }
+
+    /**
+     * Start periodic performance monitoring
+     */
+    _startPerformanceMonitoring() {
+        // Log performance report every 30 seconds in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            this.performanceMonitoringInterval = setInterval(() => {
+                this.logPerformanceReport();
+            }, 30000);
+        }
+        
+        // Initial performance log after 5 seconds
+        setTimeout(() => {
+            console.log('🚀 Initial performance check after 5 seconds:');
+            this.logPerformanceReport();
+        }, 5000);
     }
     
     /**
