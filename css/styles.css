@@ -1598,4 +1598,76 @@ input:checked + .toggle-slider:hover {
 /* Specific styling for about button to take remaining space */
 .bottom-button.about-button {
     flex: 1;
+}
+
+/* Guide Steps Styling */
+.guide-section {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
+.guide-section h3 {
+    color: var(--accent-blue) !important;
+    margin-bottom: var(--space-xl);
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.guide-step {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--accent-blue);
+    transition: all 0.2s ease;
+}
+
+.guide-step:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(2px);
+}
+
+.guide-step:last-child {
+    margin-bottom: 0;
+}
+
+.step-number {
+    background: var(--accent-blue);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-accent);
+    margin-bottom: var(--space-xs);
+    display: block;
+}
+
+.step-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
 } 
