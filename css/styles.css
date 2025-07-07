@@ -1117,10 +1117,16 @@ body {
     align-items: center;
     justify-content: center;
     padding: 20px;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
 }
 
 .modal-overlay.show {
     display: flex;
+    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
 }
 
 .modal-content {
