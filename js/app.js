@@ -50,14 +50,7 @@ class ShelterAccessApp {
         this.currentBasemapConfig = null;
         this.layerUpdateInProgress = false;
         
-        // Performance monitoring
-        this.performanceMetrics = {
-            layerUpdates: 0,
-            viewStateChanges: 0,
-            lastUpdateTime: Date.now(),
-            averageUpdateTime: 0,
-            updateTimes: []
-        };
+
         
         // Mapbox token for terrain and other services
         this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
@@ -125,17 +118,13 @@ class ShelterAccessApp {
      */
     async loadShelterCoverageData() {
         try {
-            console.log('🚀 Loading precomputed shelter coverage data...');
             const response = await fetch('data/shelter_coverage_precomputed.json');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
             this.shelterCoverageData = await response.json();
-            console.log(`✅ Loaded precomputed coverage for ${Object.keys(this.shelterCoverageData.shelter_coverage_map).length} shelters`);
-            
         } catch (error) {
-            console.error('❌ Error loading precomputed shelter coverage:', error);
+            console.error('Error loading precomputed shelter coverage:', error);
             this.shelterCoverageData = null;
         }
     }
@@ -213,8 +202,7 @@ class ShelterAccessApp {
             // Initial load of optimal locations and coverage analysis
             await this.updateOptimalLocations();
             
-            // Start performance monitoring
-            this._startPerformanceMonitoring();
+
             
             // Initialize legend
             this.updateLegend();
@@ -580,9 +568,7 @@ class ShelterAccessApp {
             // When heatmap is active, only show heatmap - hide all other layers
             const coveredCount = this.accessibilityData.filter(d => d.type === 'covered').length;
             const uncoveredCount = this.accessibilityData.filter(d => d.type === 'uncovered').length;
-            console.log(`🔥 Unified Heatmap data: ${this.accessibilityData.length} total points`);
-            console.log(`   🟢 Covered: ${coveredCount} buildings (${(coveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
-            console.log(`   🔴 Uncovered: ${uncoveredCount} buildings (${(uncoveredCount/this.accessibilityData.length*100).toFixed(1)}%)`);
+
             
             // Create simplified heatmap layer with intuitive weighting
             layers.push(new deck.ScreenGridLayer({
@@ -1090,9 +1076,7 @@ class ShelterAccessApp {
     updateVisualization() {
         if (!this.deckgl || this.layerUpdateInProgress) return;
         
-        const startTime = performance.now();
         this.layerUpdateInProgress = true;
-        this.performanceMetrics.layerUpdates++;
         
         try {
             const layers = [];
@@ -1101,8 +1085,6 @@ class ShelterAccessApp {
             this._ensureBaseTileLayer();
             if (this.baseTileLayer) {
                 layers.push(this.baseTileLayer);
-            } else {
-                console.warn('⚠️ No base tile layer available');
             }
             
             // Add data layers
@@ -1113,23 +1095,19 @@ class ShelterAccessApp {
             this.currentLayers = layers;
             this.deckgl.setProps({ layers: this.currentLayers });
             
-            console.log(`🔄 Updated visualization: ${layers.length} layers (${this.baseTileLayer ? 'with' : 'without'} basemap)`);
-            
         } catch (error) {
-            console.error('❌ Layer update failed:', error);
+            console.error('Layer update failed:', error);
             
             // Attempt recovery with minimal layers
             try {
                 const dataLayers = this.createLayers();
                 const recoveryLayers = this.baseTileLayer ? [this.baseTileLayer, ...dataLayers] : dataLayers;
                 this.deckgl.setProps({ layers: recoveryLayers });
-                console.log('🔧 Recovery update successful');
             } catch (recoveryError) {
-                console.error('❌ Recovery failed:', recoveryError);
+                console.error('Recovery failed:', recoveryError);
             }
         } finally {
             this.layerUpdateInProgress = false;
-            this._trackUpdatePerformance(startTime);
         }
         
         this.updateCoverageAnalysis();
@@ -1175,7 +1153,7 @@ class ShelterAccessApp {
         const basemapConfig = this.basemaps[this.currentBasemap];
         
         if (!basemapConfig) {
-            console.error(`❌ Invalid basemap: ${this.currentBasemap}`);
+            console.error(`Invalid basemap: ${this.currentBasemap}`);
             return;
         }
         
@@ -1185,8 +1163,6 @@ class ShelterAccessApp {
             this.currentBasemapConfig.url !== basemapConfig.url ||
             this.currentBasemapConfig.name !== basemapConfig.name) {
             
-            console.log(`🗺️ Creating new tile layer for ${basemapConfig.name}`);
-            
             // Clear old layer reference
             this.baseTileLayer = null;
             
@@ -1194,10 +1170,8 @@ class ShelterAccessApp {
                 // Create new tile layer
                 this.baseTileLayer = this.createStandardTileLayer(basemapConfig);
                 this.currentBasemapConfig = { ...basemapConfig }; // Store copy
-                
-                console.log(`✅ Created tile layer for ${basemapConfig.name}`);
             } catch (error) {
-                console.error(`❌ Failed to create tile layer for ${basemapConfig.name}:`, error);
+                console.error(`Failed to create tile layer for ${basemapConfig.name}:`, error);
                 this.baseTileLayer = null;
                 this.currentBasemapConfig = null;
             }
@@ -1267,8 +1241,6 @@ class ShelterAccessApp {
      * Create simplified tile layer with minimal configuration
      */
     createStandardTileLayer(basemapConfig) {
-        console.log(`🗺️ Creating tile layer: ${basemapConfig.name}`);
-        
         return new deck.TileLayer({
             id: `basemap-${this.currentBasemap}`,
             data: basemapConfig.url,
@@ -1283,13 +1255,11 @@ class ShelterAccessApp {
                     return null;
                 }
                 
-                // Use tile.boundingBox for bounds - this is the correct format from deck.gl
                 const { boundingBox } = tile;
                 if (!boundingBox || boundingBox.length !== 2 || boundingBox[0].length !== 2) {
                     return null;
                 }
                 
-                // boundingBox format: [[west, south], [east, north]]
                 const bounds = [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]];
                 
                 return new deck.BitmapLayer({
@@ -1298,14 +1268,6 @@ class ShelterAccessApp {
                     image: props.data,
                     bounds: bounds
                 });
-            },
-            
-            onTileLoad: (tile) => {
-                console.log(`✅ Tile loaded: ${tile.index.z}/${tile.index.x}/${tile.index.y}`);
-            },
-            
-            onTileError: (error) => {
-                console.warn('⚠️ Tile loading error:', error);
             }
         });
     }
@@ -1332,7 +1294,7 @@ class ShelterAccessApp {
             this.updateCoverageAnalysis();
             
         } catch (error) {
-            console.error('❌ Loading optimal locations failed:', error);
+            console.error('Loading optimal locations failed:', error);
         } finally {
             this.isAnalyzing = false;
         }
@@ -1484,7 +1446,6 @@ class ShelterAccessApp {
     handleViewStateChange(viewState) {
         // Store pending view state
         this._pendingViewState = viewState;
-        this.performanceMetrics.viewStateChanges++;
         
         // Clear existing timer
         if (this._viewStateDebounceTimer) {
@@ -1624,8 +1585,6 @@ class ShelterAccessApp {
     changeBasemap(basemap) {
         if (this.currentBasemap === basemap) return; // No change needed
         
-        console.log(`🔄 Changing basemap from ${this.currentBasemap} to ${basemap}`);
-        
         const oldBasemap = this.currentBasemap;
         this.currentBasemap = basemap;
         
@@ -1653,8 +1612,6 @@ class ShelterAccessApp {
         
         // Immediate update for basemap changes - no debouncing needed
         this.updateVisualization();
-        
-        console.log(`✅ Basemap changed from ${oldBasemap} to ${basemap}`);
     }
     
     /**
@@ -1670,102 +1627,12 @@ class ShelterAccessApp {
             this._basemapDebounceTimer = null;
         }
         
-        // Clean up performance monitoring
-        if (this.performanceMonitoringInterval) {
-            clearInterval(this.performanceMonitoringInterval);
-            this.performanceMonitoringInterval = null;
-        }
-        
-        console.log('🧹 App cleanup completed');
+
     }
 
 
 
-    /**
-     * Track performance metrics for layer updates
-     */
-    _trackUpdatePerformance(startTime) {
-        const updateTime = performance.now() - startTime;
-        this.performanceMetrics.updateTimes.push(updateTime);
-        
-        // Keep only last 100 measurements for average calculation
-        if (this.performanceMetrics.updateTimes.length > 100) {
-            this.performanceMetrics.updateTimes.shift();
-        }
-        
-        // Calculate average update time
-        this.performanceMetrics.averageUpdateTime = 
-            this.performanceMetrics.updateTimes.reduce((sum, time) => sum + time, 0) / 
-            this.performanceMetrics.updateTimes.length;
-    }
 
-    /**
-     * Get simplified performance report
-     */
-    getPerformanceReport() {
-        const uptime = Date.now() - this.performanceMetrics.lastUpdateTime;
-        
-        return {
-            performance: {
-                ...this.performanceMetrics,
-                uptimeMs: uptime,
-                averageUpdateTimeMs: Math.round(this.performanceMetrics.averageUpdateTime * 100) / 100,
-                layerUpdatesPerSecond: this.performanceMetrics.layerUpdates / (uptime / 1000),
-                viewStateChangesPerSecond: this.performanceMetrics.viewStateChanges / (uptime / 1000)
-            },
-            recommendations: this._getPerformanceRecommendations()
-        };
-    }
-
-    /**
-     * Get performance recommendations based on metrics
-     */
-    _getPerformanceRecommendations() {
-        const recommendations = [];
-        
-        if (this.performanceMetrics.averageUpdateTime > 50) {
-            recommendations.push('⚠️ Slow layer updates detected. Consider reducing layer complexity or data size.');
-        }
-        
-        if (this.performanceMetrics.viewStateChanges / (Date.now() - this.performanceMetrics.lastUpdateTime) * 1000 > 10) {
-            recommendations.push('⚠️ High view state change frequency. Debouncing is working to prevent excessive updates.');
-        }
-        
-        if (recommendations.length === 0) {
-            recommendations.push('✅ Performance is optimal');
-        }
-        
-        return recommendations;
-    }
-
-    /**
-     * Log performance report to console
-     */
-    logPerformanceReport() {
-        const report = this.getPerformanceReport();
-        console.group('🚀 Performance Report');
-        console.log('Performance Metrics:', report.performance);
-        console.log('Recommendations:', report.recommendations);
-        console.groupEnd();
-    }
-
-    /**
-     * Start periodic performance monitoring
-     */
-    _startPerformanceMonitoring() {
-        // Log performance report every 30 seconds in development
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            this.performanceMonitoringInterval = setInterval(() => {
-                this.logPerformanceReport();
-            }, 30000);
-        }
-        
-        // Initial performance log after 5 seconds
-        setTimeout(() => {
-            console.log('🚀 Initial performance check after 5 seconds:');
-            this.logPerformanceReport();
-        }, 5000);
-    }
     
     /**
      * Update attribution display
@@ -1867,8 +1734,6 @@ class ShelterAccessApp {
             // Store raw data and extract for current radius
             this.allAccessibilityData = accessibilityDataAll;
             this.updateAccessibilityDataForRadius();
-            console.log(`🚀 Loaded accessibility data: ${accessibilityDataAll.accessibility_points.length} buildings, ${accessibilityDataAll.radii_available.length} radii`);
-            
         } catch (error) {
             console.error('Error loading accessibility data:', error);
             this.accessibilityData = null;
@@ -1894,8 +1759,6 @@ class ShelterAccessApp {
             type: point.coverage[radiusKey] ? 'covered' : 'uncovered',
             weight: point.coverage[radiusKey] ? 1 : -1  // +1 for covered (green), -1 for uncovered (red)
         }));
-        
-        console.log(`🔄 Extracted ${radiusKey} data: ${this.accessibilityData.length} points`);
     }
     
 
@@ -1926,7 +1789,6 @@ class ShelterAccessApp {
         
         // Safety check: return early if tooltip element doesn't exist
         if (!tooltip) {
-            console.warn('Tooltip element not found');
             return;
         }
         
