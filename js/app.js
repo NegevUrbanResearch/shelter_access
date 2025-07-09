@@ -52,7 +52,6 @@ class ShelterAccessApp {
         
         // Performance monitoring
         this.performanceMetrics = {
-            tileRequests: 0,
             layerUpdates: 0,
             viewStateChanges: 0,
             lastUpdateTime: Date.now(),
@@ -63,11 +62,7 @@ class ShelterAccessApp {
         // Mapbox token for terrain and other services
         this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY20zbHJ5MzRvMHBxZTJrcW9uZ21pMzMydiJ9.B_aBdP5jxu9nwTm3CoNhlg';
         
-        // Tile caching system
-        this.tileCache = new Map();
-        this.tileCacheStats = { hits: 0, misses: 0, evictions: 0 };
-        this.maxTileCacheSize = 2500; // Maximum number of cached tiles
-        this.maxTileCacheAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
         
         // Simplified basemap configuration
         this.currentBasemap = 'satellite';
@@ -1102,26 +1097,35 @@ class ShelterAccessApp {
         try {
             const layers = [];
             
-            // Optimize base tile layer - only recreate when basemap changes
+            // Ensure base tile layer exists
             this._ensureBaseTileLayer();
             if (this.baseTileLayer) {
                 layers.push(this.baseTileLayer);
+            } else {
+                console.warn('⚠️ No base tile layer available');
             }
             
-            // Data layers - these can be updated more frequently
+            // Add data layers
             const dataLayers = this.createLayers();
             layers.push(...dataLayers);
             
-            // Update deck.gl with error handling
+            // Update deck.gl
             this.currentLayers = layers;
             this.deckgl.setProps({ layers: this.currentLayers });
             
+            console.log(`🔄 Updated visualization: ${layers.length} layers (${this.baseTileLayer ? 'with' : 'without'} basemap)`);
+            
         } catch (error) {
-            console.warn('Layer update failed:', error);
-            // Try to recover by using existing base layer
-            if (this.baseTileLayer) {
+            console.error('❌ Layer update failed:', error);
+            
+            // Attempt recovery with minimal layers
+            try {
                 const dataLayers = this.createLayers();
-                this.deckgl.setProps({ layers: [this.baseTileLayer, ...dataLayers] });
+                const recoveryLayers = this.baseTileLayer ? [this.baseTileLayer, ...dataLayers] : dataLayers;
+                this.deckgl.setProps({ layers: recoveryLayers });
+                console.log('🔧 Recovery update successful');
+            } catch (recoveryError) {
+                console.error('❌ Recovery failed:', recoveryError);
             }
         } finally {
             this.layerUpdateInProgress = false;
@@ -1170,14 +1174,33 @@ class ShelterAccessApp {
     _ensureBaseTileLayer() {
         const basemapConfig = this.basemaps[this.currentBasemap];
         
-        // Only recreate tile layer if basemap changed or doesn't exist
+        if (!basemapConfig) {
+            console.error(`❌ Invalid basemap: ${this.currentBasemap}`);
+            return;
+        }
+        
+        // Always recreate if layer doesn't exist or config changed
         if (!this.baseTileLayer || 
             !this.currentBasemapConfig || 
-            this.currentBasemapConfig.url !== basemapConfig.url) {
+            this.currentBasemapConfig.url !== basemapConfig.url ||
+            this.currentBasemapConfig.name !== basemapConfig.name) {
             
-            console.log(`🗺️ Creating new tile layer for ${this.currentBasemap}`);
-            this.baseTileLayer = this.createStandardTileLayer(basemapConfig);
-            this.currentBasemapConfig = basemapConfig;
+            console.log(`🗺️ Creating new tile layer for ${basemapConfig.name}`);
+            
+            // Clear old layer reference
+            this.baseTileLayer = null;
+            
+            try {
+                // Create new tile layer
+                this.baseTileLayer = this.createStandardTileLayer(basemapConfig);
+                this.currentBasemapConfig = { ...basemapConfig }; // Store copy
+                
+                console.log(`✅ Created tile layer for ${basemapConfig.name}`);
+            } catch (error) {
+                console.error(`❌ Failed to create tile layer for ${basemapConfig.name}:`, error);
+                this.baseTileLayer = null;
+                this.currentBasemapConfig = null;
+            }
         }
     }
     
@@ -1234,245 +1257,56 @@ class ShelterAccessApp {
         };
     }
 
-    /**
-     * Enhanced tile fetching with sophisticated caching and proper image handling
-     */
-    async _fetchTileWithCaching(url, tile) {
-        const { x, y, z } = tile.index;
-        const tileKey = `${z}-${x}-${y}`;
-        const currentTime = Date.now();
-        
-        // Check cache first
-        const cached = this.tileCache.get(tileKey);
-        if (cached && (currentTime - cached.timestamp) < this.maxTileCacheAge) {
-            this.tileCacheStats.hits++;
-            // Validate cached image before returning
-            if (this._validateImageData(cached.data)) {
-                return cached.data;
-            } else {
-                // Remove corrupted cached data
-                this.tileCache.delete(tileKey);
-            }
-        }
-        
-        this.tileCacheStats.misses++;
-        this.performanceMetrics.tileRequests++;
-        
-        try {
-            // Add timeout to prevent hanging requests
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-            
-            const response = await fetch(url, {
-                cache: 'force-cache',
-                credentials: 'omit',
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const blob = await response.blob();
-            
-            // Validate blob
-            if (!blob || blob.size === 0) {
-                throw new Error('Empty or invalid blob received');
-            }
-            
-            // Create image object instead of blob URL to prevent byteLength errors
-            const imageUrl = URL.createObjectURL(blob);
-            
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                img.onload = () => {
-                    URL.revokeObjectURL(imageUrl); // Clean up blob URL
-                    
-                    // Validate image dimensions
-                    if (img.naturalWidth > 0 && img.naturalHeight > 0 && img.complete) {
-                        // Cache the image object, not the URL
-                        this._cacheTile(tileKey, img, currentTime);
-                        resolve(img);
-                    } else {
-                        reject(new Error('Invalid image dimensions'));
-                    }
-                };
-                
-                img.onerror = () => {
-                    URL.revokeObjectURL(imageUrl);
-                    reject(new Error('Image load failed'));
-                };
-                
-                // Set timeout for image loading
-                setTimeout(() => {
-                    if (!img.complete) {
-                        URL.revokeObjectURL(imageUrl);
-                        reject(new Error('Image load timeout'));
-                    }
-                }, 5000);
-                
-                img.src = imageUrl;
-            });
-            
-        } catch (error) {
-            console.warn(`Tile fetch failed for ${tileKey}:`, error);
-            this.tileCacheStats.errors++;
-            return null;
-        }
-    }
+
+    
+
+
+
     
     /**
-     * Validate image data to prevent byteLength errors
-     */
-    _validateImageData(imageData) {
-        if (!imageData) return false;
-        
-        if (imageData instanceof HTMLImageElement) {
-            return imageData.complete && 
-                   imageData.naturalWidth > 0 && 
-                   imageData.naturalHeight > 0;
-        }
-        
-        if (imageData instanceof ImageBitmap) {
-            return imageData.width > 0 && imageData.height > 0;
-        }
-        
-        return false; // For strings or other types, assume invalid
-    }
-
-    /**
-     * Cache management for tiles
-     */
-    _cacheTile(key, data, timestamp) {
-        // Evict old entries if cache is full
-        if (this.tileCache.size >= this.maxTileCacheSize) {
-            this._evictOldestTiles(Math.floor(this.maxTileCacheSize * 0.2)); // Evict 20%
-        }
-        
-        this.tileCache.set(key, { data, timestamp });
-    }
-
-    /**
-     * Evict oldest tiles from cache
-     */
-    _evictOldestTiles(count) {
-        const entries = Array.from(this.tileCache.entries());
-        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-        
-        for (let i = 0; i < Math.min(count, entries.length); i++) {
-            const [key, value] = entries[i];
-            // Clean up blob URL to prevent memory leaks (legacy support)
-            if (value.data && typeof value.data === 'string' && value.data.startsWith('blob:')) {
-                URL.revokeObjectURL(value.data);
-            }
-            // For image objects, no special cleanup needed as they're handled by GC
-            this.tileCache.delete(key);
-            this.tileCacheStats.evictions++;
-        }
-    }
-
-    /**
-     * Get tile cache statistics
-     */
-    getTileCacheStats() {
-        const total = this.tileCacheStats.hits + this.tileCacheStats.misses;
-        const hitRate = total > 0 ? (this.tileCacheStats.hits / total * 100).toFixed(1) : 0;
-        
-        return {
-            ...this.tileCacheStats,
-            cacheSize: this.tileCache.size,
-            hitRate: `${hitRate}%`,
-            totalRequests: total
-        };
-    }
-    
-    /**
-     * Create simplified tile layer for basemaps with error handling
+     * Create simplified tile layer with minimal configuration
      */
     createStandardTileLayer(basemapConfig) {
+        console.log(`🗺️ Creating tile layer: ${basemapConfig.name}`);
+        
         return new deck.TileLayer({
-            id: 'base-tiles',
+            id: `basemap-${this.currentBasemap}`,
             data: basemapConfig.url,
             minZoom: 0,
             maxZoom: 19,
             tileSize: 256,
-            // Enhanced tile loading with caching support
-            getTileData: (tile) => {
-                const { x, y, z } = tile.index;
-                const tileUrl = basemapConfig.url
-                    .replace('{z}', z)
-                    .replace('{y}', y)
-                    .replace('{x}', x);
-                
-                // Use fetch with cache optimization for tiles
-                return this._fetchTileWithCaching(tileUrl, tile);
-            },
+            
             renderSubLayers: props => {
-                // Enhanced validation to prevent byteLength errors
-                if (!props || !props.tile || !props.data) {
+                const { tile } = props;
+                
+                if (!tile || !props.data) {
                     return null;
                 }
                 
-                const { bbox } = props.tile;
-                if (!bbox || typeof bbox.west !== 'number' || typeof bbox.south !== 'number' || 
-                    typeof bbox.east !== 'number' || typeof bbox.north !== 'number') {
-                    console.warn('Invalid tile bbox:', bbox);
+                // Use tile.boundingBox for bounds - this is the correct format from deck.gl
+                const { boundingBox } = tile;
+                if (!boundingBox || boundingBox.length !== 2 || boundingBox[0].length !== 2) {
                     return null;
                 }
                 
-                // Validate image data to prevent byteLength errors
-                if (props.data instanceof HTMLImageElement) {
-                    if (!props.data.complete || props.data.naturalWidth === 0) {
-                        console.warn('Incomplete image data, skipping tile');
-                        return null;
-                    }
-                } else if (props.data instanceof ImageBitmap) {
-                    if (!props.data.width || !props.data.height) {
-                        console.warn('Invalid ImageBitmap dimensions, skipping tile');
-                        return null;
-                    }
-                } else {
-                    // For other data types, ensure it's not null/undefined
-                    if (!props.data) {
-                        console.warn('Invalid tile data type, skipping tile');
-                        return null;
-                    }
-                }
+                // boundingBox format: [[west, south], [east, north]]
+                const bounds = [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]];
                 
-                const { west, south, east, north } = bbox;
-                
-                try {
-                    return new deck.BitmapLayer(props, {
-                        data: null,
-                        image: props.data,
-                        bounds: [west, south, east, north],
-                        // Improved error handling for failed tile loads
-                        onError: (error) => {
-                            console.warn('Tile load failed:', error);
-                            return false;
-                        }
-                    });
-                } catch (error) {
-                    console.warn('BitmapLayer creation failed:', error);
-                    return null;
-                }
+                return new deck.BitmapLayer({
+                    ...props,
+                    data: null,
+                    image: props.data,
+                    bounds: bounds
+                });
             },
-            // Improved tile layer error handling
+            
+            onTileLoad: (tile) => {
+                console.log(`✅ Tile loaded: ${tile.index.z}/${tile.index.x}/${tile.index.y}`);
+            },
+            
             onTileError: (error) => {
-                console.warn('Tile layer error:', error);
-                return false;
-            },
-            // Optimized tile loading strategy
-            refinementStrategy: 'best-available',
-            // Increase concurrent loads for better performance
-            maxConcurrentLoads: 12,
-            // Enhanced caching settings
-            maxCacheSize: 512, // Cache up to 512 tiles
-            maxCacheByteSize: 256 * 1024 * 1024 // 256MB tile cache
+                console.warn('⚠️ Tile loading error:', error);
+            }
         });
     }
     
@@ -1785,16 +1619,19 @@ class ShelterAccessApp {
 
     
     /**
-     * Change basemap with optimized layer management
+     * Change basemap with proper cleanup and recreation
      */
     changeBasemap(basemap) {
         if (this.currentBasemap === basemap) return; // No change needed
         
         console.log(`🔄 Changing basemap from ${this.currentBasemap} to ${basemap}`);
         
+        const oldBasemap = this.currentBasemap;
         this.currentBasemap = basemap;
         
-        // Invalidate cached tile layer to force recreation
+
+        
+        // Force complete recreation of tile layer
         this.baseTileLayer = null;
         this.currentBasemapConfig = null;
         
@@ -1808,19 +1645,20 @@ class ShelterAccessApp {
         
         this.updateAttribution();
         
-        // Debounce basemap updates to prevent rapid switching issues
+        // Clear any pending basemap timer
         if (this._basemapDebounceTimer) {
             clearTimeout(this._basemapDebounceTimer);
+            this._basemapDebounceTimer = null;
         }
         
-        this._basemapDebounceTimer = setTimeout(() => {
-            // Full update needed for basemap change
-            this.updateVisualization();
-        }, 50); // Faster response for basemap changes
+        // Immediate update for basemap changes - no debouncing needed
+        this.updateVisualization();
+        
+        console.log(`✅ Basemap changed from ${oldBasemap} to ${basemap}`);
     }
     
     /**
-     * Cleanup method to clear timers and caches
+     * Cleanup method to clear timers
      */
     cleanup() {
         if (this._viewStateDebounceTimer) {
@@ -1832,29 +1670,16 @@ class ShelterAccessApp {
             this._basemapDebounceTimer = null;
         }
         
-        // Clean up tile cache to prevent memory leaks
-        this._cleanupTileCache();
-        
         // Clean up performance monitoring
         if (this.performanceMonitoringInterval) {
             clearInterval(this.performanceMonitoringInterval);
             this.performanceMonitoringInterval = null;
         }
+        
+        console.log('🧹 App cleanup completed');
     }
 
-    /**
-     * Clean up tile cache and blob URLs
-     */
-    _cleanupTileCache() {
-        for (const [key, value] of this.tileCache.entries()) {
-            if (value.data && typeof value.data === 'string' && value.data.startsWith('blob:')) {
-                URL.revokeObjectURL(value.data);
-            }
-        }
-        this.tileCache.clear();
-        this.tileCacheStats = { hits: 0, misses: 0, evictions: 0 };
-        console.log('🧹 Tile cache cleaned up');
-    }
+
 
     /**
      * Track performance metrics for layer updates
@@ -1875,14 +1700,12 @@ class ShelterAccessApp {
     }
 
     /**
-     * Get comprehensive performance report
+     * Get simplified performance report
      */
     getPerformanceReport() {
-        const cacheStats = this.getTileCacheStats();
         const uptime = Date.now() - this.performanceMetrics.lastUpdateTime;
         
         return {
-            caching: cacheStats,
             performance: {
                 ...this.performanceMetrics,
                 uptimeMs: uptime,
@@ -1890,19 +1713,15 @@ class ShelterAccessApp {
                 layerUpdatesPerSecond: this.performanceMetrics.layerUpdates / (uptime / 1000),
                 viewStateChangesPerSecond: this.performanceMetrics.viewStateChanges / (uptime / 1000)
             },
-            recommendations: this._getPerformanceRecommendations(cacheStats)
+            recommendations: this._getPerformanceRecommendations()
         };
     }
 
     /**
      * Get performance recommendations based on metrics
      */
-    _getPerformanceRecommendations(cacheStats) {
+    _getPerformanceRecommendations() {
         const recommendations = [];
-        
-        if (parseFloat(cacheStats.hitRate) < 50) {
-            recommendations.push('⚠️ Low tile cache hit rate. Consider increasing cache size or checking network connectivity.');
-        }
         
         if (this.performanceMetrics.averageUpdateTime > 50) {
             recommendations.push('⚠️ Slow layer updates detected. Consider reducing layer complexity or data size.');
@@ -1925,7 +1744,6 @@ class ShelterAccessApp {
     logPerformanceReport() {
         const report = this.getPerformanceReport();
         console.group('🚀 Performance Report');
-        console.log('Cache Stats:', report.caching);
         console.log('Performance Metrics:', report.performance);
         console.log('Recommendations:', report.recommendations);
         console.groupEnd();
