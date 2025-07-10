@@ -596,10 +596,10 @@ class ShelterAccessApp {
      * Setup custom zoom and fullscreen controls integrated into legend panel
      */
     setupCustomControls() {
-        // Wait for legend panel to be created
+        // Wait for legend panel to be created with increased timeout
         setTimeout(() => {
             this.addControlsToLegend();
-        }, 100);
+        }, 500);
     }
     
     /**
@@ -607,10 +607,19 @@ class ShelterAccessApp {
      */
     addControlsToLegend() {
         const legendPanel = document.querySelector('.map-legend-panel');
-        if (!legendPanel) return;
+        if (!legendPanel) {
+            console.warn('Legend panel not found, retrying in 200ms...');
+            setTimeout(() => this.addControlsToLegend(), 200);
+            return;
+        }
         
         // Check if controls already exist
-        if (legendPanel.querySelector('.legend-controls-section')) return;
+        if (legendPanel.querySelector('.legend-controls-section')) {
+            console.log('Zoom controls already exist');
+            return;
+        }
+        
+        console.log('Adding zoom controls to legend panel...');
         
         // Create controls section
         const controlsSection = document.createElement('div');
@@ -636,31 +645,120 @@ class ShelterAccessApp {
         const zoomOutBtn = controlsSection.querySelector('.zoom-out-btn');
         const fullscreenBtn = controlsSection.querySelector('.fullscreen-btn');
         
-        zoomInBtn?.addEventListener('click', () => this.zoomIn());
-        zoomOutBtn?.addEventListener('click', () => this.zoomOut());
-        fullscreenBtn?.addEventListener('click', () => this.toggleFullscreen());
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                console.log('Zoom in button clicked');
+                this.zoomIn();
+            });
+        }
+        
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                console.log('Zoom out button clicked');
+                this.zoomOut();
+            });
+        }
+        
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                console.log('Fullscreen button clicked');
+                this.toggleFullscreen();
+            });
+        }
+        
+        console.log('Zoom controls added successfully');
     }
     
     /**
      * Zoom in functionality
      */
     zoomIn() {
-        const currentViewState = this.deckgl.viewState || this.deckgl.props.initialViewState;
-        const newZoom = Math.min(currentViewState.zoom + 1, 19);
-        const newViewState = { ...currentViewState, zoom: newZoom };
-        this.deckgl.setProps({ viewState: newViewState });
-        this.handleViewStateChange(newViewState);
+        console.log('Attempting to zoom in...');
+        try {
+            if (!this.deckgl) {
+                console.error('Deck.gl instance not available');
+                return;
+            }
+            
+            // Use the stored current view state instead of trying to get it from deck.gl
+            const currentViewState = this._currentViewState || this.deckgl.props.initialViewState;
+            if (!currentViewState) {
+                console.error('No current view state available');
+                return;
+            }
+            
+            const currentZoom = currentViewState.zoom || 12;
+            const newZoom = Math.min(currentZoom + 1, 19);
+            
+            console.log(`Zooming from ${currentZoom} to ${newZoom}`);
+            
+            const newViewState = { 
+                ...currentViewState, 
+                zoom: newZoom,
+                transitionDuration: 300,
+                transitionEasing: t => t * t
+            };
+            
+            // Update the view state directly
+            this.deckgl.setProps({ viewState: newViewState });
+            
+            // Update our stored view state
+            this._currentViewState = newViewState;
+            this._currentZoom = newZoom;
+            
+            // Update scale bar
+            this.updateScaleBar();
+            
+            console.log('Zoom in successful');
+        } catch (error) {
+            console.error('Error during zoom in:', error);
+        }
     }
     
     /**
      * Zoom out functionality
      */
     zoomOut() {
-        const currentViewState = this.deckgl.viewState || this.deckgl.props.initialViewState;
-        const newZoom = Math.max(currentViewState.zoom - 1, 7);
-        const newViewState = { ...currentViewState, zoom: newZoom };
-        this.deckgl.setProps({ viewState: newViewState });
-        this.handleViewStateChange(newViewState);
+        console.log('Attempting to zoom out...');
+        try {
+            if (!this.deckgl) {
+                console.error('Deck.gl instance not available');
+                return;
+            }
+            
+            // Use the stored current view state instead of trying to get it from deck.gl
+            const currentViewState = this._currentViewState || this.deckgl.props.initialViewState;
+            if (!currentViewState) {
+                console.error('No current view state available');
+                return;
+            }
+            
+            const currentZoom = currentViewState.zoom || 12;
+            const newZoom = Math.max(currentZoom - 1, 7);
+            
+            console.log(`Zooming from ${currentZoom} to ${newZoom}`);
+            
+            const newViewState = { 
+                ...currentViewState, 
+                zoom: newZoom,
+                transitionDuration: 300,
+                transitionEasing: t => t * t
+            };
+            
+            // Update the view state directly
+            this.deckgl.setProps({ viewState: newViewState });
+            
+            // Update our stored view state
+            this._currentViewState = newViewState;
+            this._currentZoom = newZoom;
+            
+            // Update scale bar
+            this.updateScaleBar();
+            
+            console.log('Zoom out successful');
+        } catch (error) {
+            console.error('Error during zoom out:', error);
+        }
     }
     
     /**
@@ -1146,8 +1244,7 @@ class ShelterAccessApp {
             this.elements.legendItems.appendChild(legendItem);
         });
         
-        // Ensure controls are added to legend panel
-        setTimeout(() => this.addControlsToLegend(), 50);
+        // Controls are handled by setupCustomControls() function
     }
     
 
@@ -1218,8 +1315,7 @@ class ShelterAccessApp {
         distanceInfo.textContent = `Within ${this.coverageRadius}m radius`;
         this.elements.legendItems.appendChild(distanceInfo);
         
-        // Ensure controls are added to legend panel
-        setTimeout(() => this.addControlsToLegend(), 50);
+        // Controls are handled by setupCustomControls() function
     }
 
     /**
