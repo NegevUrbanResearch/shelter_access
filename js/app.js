@@ -1556,10 +1556,10 @@ class ShelterAccessApp {
         this._currentViewState = viewState;
         this.updateScaleBar();
         
-        // Optimized debounce for smooth scaling
+        // Ultra-fast debounce for maximum responsiveness
         this._viewStateDebounceTimer = setTimeout(() => {
             this._processViewStateChange(this._pendingViewState);
-        }, 30); // 30ms for smooth continuous scaling
+        }, 5); // 5ms for ultra-responsive scaling
     }
     
     /**
