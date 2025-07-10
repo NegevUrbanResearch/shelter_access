@@ -263,105 +263,164 @@
             </div>
         </div>
 
-        <!-- About Modal -->
+        <!-- Combined About & Methods Modal -->
         <div id="aboutModal" class="modal-overlay">
-            <div class="modal-content">
+            <div class="modal-content modal-content-wide">
                 <div class="modal-header">
-                    <h2>About Us</h2>
+                    <h2>The Right to Shelter</h2>
                     <button class="modal-close" id="closeAboutModal">&times;</button>
                 </div>
-                <div class="modal-body">
-                    <div class="about-section">
-                        <h3 style="color: white;">Credits</h3>
-                        <p><strong><a href="https://www.linkedin.com/in/noam-gal/" target="_blank">Noam Gal</a></strong> (NUR) - Project Lead, Data Scientist</p>
-                        
-                        <p><strong><a href="https://www.instagram.com/lobnaalsana/?hl=en" target="_blank">Lobna Alsana</a></strong> (Bimkom) - Outreach Coordinator </p>
-                        
-                        <p><strong><a href="https://www.linkedin.com/in/mdrogochinsky/" target="_blank">Michael Drogochinsky </a></strong> (ACP) -  Geospatial Data Analyst </p>
-                        
-                        <p><strong><a href="https://www.linkedin.com/in/ar-nikitin/" target="_blank">Artem Nikitin</a></strong> (ACP) — Visual Design </p>
-                        
-                        <p> <strong><a href="https://www.linkedin.com/in/taliakaufmann/" target="_blank">Dr. Talia Kaufmann</a></strong> (Head of ACP), <strong><a href="https://www.linkedin.com/in/merav-battat-305b0a249/" target="_blank">Merav Battat</a></strong> (Director of NUR), and <strong><a href="https://www.linkedin.com/in/yonatan-cohen-a3b6325/" target="_blank">Yonatan Cohen</a></strong> (Director of Technologies NUR) - Project guidance, resources, and feedback</p>
+                <div class="modal-body modal-body-tabs">
+                    <!-- Tab Navigation -->
+                    <div class="modal-tabs">
+                        <button class="tab-button active" data-tab="info">Research & Analysis</button>
+                        <button class="tab-button" data-tab="guide">How to Use</button>
                     </div>
                     
-                    <div class="about-section">
-                        <h3 style="color: white;">Collaborators</h3>
-                        
-                        <p>This project is developed in collaboration by <strong><a href="https://www.nurlab.org/" target="_blank">NUR Lab - Negev Urban Research</a></strong>, <strong><a href="https://he-urbaninnovation.huji.ac.il/%D7%9E%D7%A2%D7%91%D7%93%D7%95%D7%AA/algorithmic-city-planning-lab" target="_blank">Algorithmic City Planning Lab (ACP)</a></strong>, and <strong><a href="https://bimkom.org/eng/home-mobile/" target="_blank">Bimkom – Planners for Planning Rights</a></strong>.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Methods Modal -->
-        <div id="methodsModal" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>How to Use This Tool</h2>
-                    <button class="modal-close" id="closeMethodsModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="about-section guide-section">
-                        <h3>Getting Started</h3>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">1</div>
-                            <div class="step-content">
-                                <span class="step-title">Set Accessibility Distance</span>
-                                <p class="step-description">Use accessibility range buttons (100m-300m) to set how far residents can travel to reach a bomb shelter during an emergency.</p>
-                            </div>
+                    <!-- Info Container -->
+                    <div class="tab-content info-container active" id="info-tab">
+                        <div class="info-intro">
+                            <p>This analysis evaluates bomb shelter accessibility for Bedouin communities in the Eastern Negev, identifying underserved areas and proposing optimal new shelter locations using spatial data analysis and machine learning methods.</p>
+                            
+                            <p>Since late 2023, residents of the Eastern Negev, like many across Israel, have faced continuous attacks due to the ongoing multi-front conflict that began on October 7th. A critical issue in this region is the lack of access to adequate bomb shelters for the Bedouin population in the Beer Sheva District.</p>
                         </div>
                         
-                        <div class="guide-step">
-                            <div class="step-number">2</div>
-                            <div class="step-content">
-                                <span class="step-title">View Current Coverage</span>
-                                <p class="step-description">See current coverage by turning on Accessibility Grid.</p>
+                        <!-- Expandable Sections -->
+                        <div class="expandable-sections">
+                            <div class="expandable-section">
+                                <div class="section-header" onclick="toggleSection('background')">
+                                    <h3>Background & Context</h3>
+                                    <span class="expand-icon">+</span>
+                                </div>
+                                <div class="section-content" id="background-content">
+                                    <p>Approximately half of the Negev Bedouin population reside in informal settlements known as unrecognized villages where residents do not have sheltered spaces within their homes or public bomb shelters within an accessible distance. These informal settlements contrast with the Bedouin townships where construction is regulated, and residential buildings are required to provide sheltered spaces. Since the war's outbreak, both formal and informal efforts have aimed to construct bomb shelters for the widely dispersed Bedouin communities living in unrecognized villages with a dangerous lack of shelter. However, identifying optimal locations has been challenging due to the absence of formal data on population distribution and density, as well as the condition and location of local roads.</p>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">3</div>
-                            <div class="step-content">
-                                <span class="step-title">Add New Shelters</span>
-                                <p class="step-description">Use slider to add strategically placed new shelters.</p>
+                            
+                            <div class="expandable-section">
+                                <div class="section-header" onclick="toggleSection('analysis')">
+                                    <h3>What This Analysis Shows</h3>
+                                    <span class="expand-icon">+</span>
+                                </div>
+                                <div class="section-content" id="analysis-content">
+                                    <p>This tool analyzes bomb shelter accessibility within the Negev's informal Bedouin settlements and proposes optimal locations for new shelters to broaden coverage. On the accessibility grid, <strong style="color: #14b814;">green areas</strong> signify neighborhoods with adequate shelter access under current conditions. Conversely, <strong style="color: #c81414;">red areas</strong> pinpoint underserved communities that would greatly benefit from additional shelter facilities. New shelters are strategically placed using an optimizer. This system's primary goal is to maximize the number of residential houses protected by each new shelter, all while ensuring there's no redundant coverage with existing shelters.</p>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">4</div>
-                            <div class="step-content">
-                                <span class="step-title">Click Coverage</span>
-                                <p class="step-description">Click on coverage window to review accessiblity statistics.</p>
+                            
+                            <div class="expandable-section">
+                                <div class="section-header" onclick="toggleSection('methodology')">
+                                    <h3>Methodology</h3>
+                                    <span class="expand-icon">+</span>
+                                </div>
+                                <div class="section-content" id="methodology-content">
+                                    <p>Our New Shelters Location Optimizer employs an ensemble of unsupervised machine learning methods, specifically K-means and DBSCAN clustering (Ester et al., 1996; Li et al., 2023; Liao & Guo, 2008). These algorithms, utilizing 12 distinct parameters, generate 12 arrays of building clusters. The centroids of these clusters then serve as candidate locations for new shelters. The optimizer proceeds to calculate a ranked list of these candidates, prioritizing those that maximize the number of houses covered by each additional shelter without overlapping existing shelter coverage.</p>
+                                    
+                                    <div class="references">
+                                        <strong>References:</strong><br>
+                                        Ester, M., Kriegel, H.-P., Sander, J., & Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. <em>Proceedings of the Second International Conference on Knowledge Discovery and Data Mining</em>, 226–231.<br><br>
+                                        Li, J., Zheng, A., Guo, W., Bandyopadhyay, N., Zhang, Y., & Wang, Q. (2023). Urban flood risk assessment based on DBSCAN and K-means clustering algorithm. <em>Geomatics, Natural Hazards and Risk</em>, 14(1), 2250527.<br><br>
+                                        Liao, K., & Guo, D. (2008). A Clustering-Based Approach to the Capacitated Facility Location Problem. <em>Transactions in GIS</em>, 12(3), 323–339.
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">5</div>
-                            <div class="step-content">
-                                <span class="step-title">Explore Data</span>
-                                <p class="step-description">Click "Data Layers" to show new information like community requests for shelters and change display layers.</p>
+                            
+                            <div class="expandable-section">
+                                <div class="section-header" onclick="toggleSection('data-sources')">
+                                    <h3>Data Sources</h3>
+                                    <span class="expand-icon">+</span>
+                                </div>
+                                <div class="section-content" id="data-sources-content">
+                                    <h4>Building Data</h4>
+                                    <p>We sourced building footprints from Microsoft Planetary Computer. To focus on residential buildings within informal Bedouin settlements, we applied several filters. These included a GIS layer of informal settlements provided by The Authority for Development and Settlement of the Bedouin in the Negev (הרשות לפיתוח והתיישבות הבדואים בנגב), census tracts from the Central Bureau of Statistics (למ"ס) where no legally recognized settlements exist, and filtering by building footprint size.</p>
+                                    
+                                    <h4>Population Estimates</h4>
+                                    <p>Given the lack of traditional census data for informal settlements, our population estimates are based on a consensus from NGOs, including Bimkom. We use an approximate residential building density of 7 people per residential building.</p>
+                                    
+                                    <h4>Shelter Data</h4>
+                                    <p>Information on existing emergency shelter locations and community-requested sites is meticulously collected by Bimkom field workers and through community submissions. For more detailed information on shelter locations, please reach out to <strong><a href="https://bimkom.org/eng/home-mobile/" target="_blank">Bimkom</a></strong>.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="expandable-section">
+                                <div class="section-header" onclick="toggleSection('disclaimer')">
+                                    <h3>Important Disclaimer</h3>
+                                    <span class="expand-icon">+</span>
+                                </div>
+                                <div class="section-content" id="disclaimer-content">
+                                    <p><strong>Please note:</strong> The data presented on this map represents our best estimate of existing bomb shelter locations. It is <strong>not</strong> an authoritative resource for emergency situations. Always refer to official channels and local authorities for real-time information and guidance during an emergency.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="expandable-section">
+                                <div class="section-header" onclick="toggleSection('credits')">
+                                    <h3>Credits & Collaborators</h3>
+                                    <span class="expand-icon">+</span>
+                                </div>
+                                <div class="section-content" id="credits-content">
+                                    <div class="credits-team">
+                                        <h4>Core Team</h4>
+                                        <p><strong><a href="https://www.linkedin.com/in/noam-gal/" target="_blank">Noam Gal</a></strong> (NUR) - Project Lead, Data Scientist</p>
+                                        <p><strong><a href="https://www.instagram.com/lobnaalsana/?hl=en" target="_blank"></a>Arch. Lobna Alsana</a></strong> - Community Coordinator, Field Data Analyst</p>
+                                        <p><strong><a href="https://www.linkedin.com/in/mdrogochinsky/" target="_blank">Michael Drogochinsky</a></strong> (ACP) - Geospatial Data Analyst</p>
+                                        <p><strong><a href="https://www.linkedin.com/in/ar-nikitin/" target="_blank">Artem Nikitin</a></strong> (ACP) — Visual Design</p>
+                                    </div>
+                                    
+                                    <div class="credits-collaborators">
+                                        <h4>Collaborating Organizations</h4>
+                                        <p>This project is developed in collaboration of <strong><a href="https://www.nurlab.org/" target="_blank">NUR Lab - Negev Urban Research</a></strong> (<strong><a href="https://www.linkedin.com/in/merav-battat-305b0a249/" target="_blank">Merav Battat</a></strong>, <strong><a href="https://www.linkedin.com/in/yonatan-cohen-a3b6325/" target="_blank">Yonatan Cohen</a></strong>), <strong><a href="https://www.media.mit.edu/projects/city-science-network/overview/" target="_blank">City Science Network at MIT</a></strong> (<strong><a href="https://www.linkedin.com/in/arielnoyman/" target="_blank">Ariel Noyman</a></strong>), <strong><a href="https://he-urbaninnovation.huji.ac.il/%D7%9E%D7%A2%D7%91%D7%93%D7%95%D7%AA/algorithmic-city-planning-lab" target="_blank">Algorithmic City Planning Lab (ACP)</a></strong> (<strong><a href="https://www.linkedin.com/in/taliakaufmann/" target="_blank">Talia Kaufman</a></strong>), <strong><a href="https://bimkom.org/eng/home-mobile/" target="_blank">Bimkom – Planners for Planning Rights</a></strong>, <strong><a href="https://www.linkedin.com/company/civixil/" target="_blank">East Negev, Civix - A Bloomberg Regional Initiative</a></strong></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="about-section">
-                        <h3>What This Analysis Shows</h3>
-                        <p>This tool analyzes bomb shelter accessibility for informal Bedouin settlements in the Negev region and suggests optimal locations for new shelters to expand coverage.</p>
+                    <!-- Guide Container -->
+                    <div class="tab-content guide-container" id="guide-tab">
+                        <div class="guide-intro">
+                            <h2>Guide</h2>
+                        </div>
                         
-                        <p>The <strong style="color: #14b814;">green areas</strong> in the accessibility grid indicate neighborhoods with good shelter access with existing conditions, while <strong style="color: #c81414;">red areas</strong> highlight underserved communities that would benefit from additional shelter facilities.</p>
-                        
-                        <p>New shelters are added using an optimizer that aims to maximize the number of residential houses covered by each additional shelter, while ensuring that there is no overlap with existing shelter coverage.
-                        </p>
-                    </div>
-                    
-                    <div class="about-section">
-                        <h3>Technical Details</h3>
-                        <p><strong>New Shelters Location Optimizer:</strong>  The optimization algorithm uses an ensemble of unsupervised learning methods, specificallyK-means and DBSCAN clustering with 12 different parameters to generate 12 arrays of building clusters. The centroids of these clusters are then used as candidate locations for new shelters. The optimizer then calculates a ranked list of these candidate locations maximizes the number of houses covered by each additional shelter, while ensuring that there is no overlab with existing shelter coverage.</p>
-                        <p><strong>Building Data:</strong> Building footprints were downloaded from Microsoft Planetary Computer and filtered to residential buildings in informal Bedouin settlements using multiple parameters: including a GIS layer of informal settlements collected by The Authority for Development and Settlement of the Bedouin in the Negev (הרשות לפיתוח והתיישבות הבדואים בנגב), census tracts from the Central Bureau of Statistics (למ׳׳ס)  where no legally recognized settlements exist, and building footprint size.</p>
-                        <p><strong>Population Estimates:</strong> Based on a consensus of estimates by NGOs, including Bimkom, for residential building density of approximately 7 people per residential building. This estimate is used because traditional census data is not available for informal settlements.</p>
-                        <p><strong>Shelter Data:</strong> Existing emergency shelter locations and community-requested sites are collected by Bimkom field workers and community submissions. Reach Bimkom for more information on shelter locations.</p>
-                        <p><strong>Critical Note:</strong> The data on this map should be considered a best estimate of the locations of existing shelters, <strong>NOT</strong> an authoritative resource for emergency situations.</p>
+                        <div class="guide-steps">
+                            <div class="guide-step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <span class="step-title">Set Accessibility Distance</span>
+                                    <p class="step-description">Use accessibility range buttons (100m-300m) to set how far residents can travel to reach a bomb shelter during an emergency.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="guide-step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <span class="step-title">View Current Coverage</span>
+                                    <p class="step-description">See current coverage by turning on Accessibility Grid.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="guide-step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <span class="step-title">Add New Shelters</span>
+                                    <p class="step-description">Use slider to add strategically placed new shelters.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="guide-step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <span class="step-title">Click Coverage</span>
+                                    <p class="step-description">Click on coverage window to review accessibility statistics.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="guide-step">
+                                <div class="step-number">5</div>
+                                <div class="step-content">
+                                    <span class="step-title">Explore Data</span>
+                                    <p class="step-description">Click "Data Layers" to show new information like community requests for shelters and change display layers.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

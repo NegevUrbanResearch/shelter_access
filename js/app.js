@@ -219,11 +219,11 @@ class ShelterAccessApp {
             // Hide loading overlay
             this.hideLoading();
             
-            // Show the methods modal on startup to guide users
+            // Show the about modal on startup to guide users
             setTimeout(() => {
-                const methodsModal = document.getElementById('methodsModal');
-                if (methodsModal) {
-                    methodsModal.classList.add('show');
+                const aboutModal = document.getElementById('aboutModal');
+                if (aboutModal) {
+                    aboutModal.classList.add('show');
                 }
             }, 500); // Small delay to ensure app is fully loaded
             
@@ -304,12 +304,69 @@ class ShelterAccessApp {
     }
     
     /**
+     * Setup tab functionality for modal
+     */
+    setupTabs() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+                
+                // Remove active class from all buttons and content
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                const targetContent = document.getElementById(`${targetTab}-tab`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            });
+        });
+    }
+    
+    /**
+     * Setup expandable sections functionality
+     */
+    setupExpandableSections() {
+        // Make toggleSection function available globally
+        window.toggleSection = (sectionId) => {
+            const section = document.querySelector(`#${sectionId}-content`).closest('.expandable-section');
+            const content = document.getElementById(`${sectionId}-content`);
+            const icon = section.querySelector('.expand-icon');
+            
+            if (section.classList.contains('expanded')) {
+                section.classList.remove('expanded');
+                icon.textContent = '+';
+            } else {
+                section.classList.add('expanded');
+                icon.textContent = '−';
+            }
+        };
+    }
+    
+    /**
      * Setup event listeners for UI controls
      */
     setupEventListeners() {
         // Setup modals using generic setup function
         this.setupModal('about');
-        this.setupModal('methods');
+        
+        // Handle methods button to open about modal (merged modal)
+        const methodsButton = document.getElementById('methodsButton');
+        const aboutModal = document.getElementById('aboutModal');
+        if (methodsButton && aboutModal) {
+            methodsButton.addEventListener('click', () => aboutModal.classList.add('show'));
+        }
+        
+        // Setup tab functionality
+        this.setupTabs();
+        
+        // Setup expandable sections
+        this.setupExpandableSections();
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {

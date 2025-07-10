@@ -1312,31 +1312,316 @@ body {
     font-weight: 600;
 }
 
-/* Modal link styling */
-.about-section a {
-    color: var(--accent-blue);
+/* Modal link styling - very subtle and integrated */
+.modal-body a,
+.about-section a,
+.credits-team a,
+.credits-collaborators a,
+.tab-content a {
+    color: var(--text-primary);
     text-decoration: none;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-weight: 500;
+    font-weight: inherit;
     transition: all 0.2s ease;
-    border-bottom: 1px solid transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.about-section a:hover {
-    color: var(--text-accent);
-    border-bottom-color: var(--accent-blue);
-    transform: translateY(-1px);
+.modal-body a:hover,
+.about-section a:hover,
+.credits-team a:hover,
+.credits-collaborators a:hover,
+.tab-content a:hover {
+    color: var(--text-secondary);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Section lead names in purple */
-.about-section a strong {
-    color: #8b5cf6;
+/* Names and organizations - consistent styling */
+.modal-body a strong,
+.about-section a strong,
+.credits-team a strong,
+.credits-collaborators a strong,
+.tab-content a strong {
+    color: inherit;
     font-weight: 600;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-.about-section a:hover strong {
-    color: #a78bfa;
+.modal-body a:hover strong,
+.about-section a:hover strong,
+.credits-team a:hover strong,
+.credits-collaborators a:hover strong,
+.tab-content a:hover strong {
+    color: inherit;
+}
+
+/* Wide modal for tabbed layout */
+.modal-content-wide {
+    max-width: 600px;
+    width: 90%;
+    height: 85vh;
+    max-height: 85vh;
+}
+
+/* Tabbed modal body */
+.modal-body-tabs {
+    padding: 0;
+    overflow: hidden;
+    height: calc(100% - 80px);
+    max-height: calc(100% - 80px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tab navigation */
+.modal-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-button {
+    flex: 1;
+    padding: 15px 20px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-bottom: 3px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.tab-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.tab-button.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.12);
+}
+
+/* Tab content containers */
+.tab-content {
+    display: none;
+    padding: 25px;
+    overflow-y: auto;
+    max-height: calc(80vh - 140px);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Info container styling */
+.info-intro {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.info-intro p {
+    margin-bottom: 15px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+/* Expandable sections */
+.expandable-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.expandable-section {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expandable-section:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.section-header {
+    padding: var(--space-lg) var(--space-xl);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.expand-icon {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--text-muted);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expandable-section.expanded {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.expandable-section.expanded .section-header h3 {
+    color: var(--text-primary);
+}
+
+.expandable-section.expanded .expand-icon {
+    transform: rotate(45deg);
+    color: var(--text-primary);
+}
+
+.section-content {
+    display: none;
+    padding: 0 var(--space-xl) var(--space-xl) var(--space-xl);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expandable-section.expanded .section-content {
+    display: block;
+}
+
+.section-content p {
+    margin-bottom: var(--space-md);
+    line-height: 1.7;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.section-content h4 {
+    margin: var(--space-lg) 0 var(--space-sm) 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: normal;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.references {
+    margin-top: var(--space-xl);
+    padding: var(--space-lg);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.credits-team, .credits-collaborators {
+    margin-bottom: var(--space-xl);
+}
+
+.credits-team h4, .credits-collaborators h4 {
+    margin-bottom: var(--space-md);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Guide container styling */
+.guide-intro {
+    margin-bottom: var(--space-2xl);
+    text-align: center;
+    padding-bottom: var(--space-xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.guide-intro h3 {
+    margin-bottom: var(--space-lg);
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.guide-intro p {
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 768px) {
+    .modal-content-wide {
+        max-width: 95%;
+        margin: var(--space-md);
+    }
+    
+    .tab-button {
+        padding: var(--space-md) var(--space-lg);
+        font-size: 12px;
+    }
+    
+    .tab-content {
+        padding: var(--space-xl);
+        max-height: calc(80vh - 120px);
+    }
+    
+    .section-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+    
+    .section-header h3 {
+        font-size: 12px;
+    }
+    
+    .section-content {
+        padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
+    }
+    
+    .guide-intro {
+        padding-bottom: var(--space-lg);
+        margin-bottom: var(--space-xl);
+    }
+}
+
+/* Improve readability for references */
+.about-section em {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+/* Improve h4 styling for subsections */
+.about-section h4 {
+    margin: 15px 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-accent);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* Heatmap legend special styling - Original */
@@ -1757,12 +2042,12 @@ input:checked + .toggle-slider:hover {
 .guide-step {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-xl);
-    padding: var(--space-lg);
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius-md);
-    border-left: 3px solid var(--accent-blue);
+    gap: var(--space-xl);
+    margin-bottom: var(--space-2xl);
+    padding: var(--space-xl);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--accent-blue);
     transition: all 0.2s ease;
 }
 
@@ -1778,15 +2063,15 @@ input:checked + .toggle-slider:hover {
 .step-number {
     background: var(--accent-blue);
     color: white;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
@@ -1798,16 +2083,16 @@ input:checked + .toggle-slider:hover {
 .step-title {
     font-weight: 600;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    color: var(--text-accent);
-    margin-bottom: var(--space-xs);
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
     display: block;
 }
 
 .step-description {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
 } 
