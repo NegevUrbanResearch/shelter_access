@@ -23,6 +23,14 @@
     
     <!-- Custom styles -->
     <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -127,25 +135,20 @@
                         </div>
                     </div>
                     <div class="control-group">
-                        <button id="layersButton" class="action-button full-width">
-                            <span>Data Layers</span>
-                        </button>
+                        <div style="display: flex; gap: 8px; align-items: stretch;">
+                            <button id="layersButton" class="action-button" style="flex: 1;">
+                                <span>Data Layers</span>
+                            </button>
+                            <button class="bottom-button info-button" id="aboutButton" title="About & Analysis Methods">
+                                <span>i</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
 
                 
-                <!-- About & Info Buttons - Bottom -->
-                <div class="control-section">
-                    <div class="bottom-buttons">
-                        <button class="bottom-button about-button" id="aboutButton" title="About Us">
-                            <span>About Us</span>
-                        </button>
-                        <button class="bottom-button info-button" id="methodsButton" title="Analysis Methods">
-                            <span>i</span>
-                        </button>
-                    </div>
-                </div>
+
             </div>
         </div>
         
@@ -267,7 +270,7 @@
         <div id="aboutModal" class="modal-overlay">
             <div class="modal-content modal-content-wide">
                 <div class="modal-header">
-                    <h2>The Right to Shelter</h2>
+                    <h1>The Right to Shelter</h1>
                     <button class="modal-close" id="closeAboutModal">&times;</button>
                 </div>
                 <div class="modal-body modal-body-tabs">
@@ -282,7 +285,7 @@
                         <div class="info-intro">
                             <p>This analysis evaluates bomb shelter accessibility for Bedouin communities in the Eastern Negev, identifying underserved areas and proposing optimal new shelter locations using spatial data analysis and machine learning methods.</p>
                             
-                            <p>Since late 2023, residents of the Eastern Negev, like many across Israel, have faced continuous attacks due to the ongoing multi-front conflict that began on October 7th. A critical issue in this region is the lack of access to adequate bomb shelters for the Bedouin population in the Beer Sheva District.</p>
+                            <p>Since October 7th 2023, Bedouin residents of the Eastern Negev, like many communities across Israel, have faced frequent attacks in the ongoing multi-front conflict. A critical issue for this population is lack of access to bomb shelters.</p>
                         </div>
                         
                         <!-- Expandable Sections -->
