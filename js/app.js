@@ -1256,11 +1256,12 @@ class ShelterAccessApp {
     getZoomConfig() {
         const currentZoom = this._currentZoom || 12;
         
-        // Define breakpoint ranges for smooth interpolation
+        // Define breakpoint ranges for ultra-smooth interpolation
         const breakpoints = [
             { zoom: 7, config: this.ICON_ZOOM_BREAKPOINTS.low },
-            { zoom: 10, config: this.ICON_ZOOM_BREAKPOINTS.low },
-            { zoom: 14, config: this.ICON_ZOOM_BREAKPOINTS.medium },
+            { zoom: 9, config: this.ICON_ZOOM_BREAKPOINTS.low },
+            { zoom: 12, config: this.ICON_ZOOM_BREAKPOINTS.medium },
+            { zoom: 15, config: this.ICON_ZOOM_BREAKPOINTS.medium },
             { zoom: 17, config: this.ICON_ZOOM_BREAKPOINTS.high },
             { zoom: 19, config: this.ICON_ZOOM_BREAKPOINTS.ultra }
         ];
@@ -1308,10 +1309,11 @@ class ShelterAccessApp {
     }
     
     /**
-     * Subtle easing function for natural zoom scaling
+     * Enhanced easing function for smoother zoom scaling
      */
     easeInOutQuad(t) {
-        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        // Smoother cubic easing for more natural feel
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
     
     /**
@@ -1556,10 +1558,10 @@ class ShelterAccessApp {
         this._currentViewState = viewState;
         this.updateScaleBar();
         
-        // Ultra-fast debounce for maximum responsiveness
+        // Optimized debounce for smooth scaling
         this._viewStateDebounceTimer = setTimeout(() => {
             this._processViewStateChange(this._pendingViewState);
-        }, 5); // 5ms for ultra-responsive scaling
+        }, 10); // 10ms for balanced responsiveness and smoothness
     }
     
     /**
@@ -1575,8 +1577,13 @@ class ShelterAccessApp {
         } else {
             const zoomDelta = Math.abs(this._currentZoom - previousZoom);
             
-            if (zoomDelta > 0.2) {
-                // More frequent updates for smooth scaling
+            // Ignore micro-changes to prevent stuttering
+            if (zoomDelta < 0.05) {
+                return;
+            }
+            
+            if (zoomDelta > 0.15) {
+                // Smoother threshold for more responsive scaling
                 this.updateDataLayersOnly();
             }
         }
