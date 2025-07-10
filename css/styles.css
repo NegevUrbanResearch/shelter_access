@@ -1680,128 +1680,284 @@ body {
 
 /* For mobile, adjust the offset */
 @media (max-width: 768px) {
+    /* Much smaller panels for mobile */
     .main-menu {
-        width: 260px;
-        left: 10px;
+        width: 200px;
+        left: 8px;
+        top: 68px;
+        max-height: calc(100vh - 76px);
     }
     
     .main-menu.minimized {
-        width: 180px;
+        width: 140px;
     }
     
     .stats-panel {
-        right: 10px;
-        width: 280px;
+        right: 8px;
+        width: 220px;
+        top: 68px;
+        max-height: calc(100vh - 76px);
     }
     
+    .stats-panel.collapsed {
+        width: 160px;
+    }
+    
+    /* Smaller brand banner */
     .brand-banner {
-        padding: 12px 15px;
-        height: 60px;
+        padding: 8px 12px;
+        height: 52px;
     }
     
     .brand-banner .logo {
-        height: 36px;
+        height: 32px;
     }
     
     .brand-banner .huji-logo {
-        height: 36px;
+        height: 32px;
     }
     
-    .info-button {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* Smaller menu headers */
+    .menu-header {
+        padding: 12px 16px;
     }
     
-    .main-menu {
-        top: 84px;
-        max-height: calc(100vh - 94px);
+    .menu-title h2 {
+        font-size: 16px;
+        margin-bottom: 6px;
     }
     
-    .stats-panel {
-        top: 84px;
+    .menu-title p {
+        font-size: 11px;
     }
     
-    .modal-overlay {
-        padding: 10px;
+    .menu-button {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
     }
     
-    .modal-content {
-        max-width: 95%;
+    /* Smaller menu content padding */
+    .menu-content {
+        padding: 12px 16px;
+        max-height: calc(100vh - 140px);
     }
     
-    .modal-header {
-        padding: 15px 20px;
+    /* Smaller control labels and text */
+    .control-label {
+        font-size: 10px;
+        margin-bottom: 8px;
+        padding: 8px 10px;
     }
     
-    .modal-header h2 {
-        font-size: 18px;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    .control-value {
+        font-size: 10px;
+        margin-top: 6px;
     }
     
-    .modal-body {
-        padding: 20px;
+    .control-description {
+        font-size: 10px;
+        margin-top: 6px;
     }
     
-    .about-section h3 {
-        font-size: 15px;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* Smaller distance buttons */
+    .distance-buttons {
+        gap: 4px;
     }
     
-    .about-section p {
-        font-size: 13px;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    .distance-button {
+        padding: 8px 6px;
+        font-size: 10px;
+        min-height: 32px;
     }
     
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 8px;
+    /* Smaller view buttons */
+    .view-button {
+        padding: 8px 10px;
+        font-size: 10px;
     }
     
-    /* No special mobile widget positioning needed - credits are now in bottom-left */
-    
-    /* Mobile compass positioning */
-    .deck-widget-compass {
-        top: 84px !important; /* 60px mobile banner + 24px spacing */
+    /* Smaller action buttons */
+    .action-button {
+        padding: 8px 12px;
+        font-size: 10px;
+        margin-bottom: 6px;
     }
     
-    /* Mobile legend panel positioning */
+    /* Smaller bottom buttons */
+    .bottom-button {
+        padding: 8px 10px;
+        font-size: 10px;
+        min-height: 32px;
+    }
+    
+    .bottom-button.info-button {
+        width: 30px !important;
+        height: 30px !important;
+        min-height: 30px !important;
+        flex: 0 0 30px !important;
+        font-size: 12px;
+    }
+    
+    /* Smaller stats text */
+    .stats-text {
+        font-size: 11px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+    }
+    
+    /* Smaller legend panel */
     .map-legend-panel {
-        bottom: var(--space-md);
-        right: var(--space-lg);
-        width: 160px; /* Even skinnier on mobile */
-        max-height: 60vh;
+        bottom: 8px;
+        right: 8px;
+        width: 140px;
+        max-height: 50vh;
     }
     
     .legend-layers-section {
-        padding: var(--space-sm) var(--space-md);
+        padding: 6px 8px;
     }
     
     .legend-scale-section {
-        padding: var(--space-xs) var(--space-md);
+        padding: 4px 8px;
     }
     
     .legend-section-title {
-        font-size: 11px;
+        font-size: 9px;
+        margin-bottom: 6px;
     }
     
     .legend-item {
-        font-size: 11px;
+        font-size: 9px;
+        padding: 6px 8px;
+        margin-bottom: 4px;
+        min-height: 28px;
+    }
+    
+    .legend-icon {
+        width: 14px;
+        height: 14px;
+        margin-right: 8px;
     }
     
     .legend-controls-section {
-        padding: var(--space-xs) var(--space-md);
+        padding: 4px 8px;
     }
     
     .legend-control-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
     }
     
     .scale-text {
-        font-size: 9px;
+        font-size: 8px;
+    }
+    
+    /* Modal adjustments */
+    .modal-overlay {
+        padding: 6px;
+    }
+    
+    .modal-content {
+        max-width: 96%;
+    }
+    
+    .modal-header {
+        padding: 12px 16px;
+    }
+    
+    .modal-header h2 {
+        font-size: 16px;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .about-section h3 {
+        font-size: 14px;
+    }
+    
+    .about-section p {
+        font-size: 12px;
+    }
+    
+    /* Mobile compass positioning */
+    .deck-widget-compass {
+        top: 68px !important; /* 52px mobile banner + 16px spacing */
+    }
+    
+    /* Ensure panels don't overlap on very small screens */
+    @media (max-width: 480px) {
+        .main-menu {
+            width: 180px;
+            left: 4px;
+        }
+        
+        .main-menu.minimized {
+            width: 120px;
+        }
+        
+        .stats-panel {
+            width: 200px;
+            right: 4px;
+        }
+        
+        .stats-panel.collapsed {
+            width: 140px;
+        }
+        
+        .map-legend-panel {
+            width: 120px;
+            right: 4px;
+            bottom: 4px;
+        }
+        
+        .menu-content {
+            padding: 8px 12px;
+        }
+        
+        .menu-header {
+            padding: 8px 12px;
+        }
+        
+        .menu-title h2 {
+            font-size: 14px;
+        }
+        
+        .menu-title p {
+            font-size: 10px;
+        }
+        
+        .stats-text {
+            font-size: 10px;
+        }
+        
+        .legend-item {
+            font-size: 8px;
+            padding: 4px 6px;
+        }
+        
+        .control-label {
+            font-size: 9px;
+            padding: 6px 8px;
+        }
+        
+        .distance-button {
+            font-size: 9px;
+            padding: 6px 4px;
+        }
+        
+        .view-button {
+            font-size: 9px;
+            padding: 6px 8px;
+        }
+        
+        .action-button {
+            font-size: 9px;
+            padding: 6px 8px;
+        }
     }
 }
 
