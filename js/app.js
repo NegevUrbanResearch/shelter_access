@@ -765,15 +765,40 @@ class ShelterAccessApp {
      * Toggle fullscreen functionality
      */
     toggleFullscreen() {
-        const mapContainer = document.getElementById('map');
-        if (!document.fullscreenElement) {
-            mapContainer.requestFullscreen?.() || 
-            mapContainer.webkitRequestFullscreen?.() || 
-            mapContainer.mozRequestFullScreen?.();
-        } else {
-            document.exitFullscreen?.() || 
-            document.webkitExitFullscreen?.() || 
-            document.mozCancelFullScreen?.();
+        console.log('Fullscreen button clicked');
+        try {
+            // Use the entire app container instead of just the map
+            const appContainer = document.getElementById('app');
+            
+            if (!document.fullscreenElement) {
+                console.log('Entering fullscreen mode');
+                // Enter fullscreen
+                if (appContainer.requestFullscreen) {
+                    appContainer.requestFullscreen();
+                } else if (appContainer.webkitRequestFullscreen) {
+                    appContainer.webkitRequestFullscreen();
+                } else if (appContainer.mozRequestFullScreen) {
+                    appContainer.mozRequestFullScreen();
+                } else if (appContainer.msRequestFullscreen) {
+                    appContainer.msRequestFullscreen();
+                } else {
+                    console.warn('Fullscreen not supported by this browser');
+                }
+            } else {
+                console.log('Exiting fullscreen mode');
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling fullscreen:', error);
         }
     }
     
