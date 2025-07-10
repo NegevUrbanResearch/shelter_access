@@ -643,7 +643,7 @@ class ShelterAccessApp {
                             if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                                 return [0, 255, 0, 150]; // Bright green for hover coverage
                             }
-                            return [255, 0, 0, 120]; // Red for all other buildings when layer is enabled
+                            return [59, 130, 246, 180]; // Blue for all other buildings when layer is enabled (matches menu buttons)
                         } else {
                             // Buildings layer is disabled - only show covered buildings in green
                             return [0, 255, 0, 200]; // Bright green for covered buildings
@@ -657,7 +657,7 @@ class ShelterAccessApp {
                             if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                                 return [0, 255, 0, 255]; // Bright green outline for hover
                             }
-                            return [255, 0, 0, 180]; // Red outline for all other buildings
+                            return [59, 130, 246, 220]; // Blue outline for all other buildings (matches menu buttons)
                         } else {
                             // Buildings layer is disabled - only show covered building outlines in green
                             return [0, 255, 0, 255]; // Bright green outline for covered buildings
@@ -1973,7 +1973,7 @@ class ShelterAccessApp {
                     if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                         return [0, 255, 0, 150];
                     }
-                    return [255, 0, 0, 120];
+                    return [59, 130, 246, 180];
                 } else {
                     return [0, 255, 0, 200];
                 }
@@ -1985,7 +1985,7 @@ class ShelterAccessApp {
                     if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
                         return [0, 255, 0, 255];
                     }
-                    return [255, 0, 0, 180];
+                    return [59, 130, 246, 220];
                 } else {
                     return [0, 255, 0, 255];
                 }
