@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Negev Shelter Accessibility Analysis</title>
+    <title>Negev Shelter</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data/favicon.ico">
@@ -28,6 +28,9 @@
     <div id="app">
         <!-- Full-screen map -->
         <div id="map"></div>
+        
+        <!-- Map overlay filter for better contrast -->
+        <div class="map-overlay-filter"></div>
         
         <!-- Horizontal Brand Banner -->
         <div class="brand-banner">
@@ -57,16 +60,13 @@
                 <div class="control-section">
                     <div class="stats-narrative">
                         <div class="stat-paragraph">
-                            <p id="currentCoverageText">With existing bomb shelters, <strong id="currentCoverage">--%</strong> of residential buildings are currently covered within a <strong id="currentRadius">--m</strong> accessibility distance parameter (maximum residents can travel to reach safety during an alert).</p>
+                            <p id="currentCoverageText">Existing bomb shelters are accessible within <strong id="currentRadius">--m</strong> by <strong id="currentCoverage">--%</strong> of residential buildings.</p>
                         </div>
                         <div class="stat-paragraph">
                             <p id="residentsLeftOutText">This leaves approximately <strong id="residentsLeftOut">--</strong> residents without adequate shelter access in the study area.</p>
                         </div>
                         <div class="stat-paragraph">
-                            <p id="newCoverageText">By adding <strong id="newSheltersCount">--</strong> strategically placed new shelters, total coverage increases to <strong id="newCoverage">--%</strong> of residential buildings in the study area.</p>
-                        </div>
-                        <div class="stat-paragraph">
-                            <p id="benefitsText">This improvement provides bomb shelter access for <strong id="buildingsCovered">--</strong> additional residential buildings, benefiting an estimated <strong id="additionalPeople">--</strong> additional residents.</p>
+                            <p id="newCoverageText">By adding <strong id="newSheltersCount">--</strong> bomb shelters, total coverage increases to <strong id="newCoverage">--%</strong> of informal housing units in the Beer Sheva Valley.</p>
                         </div>
                     </div>
                 </div>
@@ -78,7 +78,7 @@
             <!-- Menu Header with Title -->
             <div class="menu-header">
                 <div class="menu-title">
-                    <h2>Shelter Accessibility</h2>
+                    <h2>Shelter Analysis</h2>
                     <p>Negev Informal Settlements</p>
                 </div>
                 <div class="menu-actions">
@@ -123,7 +123,6 @@
                             <div class="control-value" id="newSheltersValue">0</div>
                         </div>
                         <div class="control-description">Proposed number of new shelters to add</div>
-                        <div class="shelter-disabled-toltip">Turn off Accessibility Grid to add new shelters</div>
                     </div>
                 </div>
                 

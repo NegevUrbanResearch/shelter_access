@@ -749,22 +749,22 @@ class ShelterAccessApp {
                     pickable: true,
                     stroked: true,
                     filled: true,
-                    lineWidthMinPixels: 1,
-                    lineWidthMaxPixels: 2,
+                    lineWidthMinPixels: 2,
+                    lineWidthMaxPixels: 4,
                     getFillColor: d => {
                         const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                          this.selectedPolygon?._index === d._index;
-                        return isSelected ? [52, 152, 219, 100] : [52, 152, 219, 25];
+                        return isSelected ? [52, 152, 219, 120] : [52, 152, 219, 50];
                     },
                     getLineColor: d => {
                         const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                          this.selectedPolygon?._index === d._index;
-                        return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 120];
+                        return isSelected ? [30, 100, 150, 255] : [52, 152, 219, 180];
                     },
                     getLineWidth: d => {
                         const isSelected = this.selectedPolygon?.layerType === 'habitationCluster' && 
                                          this.selectedPolygon?._index === d._index;
-                        return isSelected ? 3 : 1;
+                        return isSelected ? 6 : 2;
                     },
                     updateTriggers: {
                         getFillColor: [this.selectedPolygon],
