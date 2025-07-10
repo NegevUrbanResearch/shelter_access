@@ -58,7 +58,7 @@ body.light-basemap {
 }
 
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: #1a1a1a;
     margin: 0;
     padding: 0;
@@ -214,7 +214,7 @@ body {
     line-height: 1.3;
     transition: opacity 0.3s ease;
     letter-spacing: -0.01em;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .menu-title p {
@@ -226,7 +226,7 @@ body {
     display: flex;
     align-items: center;
     line-height: 1.4;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .menu-actions {
@@ -249,7 +249,7 @@ body {
     justify-content: center;
     font-size: 11px;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
 }
@@ -309,7 +309,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     text-align: center;
 }
 
@@ -321,7 +321,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .control-value {
@@ -379,7 +379,7 @@ body {
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
@@ -408,7 +408,7 @@ body {
     color: var(--text-primary);
     font-size: 13px;
     font-weight: 500;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -543,14 +543,14 @@ body {
 
 .layer-label {
     font-size: 13px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-primary);
     font-weight: 500;
 }
 
 .layer-description {
     font-size: 13px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-secondary);
     font-weight: 400;
 }
@@ -706,14 +706,14 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .stat-value {
     font-size: 15px;
     font-weight: 700;
     color: var(--text-primary);
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-feature-settings: 'tnum' 1;
     line-height: 1.2;
 }
@@ -724,14 +724,14 @@ body {
     color: var(--text-secondary);
     font-size: 14px;
     line-height: 1.7;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
 }
 
 .stats-text strong {
     color: var(--text-accent);
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-feature-settings: 'tnum' 1;
 }
 
@@ -747,7 +747,7 @@ body {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 500;
     margin-bottom: var(--space-sm);
     min-height: 36px;
@@ -899,7 +899,7 @@ body {
     border-radius: 4px;
     font-size: 10px;
     font-weight: 500;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     pointer-events: none;
     z-index: 10000;
     max-width: 180px;
@@ -951,7 +951,7 @@ body {
     color: #ffffff;
     font-size: 16px;
     font-weight: 500;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     text-align: center;
 }
 
@@ -965,7 +965,7 @@ body {
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 11px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     z-index: 200;
     backdrop-filter: blur(10px);
 }
@@ -1014,7 +1014,7 @@ body {
     max-height: 70vh;
     overflow-y: auto;
     z-index: 99;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     flex-direction: column;
 }
@@ -1036,7 +1036,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin-bottom: var(--space-md);
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .scale-bar {
@@ -1047,7 +1047,7 @@ body {
     box-shadow: none;
     font-size: 12px;
     font-weight: 500;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-primary);
     text-align: center;
     min-width: 80px;
@@ -1070,7 +1070,7 @@ body {
     font-size: 11px;
     color: var(--text-secondary);
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     letter-spacing: 0.3px;
 }
 
@@ -1253,7 +1253,7 @@ body {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-primary);
 }
 
@@ -1261,7 +1261,7 @@ body {
     background: none;
     border: none;
     font-size: 24px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-secondary);
     cursor: pointer;
     padding: 5px;
@@ -1294,7 +1294,7 @@ body {
     font-size: 16px;
     font-weight: 600;
     color: var(--accent-color);
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .about-section p {
@@ -1302,7 +1302,7 @@ body {
     line-height: 1.6;
     color: var(--text-primary);
     font-size: 14px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .about-section p:last-child {
@@ -1311,7 +1311,7 @@ body {
 
 .about-section strong {
     color: var(--text-primary);
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 600;
 }
 
@@ -1323,7 +1323,7 @@ body {
 .tab-content a {
     color: var(--text-primary);
     text-decoration: none;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: inherit;
     transition: all 0.2s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -1346,7 +1346,7 @@ body {
 .tab-content a strong {
     color: inherit;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .modal-body a:hover strong,
@@ -1397,7 +1397,7 @@ body {
     border-bottom: 3px solid transparent;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .tab-button:hover {
@@ -1475,7 +1475,7 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .expand-icon {
@@ -1523,7 +1523,7 @@ body {
     color: var(--text-primary);
     text-transform: none;
     letter-spacing: normal;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .references {
@@ -1550,7 +1550,7 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* Guide container styling */
@@ -1568,7 +1568,7 @@ body {
     font-weight: 600;
     text-transform: none;
     letter-spacing: normal;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .guide-intro p {
@@ -1630,7 +1630,7 @@ body {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-accent);
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* Heatmap legend special styling - Original */
@@ -1645,7 +1645,7 @@ body {
     color: var(--text-accent);
     margin: 0 0 var(--space-sm) 0;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.8px;
 }
@@ -1675,7 +1675,7 @@ body {
     font-size: 10px;
     color: var(--text-muted);
     font-weight: 500;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* For mobile, adjust the offset */
@@ -1978,7 +1978,7 @@ body {
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
@@ -2022,7 +2022,7 @@ body {
     box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
     transform: translateY(-1px);
     font-weight: 700;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .distance-button.active::before {
@@ -2050,7 +2050,7 @@ body {
     line-height: 1.4;
     font-weight: 400;
     font-style: italic;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     text-align: center;
 }
 
@@ -2062,7 +2062,7 @@ body {
 
 .status-indicator {
     font-size: 13px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #666;
     display: inline-block;
     padding: 2px 6px;
@@ -2157,7 +2157,7 @@ input:checked + .toggle-slider:hover {
     cursor: pointer;
     font-size: 11px;
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     transition: all 0.2s ease;
     flex: 1;
     min-height: 40px;
@@ -2176,7 +2176,7 @@ input:checked + .toggle-slider:hover {
 .bottom-button.info-button {
     font-size: 12px;
     font-weight: 700;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     width: 37px !important;
     height: 37px !important;
     min-height: 37px !important;
@@ -2220,7 +2220,7 @@ input:checked + .toggle-slider:hover {
     color: var(--accent-blue) !important;
     margin-bottom: var(--space-xl);
     font-size: 18px;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 700;
     text-align: center;
 }
@@ -2258,7 +2258,7 @@ input:checked + .toggle-slider:hover {
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
@@ -2270,7 +2270,7 @@ input:checked + .toggle-slider:hover {
 
 .step-title {
     font-weight: 600;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
     color: var(--text-primary);
     margin-bottom: var(--space-sm);
@@ -2278,7 +2278,7 @@ input:checked + .toggle-slider:hover {
 }
 
 .step-description {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 15px;
     color: var(--text-secondary);
     line-height: 1.6;
