@@ -651,12 +651,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    padding: var(--space-md);
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    border: none;
+    backdrop-filter: none;
+    box-shadow: none;
 }
 
 .stats-grid {
@@ -729,7 +729,7 @@ body {
 }
 
 .stat-paragraph {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
 }
 
 .stat-paragraph:last-child {
@@ -739,7 +739,7 @@ body {
 .stat-paragraph p {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.7;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-weight: 400;
@@ -776,17 +776,19 @@ body {
 .legend-item {
     display: flex;
     align-items: center;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-primary);
-    padding: var(--space-xs) 0;
-    background: none;
-    border: none;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-weight: 500;
-    margin-bottom: var(--space-xs);
+    margin-bottom: var(--space-sm);
+    min-height: 36px;
 }
 
 .legend-item::before {
@@ -802,8 +804,8 @@ body {
 }
 
 .legend-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
 }
 
@@ -1035,41 +1037,125 @@ body {
 }
 
 /* Custom Scale Bar - positioned under compass */
-.scale-bar {
+/* Combined Map Legend Panel - positioned at bottom right, grows upward */
+.map-legend-panel {
     position: fixed;
-    top: calc(100vh - 80px); /* Position below compass */
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 12px; 
+    right: var(--space-xl);
     background: var(--glass-bg);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--panel-shadow);
-    font-size: 11px;
+    width: 240px; /* Made wider */
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 99;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+.legend-layers-section {
+    padding: var(--space-md) var(--space-sm);
+}
+
+.legend-scale-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.legend-section-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: var(--space-md);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.scale-bar {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    font-size: 12px;
     font-weight: 500;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: var(--text-primary);
     text-align: center;
     min-width: 80px;
-    z-index: 99;
+    z-index: auto;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
 }
 
 .scale-line {
     width: 100%;
-    height: 2px;
+    height: 2.5px;
     background: var(--text-primary);
     margin-bottom: 4px;
     border-radius: 1px;
 }
 
 .scale-text {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-secondary);
     font-weight: 600;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     letter-spacing: 0.3px;
+}
+
+/* Legend Controls Section */
+.legend-controls-section {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.legend-controls {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.legend-control-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legend-control-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: var(--accent-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.legend-control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Disabled state for controls */
@@ -1424,13 +1510,38 @@ body {
         top: 84px !important; /* 60px mobile banner + 24px spacing */
     }
     
-    /* Mobile scale bar positioning */
-    .scale-bar {
-        top: calc(100vh - 70px); /* Adjust for mobile */
-        padding: 6px 10px;
-        font-size: 10px;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        min-width: 70px;
+    /* Mobile legend panel positioning */
+    .map-legend-panel {
+        bottom: var(--space-md);
+        right: var(--space-lg);
+        width: 160px; /* Even skinnier on mobile */
+        max-height: 60vh;
+    }
+    
+    .legend-layers-section {
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    .legend-scale-section {
+        padding: var(--space-xs) var(--space-md);
+    }
+    
+    .legend-section-title {
+        font-size: 11px;
+    }
+    
+    .legend-item {
+        font-size: 11px;
+    }
+    
+    .legend-controls-section {
+        padding: var(--space-xs) var(--space-md);
+    }
+    
+    .legend-control-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
     }
     
     .scale-text {

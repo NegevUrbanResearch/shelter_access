@@ -141,10 +141,7 @@
                     </div>
                 </div>
                 
-                <!-- Legend Section - Moved from right panel -->
-                <div class="control-section">
-                    <div class="legend-items" id="legend-items"></div>
-                </div>
+
                 
                 <!-- About & Info Buttons - Bottom -->
                 <div class="control-section">
@@ -160,14 +157,26 @@
             </div>
         </div>
         
-        <!-- Custom Scale Bar (positioned under compass) -->
-        <div class="scale-bar" id="scaleBar">
-            <div class="scale-line" id="scaleLine"></div>
-            <div class="scale-text" id="scaleText">100 m</div>
+        <!-- Combined Legend and Scale Bar (positioned on right side) -->
+        <div class="map-legend-panel" id="mapLegendPanel">
+            <!-- Data Layers Legend Section -->
+            <div class="legend-layers-section">
+                <div class="legend-section-title">Legend</div>
+                <div class="legend-items" id="legend-items"></div>
+            </div>
+            
+            <!-- Scale Bar Section -->
+            <div class="legend-scale-section">
+                <div class="scale-bar" id="scaleBar">
+                    <div class="scale-line" id="scaleLine"></div>
+                    <div class="scale-text" id="scaleText">100 m</div>
+                </div>
+            </div>
         </div>
         
         <!-- Data Layers Modal -->
         <div id="layersModal" class="modal-overlay">
+            
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Data Layers</h2>

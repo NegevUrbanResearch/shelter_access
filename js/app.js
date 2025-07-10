@@ -513,41 +513,114 @@ class ShelterAccessApp {
      * Initialize deck.gl widgets (zoom, fullscreen, compass)
      */
     initializeWidgets() {
-            // Zoom Control Widget
-            const zoomWidget = new deck.ZoomWidget({
-                id: 'zoom-widget',
-                placement: 'bottom-right',
-                onViewStateChange: ({viewState}) => {
-                    this.deckgl.setProps({viewState});
-                    this.handleViewStateChange(viewState);
-                }
-            });
-            
-            // Fullscreen Control Widget
-            const fullscreenWidget = new deck.FullscreenWidget({
-                id: 'fullscreen-widget',
-                placement: 'bottom-right',
-                container: document.getElementById('map')
-            });
-            
-            // Compass Widget
+            // Compass Widget - keep in top-center
             const compassWidget = new deck.CompassWidget({
                 id: 'compass-widget',
-                placement: 'bottom-right',
+                placement: 'bottom-right', // Will be repositioned via CSS
                 onViewStateChange: ({viewState}) => {
                     this.deckgl.setProps({viewState});
                     this.handleViewStateChange(viewState);
                 }
             });
             
-            // Store widgets for later use
-            this.widgets = [zoomWidget, fullscreenWidget, compassWidget];
+            // Store widgets for later use (only compass now)
+            this.widgets = [compassWidget];
             
             // Attach widgets to deck.gl instance
             this.deckgl.setProps({
                 widgets: this.widgets
             });
+            
+            // Setup custom zoom and fullscreen controls in legend panel
+            this.setupCustomControls();
         }
+    
+    /**
+     * Setup custom zoom and fullscreen controls integrated into legend panel
+     */
+    setupCustomControls() {
+        // Wait for legend panel to be created
+        setTimeout(() => {
+            this.addControlsToLegend();
+        }, 100);
+    }
+    
+    /**
+     * Add zoom and fullscreen controls to legend panel
+     */
+    addControlsToLegend() {
+        const legendPanel = document.querySelector('.map-legend-panel');
+        if (!legendPanel) return;
+        
+        // Check if controls already exist
+        if (legendPanel.querySelector('.legend-controls-section')) return;
+        
+        // Create controls section
+        const controlsSection = document.createElement('div');
+        controlsSection.className = 'legend-controls-section';
+        controlsSection.innerHTML = `
+            <div class="legend-controls">
+                <button class="legend-control-btn zoom-in-btn" title="Zoom In">+</button>
+                <button class="legend-control-btn zoom-out-btn" title="Zoom Out">−</button>
+                <button class="legend-control-btn fullscreen-btn" title="Toggle Fullscreen">⛶</button>
+            </div>
+        `;
+        
+        // Insert after scale section (controls go at the bottom)
+        const scaleSection = legendPanel.querySelector('.legend-scale-section');
+        if (scaleSection) {
+            legendPanel.insertBefore(controlsSection, scaleSection.nextSibling);
+        } else {
+            legendPanel.appendChild(controlsSection);
+        }
+        
+        // Add event listeners
+        const zoomInBtn = controlsSection.querySelector('.zoom-in-btn');
+        const zoomOutBtn = controlsSection.querySelector('.zoom-out-btn');
+        const fullscreenBtn = controlsSection.querySelector('.fullscreen-btn');
+        
+        zoomInBtn?.addEventListener('click', () => this.zoomIn());
+        zoomOutBtn?.addEventListener('click', () => this.zoomOut());
+        fullscreenBtn?.addEventListener('click', () => this.toggleFullscreen());
+    }
+    
+    /**
+     * Zoom in functionality
+     */
+    zoomIn() {
+        const currentViewState = this.deckgl.viewState || this.deckgl.props.initialViewState;
+        const newZoom = Math.min(currentViewState.zoom + 1, 19);
+        const newViewState = { ...currentViewState, zoom: newZoom };
+        this.deckgl.setProps({ viewState: newViewState });
+        this.handleViewStateChange(newViewState);
+    }
+    
+    /**
+     * Zoom out functionality
+     */
+    zoomOut() {
+        const currentViewState = this.deckgl.viewState || this.deckgl.props.initialViewState;
+        const newZoom = Math.max(currentViewState.zoom - 1, 7);
+        const newViewState = { ...currentViewState, zoom: newZoom };
+        this.deckgl.setProps({ viewState: newViewState });
+        this.handleViewStateChange(newViewState);
+    }
+    
+    /**
+     * Toggle fullscreen functionality
+     */
+    toggleFullscreen() {
+        const mapContainer = document.getElementById('map');
+        if (!document.fullscreenElement) {
+            mapContainer.requestFullscreen?.() || 
+            mapContainer.webkitRequestFullscreen?.() || 
+            mapContainer.mozRequestFullScreen?.();
+        } else {
+            document.exitFullscreen?.() || 
+            document.webkitExitFullscreen?.() || 
+            document.mozCancelFullScreen?.();
+        }
+    }
     
     /**
      * Create visualization layers with new color scheme
@@ -891,55 +964,89 @@ class ShelterAccessApp {
     updateLegend() {
         if (!this.elements.legendItems) return;
         
-        const legendItems = [];
-        
-        // Add legend items only for visible layers
-        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
-            legendItems.push({
-                className: 'optimal-shelter',
-                label: 'Added Shelters'
-            });
-        }
-        
-        if (this.layerVisibility.existingShelters) {
-            legendItems.push({
-                className: 'existing-shelter', 
-                label: 'Existing Shelters'
-            });
-        }
-        
-        if (this.layerVisibility.requestedShelters) {
-            legendItems.push({
-                className: 'requested-shelter',
-                label: 'Community Requested'
-            });
-        }
-        
-
-        
         if (this.layerVisibility.accessibilityHeatmap) {
             // Create continuous heatmap legend
             this.createHeatmapLegend();
             return; // Only show heatmap legend when heatmap is active
         }
         
+        const legendItems = [];
+        
+        // Building Footprints - always show when visible
+        if (this.layerVisibility.buildings) {
+            legendItems.push({
+                type: 'color-box',
+                className: 'building-footprints',
+                label: 'Building Footprints',
+                color: 'rgb(59, 130, 246)', // Blue to match the current buildings color
+                description: 'Residential buildings'
+            });
+        }
+        
+        // Shelter layers - only when visible
+        if (this.layerVisibility.existingShelters) {
+            legendItems.push({
+                type: 'svg-icon',
+                className: 'existing-shelter', 
+                label: 'Existing Shelters',
+                iconSrc: 'data/existing.svg',
+                description: 'Current shelter locations'
+            });
+        }
+        
+        if (this.layerVisibility.requestedShelters) {
+            legendItems.push({
+                type: 'svg-icon',
+                className: 'requested-shelter',
+                label: 'Community Requested',
+                iconSrc: 'data/user-location-icon.svg',
+                description: 'Resident suggestions'
+            });
+        }
+        
+        if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0) {
+            legendItems.push({
+                type: 'svg-icon',
+                className: 'optimal-shelter',
+                label: 'Optimal Shelters',
+                iconSrc: 'data/proposed.svg',
+                description: 'Algorithm-generated sites'
+            });
+        }
+        
+        // Polygon layers
+        if (this.layerVisibility.statisticalAreas) {
+            legendItems.push({
+                type: 'color-box',
+                className: 'statistical-areas',
+                label: 'Statistical Zones',
+                color: 'rgba(128, 128, 128, 0.6)', // Grey with transparency
+                description: 'Census areas'
+            });
+        }
+        
+        if (this.layerVisibility.habitationClusters) {
+            legendItems.push({
+                type: 'color-box',
+                className: 'habitation-clusters',
+                label: 'Habitation Clusters',
+                color: 'rgba(52, 152, 219, 0.6)', // Blue with transparency
+                description: 'Settlement groups'
+            });
+        }
+        
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
-        // Add legend title
-        const legendTitle = document.createElement('div');
-        legendTitle.style.cssText = `
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: var(--space-sm);
-        `;
-        legendTitle.textContent = 'Map Legend';
-        this.elements.legendItems.appendChild(legendTitle);
+        // Only show legend if there are visible items
+        if (legendItems.length === 0) {
+            this.elements.legendItems.style.display = 'none';
+            return;
+        }
         
-        // Add new legend items with actual SVG icons
+        this.elements.legendItems.style.display = 'block';
+        
+        // Add new legend items with proper symbology
         legendItems.forEach(item => {
             const legendItem = document.createElement('div');
             legendItem.className = 'legend-item';
@@ -947,42 +1054,43 @@ class ShelterAccessApp {
             const iconDiv = document.createElement('div');
             iconDiv.className = `legend-icon ${item.className}`;
             
-            // Use actual SVG icons that match the map icons exactly
-            if (item.className === 'existing-shelter') {
+            if (item.type === 'svg-icon') {
+                // Use actual SVG icons that match the map icons exactly
                 const img = document.createElement('img');
-                img.src = 'data/existing.svg';
+                img.src = item.iconSrc;
                 img.width = 18;
                 img.height = 18;
                 img.style.display = 'block';
                 iconDiv.appendChild(img);
-            } else if (item.className === 'requested-shelter') {
-                const img = document.createElement('img');
-                img.src = 'data/user-location-icon.svg';
-                img.width = 18;
-                img.height = 18;
-                img.style.display = 'block';
-                iconDiv.appendChild(img);
-            } else if (item.className === 'optimal-shelter') {
-                const img = document.createElement('img');
-                img.src = 'data/proposed.svg';
-                img.width = 18;
-                img.height = 18;
-                img.style.display = 'block';
-                iconDiv.appendChild(img);
-
-            } else {
-                // Fallback to color box for unknown types
-                iconDiv.innerHTML = '';
-                iconDiv.className = `legend-color ${item.className}`;
+            } else if (item.type === 'color-box') {
+                // Use color boxes for polygon layers and building footprints
+                iconDiv.style.cssText = `
+                    width: 18px;
+                    height: 18px;
+                    background: ${item.color};
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 3px;
+                    flex-shrink: 0;
+                `;
             }
             
             const label = document.createElement('span');
             label.textContent = item.label;
+            label.style.cssText = `
+                margin-left: 10px;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-primary);
+                flex: 1;
+            `;
             
             legendItem.appendChild(iconDiv);
             legendItem.appendChild(label);
             this.elements.legendItems.appendChild(legendItem);
         });
+        
+        // Ensure controls are added to legend panel
+        setTimeout(() => this.addControlsToLegend(), 50);
     }
     
 
@@ -995,25 +1103,9 @@ class ShelterAccessApp {
         
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
+        this.elements.legendItems.style.display = 'block';
         
-        // Add legend title
-        const legendTitle = document.createElement('div');
-        legendTitle.style.cssText = `
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: var(--space-sm);
-        `;
-        legendTitle.textContent = 'Map Legend';
-        
-        // Create heatmap legend container
-        const heatmapLegend = document.createElement('div');
-        heatmapLegend.className = 'heatmap-legend-compact';
-        heatmapLegend.appendChild(legendTitle);
-        
-        // Simple legend items
+        // Simple legend items for accessibility heatmap
         const legendItems = [
             {
                 color: 'rgb(20, 180, 20)',
@@ -1027,31 +1119,31 @@ class ShelterAccessApp {
         
         legendItems.forEach(item => {
             const legendItem = document.createElement('div');
-            legendItem.style.cssText = `
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 6px;
-                font-size: 13px;
-                color: var(--text-primary);
-            `;
+            legendItem.className = 'legend-item';
             
             const colorBox = document.createElement('div');
             colorBox.style.cssText = `
-                width: 12px;
-                height: 12px;
+                width: 18px;
+                height: 18px;
                 background: ${item.color};
-                border-radius: 2px;
-                border: 1px solid rgba(0,0,0,0.1);
+                border-radius: 3px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
                 flex-shrink: 0;
             `;
             
             const label = document.createElement('span');
-            label.textContent = `${item.label}`;
+            label.textContent = item.label;
+            label.style.cssText = `
+                margin-left: 10px;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-primary);
+                flex: 1;
+            `;
             
             legendItem.appendChild(colorBox);
             legendItem.appendChild(label);
-            heatmapLegend.appendChild(legendItem);
+            this.elements.legendItems.appendChild(legendItem);
         });
         
         // Distance info
@@ -1060,15 +1152,17 @@ class ShelterAccessApp {
             font-size: 11px;
             color: var(--text-secondary);
             text-align: center;
-            margin-top: 6px;
-            padding: 4px 6px;
-            background: rgba(var(--text-secondary-rgb), 0.05);
-            border-radius: 3px;
+            margin-top: var(--space-md);
+            padding: var(--space-xs) var(--space-sm);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
         `;
         distanceInfo.textContent = `Within ${this.coverageRadius}m radius`;
-        heatmapLegend.appendChild(distanceInfo);
+        this.elements.legendItems.appendChild(distanceInfo);
         
-        this.elements.legendItems.appendChild(heatmapLegend);
+        // Ensure controls are added to legend panel
+        setTimeout(() => this.addControlsToLegend(), 50);
     }
 
     /**
