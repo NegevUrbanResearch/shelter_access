@@ -1,12 +1,41 @@
-<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Person figure -->
-  <circle cx="16" cy="10" r="4" fill="#FCD34D" stroke="#F59E0B" stroke-width="1"/>
-  <path d="M10 18 C10 15 12 14 16 14 C20 14 22 15 22 18 L22 22 C22 24 21 25 19 25 L13 25 C11 25 10 24 10 22 Z" 
-        fill="#FCD34D" 
-        stroke="#F59E0B" 
-        stroke-width="1"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="48" height="66" viewBox="0 0 42.62 58.76">
+  <defs>
+    <style>
+      .cls-1 {
+        fill-rule: evenodd;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #f59e0b;
+      }
+
+      .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-4 {
+        fill: #f59e0b;
+      }
+    </style>
+  </defs>
+  <g id="row1">
+    <!-- Location pin background -->
+    <path id="nav:4" class="cls-1" d="M21.31,0C9.56,0,0,9.42,0,20.99s21.31,37.77,21.31,37.77c0,0,21.31-26.21,21.31-37.77S33.06,0,21.31,0ZM21.31,34.46c-7.74,0-13.99-6.16-13.99-13.76s6.25-13.8,13.99-13.8,13.99,6.16,13.99,13.76-6.25,13.8-13.99,13.8Z"/>
+  </g>
+  <!-- White circle background -->
+  <circle class="cls-3" cx="21.31" cy="20.68" r="14.74"/>
   
-  <!-- Location pin indicator -->
-  <circle cx="16" cy="28" r="2" fill="#DC2626"/>
-  <path d="M16 30 L15 31 L17 31 Z" fill="#DC2626"/>
+  <!-- Person icon -->
+  <g id="person-icon">
+    <!-- Head -->
+    <circle class="cls-4" cx="21.31" cy="15.5" r="3.5"/>
+    
+    <!-- Body -->
+    <path class="cls-4" d="M14.81,26.5 C14.81,23.2 16.81,21.8 21.31,21.8 C25.81,21.8 27.81,23.2 27.81,26.5 L27.81,28.5 C27.81,29.3 27.31,30 26.31,30 L16.31,30 C15.31,30 14.81,29.3 14.81,28.5 Z"/>
+    
+    <!-- Arms -->
+    <ellipse class="cls-4" cx="17.5" cy="24" rx="1.5" ry="3" transform="rotate(-20 17.5 24)"/>
+    <ellipse class="cls-4" cx="25.12" cy="24" rx="1.5" ry="3" transform="rotate(20 25.12 24)"/>
+  </g>
 </svg> 

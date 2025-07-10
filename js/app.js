@@ -13,11 +13,20 @@ class ShelterAccessApp {
         this.numNewShelters = 0;
         this.isAnalyzing = false;
         
-        // Icon sizing constants - tunable in one place
-        this.ICON_SIZE = 0.006; 
-        this.ICON_SIZE_SCALE = 2; 
-        this.ICON_MIN_PIXELS = 20; 
-        this.ICON_MAX_PIXELS = 140; 
+        // Optimized icon sizing for smooth scaling transitions
+        this.ICON_ZOOM_BREAKPOINTS = {
+            low: { size: 1.2, minPixels: 8, maxPixels: 40 },
+            medium: { size: 2.5, minPixels: 16, maxPixels: 65 },
+            high: { size: 4.5, minPixels: 28, maxPixels: 95 },
+            ultra: { size: 7.0, minPixels: 35, maxPixels: 130 }
+        };
+        
+        // Icon type-specific scaling factors
+        this.ICON_TYPE_SCALES = {
+            existing: 1.0,
+            requested: 0.9,
+            optimal: 1.1
+        };
         
         // Add state for hover highlighting
         this.hoveredShelter = null;
@@ -421,21 +430,7 @@ class ShelterAccessApp {
             }
         });
         
-        // Accessibility heatmap toggle - only if it exists
-        const heatmapToggle = document.getElementById('accessibilityHeatmapLayer');
-        if (heatmapToggle) {
-            heatmapToggle.addEventListener('change', async (e) => {
-                const isActive = e.target.checked;
-                this.layerVisibility.accessibilityHeatmap = isActive;
-                
-                if (isActive && !this.accessibilityData) {
-                    // First time enabling - load precomputed accessibility data
-                    await this.loadAccessibilityData();
-                }
-                
-                this.updateVisualization();
-            });
-        }
+
     }
     
     /**
@@ -825,10 +820,12 @@ class ShelterAccessApp {
                     pickable: true,
                     getIcon: () => this.getShelterIcon('existing'),
                     getPosition: d => d.geometry.coordinates,
-                    getColor: () => [255, 255, 255, 230], // White tint (90% opacity)
                     onHover: (info) => this.handleHover(info),
                     onClick: (info) => this.handleClick(info),
-                    ...this.getIconSizeConfig()
+                    loadOptions: this.getSVGLoadOptions(),
+                    textureParameters: this.getTextureParameters(),
+                    alphaCutoff: 0.05, // Clean edges for better visual quality
+                    ...this.getIconSizeConfig('existing')
                 }));
             }
         }
@@ -848,10 +845,12 @@ class ShelterAccessApp {
                     pickable: true,
                     getIcon: () => this.getShelterIcon('requested'),
                     getPosition: d => d.geometry.coordinates,
-                    getColor: () => [255, 255, 255, 230], // White tint (90% opacity)
                     onHover: (info) => this.handleHover(info),
                     onClick: (info) => this.handleClick(info),
-                    ...this.getIconSizeConfig()
+                    loadOptions: this.getSVGLoadOptions(),
+                    textureParameters: this.getTextureParameters(),
+                    alphaCutoff: 0.05, // Clean edges for better visual quality
+                    ...this.getIconSizeConfig('requested')
                 }));
             }
         }
@@ -869,14 +868,16 @@ class ShelterAccessApp {
                 pickable: true,
                 getIcon: () => this.getShelterIcon('optimal'),
                 getPosition: d => d.coordinates,
-                getColor: () => [255, 255, 255, 230], // White tint (90% opacity)
                 onHover: (info) => this.handleHover(info),
                 onClick: (info) => {
                     if (info.object) {
                         this.jumpToOptimalSite(info.object.coordinates[1], info.object.coordinates[0]);
                     }
                 },
-                ...this.getIconSizeConfig()
+                loadOptions: this.getSVGLoadOptions(),
+                textureParameters: this.getTextureParameters(),
+                alphaCutoff: 0.05, // Clean edges for better visual quality
+                ...this.getIconSizeConfig('optimal')
             }));
         }
 
@@ -949,7 +950,7 @@ class ShelterAccessApp {
             // Use actual SVG icons that match the map icons exactly
             if (item.className === 'existing-shelter') {
                 const img = document.createElement('img');
-                img.src = 'data/airtight-hatch-svgrepo-com.svg';
+                img.src = 'data/existing.svg';
                 img.width = 18;
                 img.height = 18;
                 img.style.display = 'block';
@@ -963,7 +964,7 @@ class ShelterAccessApp {
                 iconDiv.appendChild(img);
             } else if (item.className === 'optimal-shelter') {
                 const img = document.createElement('img');
-                img.src = 'data/add-location-icon.svg';
+                img.src = 'data/proposed.svg';
                 img.width = 18;
                 img.height = 18;
                 img.style.display = 'block';
@@ -1180,21 +1181,23 @@ class ShelterAccessApp {
     
     /**
      * Get icon configuration for different shelter types using external SVG files
-     * Uses deck.gl's auto-packing approach for high-quality icons
+     * Uses pixel-based sizing for consistent, crisp rendering at all zoom levels
      */
     getShelterIcon(type) {
         const baseConfig = {
-            width: 32,
-            height: 32,
-            anchorX: 16,
-            anchorY: 16
+            width: 48,
+            height: 66,
+            anchorX: 24,
+            anchorY: 66, // Anchor at bottom of pin for proper positioning
+            mask: false, // Preserve SVG colors instead of using tinting
+            alphaCutoff: 0.05 // Clean edges for crisp rendering
         };
 
         switch (type) {
             case 'existing':
                 return {
                     ...baseConfig,
-                    url: 'data/airtight-hatch-svgrepo-com.svg',
+                    url: 'data/existing.svg',
                     id: 'existing-shelter'
                 };
             case 'requested':
@@ -1206,28 +1209,125 @@ class ShelterAccessApp {
             case 'optimal':
                 return {
                     ...baseConfig,
-                    url: 'data/add-location-icon.svg',
+                    url: 'data/proposed.svg',
                     id: 'optimal-shelter'
                 };
             default:
                 return {
                     ...baseConfig,
-                    url: 'data/airtight-hatch-svgrepo-com.svg',
+                    url: 'data/existing.svg',
                     id: 'default-shelter'
                 };
         }
     }
     
     /**
-     * Get common icon sizing configuration for all shelter types
+     * Get optimized loading options for SVG icons
+     * Based on deck.gl IconLayer documentation best practices
      */
-    getIconSizeConfig() {
+    getSVGLoadOptions() {
         return {
-            getSize: () => this.ICON_SIZE * 10000, // Scale up for visibility
-            sizeScale: this.ICON_SIZE_SCALE,
+            imagebitmap: {
+                resizeWidth: 48,
+                resizeHeight: 66,
+                resizeQuality: 'high',
+                premultiplyAlpha: 'none'
+            }
+        };
+    }
+    
+    /**
+     * Get texture parameters for crisp icon rendering
+     * Based on deck.gl IconLayer documentation
+     */
+    getTextureParameters() {
+        return {
+            minFilter: 'linear',
+            magFilter: 'linear', 
+            mipmapFilter: 'linear',
+            addressModeU: 'clamp-to-edge',
+            addressModeV: 'clamp-to-edge'
+        };
+    }
+    
+    /**
+     * Get zoom-dependent icon configuration with smooth interpolation
+     */
+    getZoomConfig() {
+        const currentZoom = this._currentZoom || 12;
+        
+        // Define breakpoint ranges for smooth interpolation
+        const breakpoints = [
+            { zoom: 7, config: this.ICON_ZOOM_BREAKPOINTS.low },
+            { zoom: 10, config: this.ICON_ZOOM_BREAKPOINTS.low },
+            { zoom: 14, config: this.ICON_ZOOM_BREAKPOINTS.medium },
+            { zoom: 17, config: this.ICON_ZOOM_BREAKPOINTS.high },
+            { zoom: 19, config: this.ICON_ZOOM_BREAKPOINTS.ultra }
+        ];
+        
+        // Handle edge cases
+        if (currentZoom <= breakpoints[0].zoom) {
+            return breakpoints[0].config;
+        }
+        if (currentZoom >= breakpoints[breakpoints.length - 1].zoom) {
+            return breakpoints[breakpoints.length - 1].config;
+        }
+        
+        // Find the two breakpoints to interpolate between
+        let lowerPoint = breakpoints[0];
+        let upperPoint = breakpoints[1];
+        
+        for (let i = 0; i < breakpoints.length - 1; i++) {
+            if (currentZoom >= breakpoints[i].zoom && currentZoom <= breakpoints[i + 1].zoom) {
+                lowerPoint = breakpoints[i];
+                upperPoint = breakpoints[i + 1];
+                break;
+            }
+        }
+        
+                 // Calculate interpolation factor (0 to 1)
+         const range = upperPoint.zoom - lowerPoint.zoom;
+         const factor = range > 0 ? (currentZoom - lowerPoint.zoom) / range : 0;
+         
+         // Apply subtle easing for more natural feel
+         const easedFactor = this.easeInOutQuad(factor);
+         
+         // Smooth interpolation between breakpoints
+         return {
+             size: this.lerp(lowerPoint.config.size, upperPoint.config.size, easedFactor),
+             minPixels: Math.round(this.lerp(lowerPoint.config.minPixels, upperPoint.config.minPixels, easedFactor)),
+             maxPixels: Math.round(this.lerp(lowerPoint.config.maxPixels, upperPoint.config.maxPixels, easedFactor))
+         };
+    }
+    
+    /**
+     * Linear interpolation utility for smooth transitions
+     */
+    lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+    
+    /**
+     * Subtle easing function for natural zoom scaling
+     */
+    easeInOutQuad(t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+    
+    /**
+     * Get icon sizing configuration (simplified for faster updates)
+     */
+    getIconSizeConfig(iconType = 'existing') {
+        const zoomConfig = this.getZoomConfig();
+        const typeScale = this.ICON_TYPE_SCALES[iconType] || 1.0;
+        
+        return {
+            getSize: () => zoomConfig.size * typeScale,
+            sizeScale: 1,
             sizeUnits: 'meters',
-            sizeMinPixels: this.ICON_MIN_PIXELS,
-            sizeMaxPixels: this.ICON_MAX_PIXELS
+            sizeMinPixels: Math.round(zoomConfig.minPixels * typeScale),
+            sizeMaxPixels: Math.round(zoomConfig.maxPixels * typeScale),
+            billboard: true
         };
     }
 
@@ -1441,7 +1541,7 @@ class ShelterAccessApp {
 
 
     /**
-     * Handle viewport changes with debouncing
+     * Handle viewport changes with minimal debouncing
      */
     handleViewStateChange(viewState) {
         // Store pending view state
@@ -1456,31 +1556,30 @@ class ShelterAccessApp {
         this._currentViewState = viewState;
         this.updateScaleBar();
         
-        // Debounce expensive operations - faster response for better UX
+        // Optimized debounce for smooth scaling
         this._viewStateDebounceTimer = setTimeout(() => {
             this._processViewStateChange(this._pendingViewState);
-        }, 100); // 100ms debounce for better responsiveness
+        }, 30); // 30ms for smooth continuous scaling
     }
     
     /**
-     * Process view state changes after debouncing
+     * Process view state changes with smooth scaling support
      */
     _processViewStateChange(viewState) {
         const previousZoom = this._currentZoom;
         this._currentZoom = viewState.zoom;
         
-        // Optimize layer updates based on zoom change
         if (!previousZoom) {
-            // Initial load - full update needed
+            // Initial load
             this.updateVisualization();
-        } else if (Math.abs(this._currentZoom - previousZoom) > 2.0) {
-            // Significant zoom change - full update for icon sizing
-            this.updateVisualization();
-        } else if (Math.abs(this._currentZoom - previousZoom) > 0.5) {
-            // Minor zoom change - only update data layers
-            this.updateDataLayersOnly();
+        } else {
+            const zoomDelta = Math.abs(this._currentZoom - previousZoom);
+            
+            if (zoomDelta > 0.2) {
+                // More frequent updates for smooth scaling
+                this.updateDataLayersOnly();
+            }
         }
-        // For very small zoom changes, do nothing to improve performance
     }
     
     /**
@@ -1626,8 +1725,6 @@ class ShelterAccessApp {
             clearTimeout(this._basemapDebounceTimer);
             this._basemapDebounceTimer = null;
         }
-        
-
     }
 
 
@@ -2018,6 +2115,61 @@ class ShelterAccessApp {
             shelterSection.classList.remove('disabled');
         }
     }
+    
+    /**
+     * Handle click events for shelter icons and polygons
+     */
+    handleClick(info) {
+        // Handle polygon clicks for selection/highlighting
+        if (info.object && info.layer) {
+            if (info.layer.id === 'statistical-areas-geojson') {
+                this.selectPolygon({
+                    ...info.object, 
+                    layerType: 'statisticalArea',
+                    _index: info.object._index
+                }, 'statisticalArea');
+            } else if (info.layer.id === 'habitation-clusters-geojson') {
+                this.selectPolygon({
+                    ...info.object, 
+                    layerType: 'habitationCluster',
+                    _index: info.object._index
+                }, 'habitationCluster');
+            }
+        } else {
+            // Click on empty space - clear selection
+            this.clearPolygonSelection();
+        }
+    }
+    
+    /**
+     * Jump to optimal shelter site location with smooth animation
+     */
+    jumpToOptimalSite(lat, lon) {
+        if (!this.deckgl) return;
+        
+        // Get current view state
+        const currentViewState = this.deckgl.viewState || this._currentViewState || {
+            longitude: lon,
+            latitude: lat,
+            zoom: 16,
+            pitch: 0,
+            bearing: 0
+        };
+        
+        // Animate to the shelter location
+        this.deckgl.setProps({
+            viewState: {
+                ...currentViewState,
+                longitude: lon,
+                latitude: lat,
+                zoom: Math.max(currentViewState.zoom, 16), // Ensure we zoom in close enough
+                transitionDuration: 1000,
+                transitionInterpolator: new deck.FlyToInterpolator()
+            }
+        });
+    }
+
+
 
 }
 
@@ -2025,6 +2177,8 @@ class ShelterAccessApp {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new ShelterAccessApp();
     window.app.initializeApp();
+    
+
 });
 
 // Cleanup on page unload
