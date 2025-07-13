@@ -53,31 +53,6 @@
             </div>
         </div>
         
-        <!-- Statistics Panel (top-right) - Narrative -->
-        <div class="stats-panel collapsed">
-            <!-- Panel Header -->
-            <div class="menu-header">
-                <div class="menu-title">
-                    <h2>Coverage</h2>
-                </div>
-                <div class="menu-actions">
-                    <button class="menu-button minimize" id="statsMinimize" title="Minimize">
-                        <span>−</span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Panel Content -->
-            <div class="menu-content">
-                <!-- Statistics Section -->
-                <p class="stats-text">
-                    <span id="currentCoverageText">Existing bomb shelters are accessible within <strong id="currentRadius">--m</strong> by <strong id="currentCoverage">--%</strong> of residential buildings.</span>
-                    <span id="residentsLeftOutText">This leaves approximately <strong id="residentsLeftOut">--</strong> residents without adequate shelter access in the study area.</span>
-                    <span id="newCoverageText">By adding <strong id="newSheltersCount">--</strong> bomb shelters, total coverage increases to <strong id="newCoverage">--%</strong> of informal housing units in the Beer Sheva Valley.</span>
-                </p>
-            </div>
-        </div>
-        
         <!-- Unified Control Menu (left sidebar) -->
         <div class="main-menu">
             <!-- Menu Header with Title -->
@@ -120,6 +95,18 @@
                     </div>
                 </div>
                 
+                <!-- Coverage Stats Section -->
+                <div class="control-section">
+                    <div class="control-group">
+                        <div class="coverage-stats">
+                            <div class="coverage-header">Coverage Summary</div>
+                            <p class="stats-text">
+                                Existing bomb shelters are accessible within <strong id="currentRadius">100m</strong> by <strong id="currentCoverage">--%</strong> of buildings. You have added <strong id="newSheltersCount">0</strong> bomb shelters, increasing total coverage to <strong id="newCoverage">--%</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- New Shelters Control - Simplified -->
                 <div class="control-section">
                     <div class="control-group" id="addedSheltersSection">
@@ -150,10 +137,6 @@
                         </div>
                     </div>
                 </div>
-                
-
-                
-
             </div>
         </div>
         
@@ -311,7 +294,7 @@
                                     <span class="expand-icon">+</span>
                                 </div>
                                 <div class="section-content" id="analysis-content">
-                                    <p>This tool analyzes bomb shelter accessibility within the Negev's informal Bedouin settlements and proposes optimal locations for new shelters to broaden coverage. On the accessibility grid, <strong style="color: #14b814;">green areas</strong> signify neighborhoods with adequate shelter access under current conditions. Conversely, <strong style="color: #c81414;">red areas</strong> pinpoint underserved communities that would greatly benefit from additional shelter facilities. New shelters are strategically placed using an optimizer. This system's primary goal is to maximize the number of residential houses protected by each new shelter, all while ensuring there's no redundant coverage with existing shelters.</p>
+                                    <p>This tool analyzes bomb shelter accessibility within the Negev's informal Bedouin settlements and proposes optimal locations for new shelters to broaden coverage. On the accessibility grid, <strong style="color: #14b814;">green areas</strong> signify neighborhoods with adequate shelter access under current conditions. Conversely, <strong style="color: #c81414;">red areas</strong> pinpoint underserved communities that would greatly benefit from additional shelter facilities. New shelters are strategically placed using an optimizer. This system's primary goal is to maximize the number of buildings protected by each new shelter, all while ensuring there's no redundant coverage with existing shelters.</p>
                                 </div>
                             </div>
                             
@@ -339,10 +322,7 @@
                                 </div>
                                 <div class="section-content" id="data-sources-content">
                                     <h4>Building Data</h4>
-                                    <p>We sourced building footprints from Microsoft Planetary Computer. To focus on residential buildings within informal Bedouin settlements, we applied several filters. These included a GIS layer of informal settlements provided by The Authority for Development and Settlement of the Bedouin in the Negev (הרשות לפיתוח והתיישבות הבדואים בנגב), census tracts from the Central Bureau of Statistics (למ"ס) where no legally recognized settlements exist, and filtering by building footprint size.</p>
-                                    
-                                    <h4>Population Estimates</h4>
-                                    <p>Given the lack of traditional census data for informal settlements, our population estimates are based on a consensus from NGOs, including Bimkom. We use an approximate residential building density of 7 people per residential building.</p>
+                                    <p>We sourced building footprints from Microsoft Planetary Computer. To focus primarily on buildings within informal Bedouin settlements, we applied several filters. These included a GIS layer of informal settlements provided by The Authority for Development and Settlement of the Bedouin in the Negev (הרשות לפיתוח והתיישבות הבדואים בנגב), census tracts from the Central Bureau of Statistics (למ"ס) where no legally recognized settlements exist, and filtering by building footprint size to greater than 40 sqm to focus on residences.</p>
                                     
                                     <h4>Shelter Data</h4>
                                     <p>Information on existing emergency shelter locations and community-requested sites is meticulously collected by Bimkom field workers and through community submissions. For more detailed information on shelter locations, please reach out to <strong><a href="https://bimkom.org/eng/home-mobile/" target="_blank">Bimkom</a></strong>.</p>
@@ -415,14 +395,6 @@
                             
                             <div class="guide-step">
                                 <div class="step-number">4</div>
-                                <div class="step-content">
-                                    <span class="step-title">Click Coverage</span>
-                                    <p class="step-description">Click on coverage window to review accessibility statistics.</p>
-                                </div>
-                            </div>
-                            
-                            <div class="guide-step">
-                                <div class="step-number">5</div>
                                 <div class="step-content">
                                     <span class="step-title">Explore Data</span>
                                     <p class="step-description">Click "Data Layers" to show new information like community requests for shelters and change display layers.</p>

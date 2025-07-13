@@ -102,14 +102,11 @@ class ShelterAccessApp {
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
             heatmapToggle: document.getElementById('heatmapToggle'), // Now a checkbox
-            // Statistics
+            // Statistics - simplified
             currentCoverage: document.getElementById('currentCoverage'),
             currentRadius: document.getElementById('currentRadius'),
-            residentsLeftOut: document.getElementById('residentsLeftOut'),
             newSheltersCount: document.getElementById('newSheltersCount'),
             newCoverage: document.getElementById('newCoverage'),
-            buildingsCovered: document.getElementById('buildingsCovered'),
-            additionalPeople: document.getElementById('additionalPeople'),
             // Legend
             legendItems: document.getElementById('legend-items'),
             // Layer toggles
@@ -237,23 +234,6 @@ class ShelterAccessApp {
      * Setup unified main menu functionality
      */
     setupMainMenu() {
-        // Handle stats panel minimize button
-        const statsMinimize = document.getElementById('statsMinimize');
-        const statsPanel = document.querySelector('.stats-panel');
-        if (statsMinimize && statsPanel) {
-            statsMinimize.addEventListener('click', () => {
-                statsPanel.classList.toggle('collapsed');
-                const icon = statsMinimize.querySelector('span');
-                if (statsPanel.classList.contains('collapsed')) {
-                    icon.textContent = '+';
-                    statsMinimize.title = 'Expand';
-                } else {
-                    icon.textContent = '−';
-                    statsMinimize.title = 'Minimize';
-                }
-            });
-        }
-        
         // Handle menu minimize button
         const menuMinimize = document.getElementById('menuMinimize');
         const mainMenu = document.querySelector('.main-menu');
@@ -270,8 +250,6 @@ class ShelterAccessApp {
                 }
             });
         }
-        
-
         
         // Handle layers modal
         this.setupModal('layers');
@@ -1699,34 +1677,18 @@ class ShelterAccessApp {
         const totalCoveragePercentage = (totalBuildingsCovered / stats.total_buildings) * 100;
         const currentCoveragePercentage = (existingCoverage / stats.total_buildings) * 100;
         
-        // Calculate additional people (7 people per building)
-        const additionalPeople = Math.max(0, newBuildingsCovered * 7);
-        
-        // Calculate residents left out (uncovered buildings * 7 people per building)
-        const uncoveredBuildings = Math.max(0, stats.total_buildings - existingCoverage);
-        const residentsLeftOut = uncoveredBuildings * 7;
-        
-        // Update narrative statistics
+        // Update simplified statistics
         if (this.elements.currentCoverage) {
             this.elements.currentCoverage.textContent = `${currentCoveragePercentage.toFixed(1)}%`;
         }
         if (this.elements.currentRadius) {
             this.elements.currentRadius.textContent = `${this.coverageRadius}m`;
         }
-        if (this.elements.residentsLeftOut) {
-            this.elements.residentsLeftOut.textContent = residentsLeftOut.toLocaleString();
-        }
         if (this.elements.newSheltersCount) {
             this.elements.newSheltersCount.textContent = newSheltersSelected.toLocaleString();
         }
         if (this.elements.newCoverage) {
             this.elements.newCoverage.textContent = `${totalCoveragePercentage.toFixed(1)}%`;
-        }
-        if (this.elements.buildingsCovered) {
-            this.elements.buildingsCovered.textContent = newBuildingsCovered.toLocaleString();
-        }
-        if (this.elements.additionalPeople) {
-            this.elements.additionalPeople.textContent = additionalPeople.toLocaleString();
         }
     }
     
