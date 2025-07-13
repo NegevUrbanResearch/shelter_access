@@ -6,7 +6,8 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-
+output
+generate_shelter_statistics.py
 # Python
 __pycache__/
 *.py[cod]
