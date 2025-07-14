@@ -138,6 +138,10 @@ body {
     height: 39px;
 }
 
+.brand-banner .mit-logo {
+    height: 39px;
+}
+
 .brand-banner .huji-logo {
     height: 39px;
 }
@@ -1685,6 +1689,10 @@ body {
     }
     
     .brand-banner .logo {
+        height: 32px;
+    }
+    
+    .brand-banner .mit-logo {
         height: 32px;
     }
     
