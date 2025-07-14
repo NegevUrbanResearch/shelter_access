@@ -84,7 +84,7 @@ class ShelterAccessApp {
         };
         
         // Current zoom and view state for zoom-dependent features
-        this._currentZoom = 12;
+        this._currentZoom = 11;
         this._currentViewState = null;
         
         // Debouncing for view state changes
@@ -512,7 +512,7 @@ class ShelterAccessApp {
             initialViewState: {
                 longitude: centerLng,
                 latitude: centerLat,
-                zoom: 12,
+                zoom: 11,
                 pitch: 0,
                 bearing: 0,
                 minZoom: 7,
@@ -535,7 +535,7 @@ class ShelterAccessApp {
         this.deckgl.setProps({layers: this.currentLayers});
         
         // Store initial zoom level
-        this._currentZoom = 12;
+        this._currentZoom = 11;
         
         // Initialize scale bar
         this.updateScaleBar();
@@ -665,7 +665,7 @@ class ShelterAccessApp {
                 return;
             }
             
-            const currentZoom = currentViewState.zoom || 12;
+            const currentZoom = currentViewState.zoom || 11;
             const newZoom = Math.min(currentZoom + 1, 19);
             
             console.log(`Zooming from ${currentZoom} to ${newZoom}`);
@@ -711,7 +711,7 @@ class ShelterAccessApp {
                 return;
             }
             
-            const currentZoom = currentViewState.zoom || 12;
+            const currentZoom = currentViewState.zoom || 11;
             const newZoom = Math.max(currentZoom - 1, 7);
             
             console.log(`Zooming from ${currentZoom} to ${newZoom}`);
@@ -1504,7 +1504,7 @@ class ShelterAccessApp {
      * Get zoom-dependent icon configuration with smooth interpolation
      */
     getZoomConfig() {
-        const currentZoom = this._currentZoom || 12;
+        const currentZoom = this._currentZoom || 11;
         
         // Define breakpoint ranges for ultra-smooth interpolation
         const breakpoints = [
@@ -1834,7 +1834,7 @@ class ShelterAccessApp {
         if (!scaleBar || !scaleLine || !scaleText) return;
         
         // Calculate scale based on zoom and latitude
-        const zoom = this._currentZoom || 12;
+        const zoom = this._currentZoom || 11;
         const latitude = (this._currentViewState && this._currentViewState.latitude) || 31.25; // Fallback to center of Israel
         
         // Earth circumference in meters at the equator
