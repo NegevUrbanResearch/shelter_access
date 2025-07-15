@@ -1100,11 +1100,7 @@ class ShelterAccessApp {
                 getIcon: () => this.getShelterIcon('optimal'),
                 getPosition: d => d.coordinates,
                 onHover: (info) => this.handleHover(info),
-                onClick: (info) => {
-                    if (info.object) {
-                        this.jumpToOptimalSite(info.object.coordinates[1], info.object.coordinates[0]);
-                    }
-                },
+                onClick: (info) => this.handleClick(info),
                 loadOptions: this.getSVGLoadOptions(),
                 textureParameters: this.getTextureParameters(),
                 alphaCutoff: 0.05, // Clean edges for better visual quality
@@ -2382,33 +2378,7 @@ class ShelterAccessApp {
         }
     }
     
-    /**
-     * Jump to optimal shelter site location with smooth animation
-     */
-    jumpToOptimalSite(lat, lon) {
-        if (!this.deckgl) return;
-        
-        // Get current view state
-        const currentViewState = this.deckgl.viewState || this._currentViewState || {
-            longitude: lon,
-            latitude: lat,
-            zoom: 16,
-            pitch: 0,
-            bearing: 0
-        };
-        
-        // Animate to the shelter location
-        this.deckgl.setProps({
-            viewState: {
-                ...currentViewState,
-                longitude: lon,
-                latitude: lat,
-                zoom: Math.max(currentViewState.zoom, 16), // Ensure we zoom in close enough
-                transitionDuration: 1000,
-                transitionInterpolator: new deck.FlyToInterpolator()
-            }
-        });
-    }
+
 
 
 
