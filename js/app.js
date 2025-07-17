@@ -651,14 +651,13 @@ class ShelterAccessApp {
      * Zoom in functionality
      */
     zoomIn() {
-        console.log('Attempting to zoom in...');
         try {
             if (!this.deckgl) {
                 console.error('Deck.gl instance not available');
                 return;
             }
             
-            // Use the stored current view state instead of trying to get it from deck.gl
+            // Use the stored current view state
             const currentViewState = this._currentViewState || this.deckgl.props.initialViewState;
             if (!currentViewState) {
                 console.error('No current view state available');
@@ -668,8 +667,6 @@ class ShelterAccessApp {
             const currentZoom = currentViewState.zoom || 10.5;
             const newZoom = Math.min(currentZoom + 1, 19);
             
-            console.log(`Zooming from ${currentZoom} to ${newZoom}`);
-            
             const newViewState = { 
                 ...currentViewState, 
                 zoom: newZoom,
@@ -677,17 +674,9 @@ class ShelterAccessApp {
                 transitionEasing: t => t * t
             };
             
-            // Update the view state directly
-            this.deckgl.setProps({ viewState: newViewState });
+            // Update view state temporarily while preserving controller functionality
+            this._updateViewStateWithController(newViewState);
             
-            // Update our stored view state
-            this._currentViewState = newViewState;
-            this._currentZoom = newZoom;
-            
-            // Update scale bar
-            this.updateScaleBar();
-            
-            console.log('Zoom in successful');
         } catch (error) {
             console.error('Error during zoom in:', error);
         }
@@ -697,14 +686,13 @@ class ShelterAccessApp {
      * Zoom out functionality
      */
     zoomOut() {
-        console.log('Attempting to zoom out...');
         try {
             if (!this.deckgl) {
                 console.error('Deck.gl instance not available');
                 return;
             }
             
-            // Use the stored current view state instead of trying to get it from deck.gl
+            // Use the stored current view state
             const currentViewState = this._currentViewState || this.deckgl.props.initialViewState;
             if (!currentViewState) {
                 console.error('No current view state available');
@@ -714,8 +702,6 @@ class ShelterAccessApp {
             const currentZoom = currentViewState.zoom || 10.5;
             const newZoom = Math.max(currentZoom - 1, 7);
             
-            console.log(`Zooming from ${currentZoom} to ${newZoom}`);
-            
             const newViewState = { 
                 ...currentViewState, 
                 zoom: newZoom,
@@ -723,17 +709,9 @@ class ShelterAccessApp {
                 transitionEasing: t => t * t
             };
             
-            // Update the view state directly
-            this.deckgl.setProps({ viewState: newViewState });
+            // Update view state temporarily while preserving controller functionality
+            this._updateViewStateWithController(newViewState);
             
-            // Update our stored view state
-            this._currentViewState = newViewState;
-            this._currentZoom = newZoom;
-            
-            // Update scale bar
-            this.updateScaleBar();
-            
-            console.log('Zoom out successful');
         } catch (error) {
             console.error('Error during zoom out:', error);
         }
@@ -1771,6 +1749,31 @@ class ShelterAccessApp {
         }
     }
 
+
+    /**
+     * Update view state while preserving controller functionality
+     */
+    _updateViewStateWithController(newViewState) {
+        // Update our internal state immediately
+        this._currentViewState = newViewState;
+        this._currentZoom = newViewState.zoom;
+        
+        // Set the view state directly with transition
+        this.deckgl.setProps({ 
+            viewState: newViewState
+        });
+        
+        // Update scale bar immediately
+        this.updateScaleBar();
+        
+        // After transition completes, restore normal controller behavior
+        setTimeout(() => {
+            // Remove the explicit viewState to let controller take over again
+            this.deckgl.setProps({ 
+                viewState: undefined  // This restores controller-managed view state
+            });
+        }, newViewState.transitionDuration || 300);
+    }
 
     /**
      * Handle viewport changes with minimal debouncing
