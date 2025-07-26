@@ -62,7 +62,7 @@ class ShelterAccessApp {
 
         
         // Mapbox token for terrain and other services (URL restricted)
-        this.mapboxToken = 'pk.eyJ1Ijoibm9hbWpnYWwiLCJhIjoiY21kaGI0cWtsMDEzdjJtcXZnMDgyeWNhcyJ9.3p7GwTGb36NkKPZ2mXV8xg';
+        this.mapboxToken = 'pk.eyJ1IjoibnVybGFiMjAyNSIsImEiOiJjbWRrbW51ZnIweGxqMmxzNTJsc3pkODFkIn0.45x41GXrY4QBBqrHBlc7fw';
         
 
         
