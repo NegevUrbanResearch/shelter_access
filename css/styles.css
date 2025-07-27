@@ -2261,3 +2261,254 @@ input:checked + .toggle-slider:hover {
     line-height: 1.6;
     margin: 0;
 } 
+
+/* Language Switcher Styles */
+.modal-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.language-switcher {
+    display: flex;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 1px;
+}
+
+.lang-button {
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.lang-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.lang-button.active {
+    background: var(--accent-color);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.lang-button.active:hover {
+    background: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Language Content Display */
+.language-content {
+    display: block;
+}
+
+.language-content[style*="display: none"] {
+    display: none !important;
+}
+
+/* RTL Support for Arabic and Hebrew */
+[data-lang="ar"], [data-lang="he"] {
+    direction: rtl;
+    text-align: right;
+}
+
+[data-lang="ar"] .info-intro,
+[data-lang="he"] .info-intro {
+    direction: rtl;
+    text-align: right;
+}
+
+[data-lang="ar"] .section-content,
+[data-lang="he"] .section-content {
+    direction: rtl;
+    text-align: right;
+}
+
+[data-lang="ar"] .section-header,
+[data-lang="he"] .section-header {
+    direction: rtl;
+    text-align: right;
+}
+
+[data-lang="ar"] .section-header h3,
+[data-lang="he"] .section-header h3 {
+    text-align: right;
+}
+
+[data-lang="ar"] .expand-icon,
+[data-lang="he"] .expand-icon {
+    order: -1;
+    margin-left: 0;
+    margin-right: auto;
+}
+
+[data-lang="ar"] .credits-team,
+[data-lang="ar"] .credits-collaborators,
+[data-lang="he"] .credits-team,
+[data-lang="he"] .credits-collaborators {
+    direction: rtl;
+    text-align: right;
+}
+
+[data-lang="ar"] .references,
+[data-lang="he"] .references {
+    direction: rtl;
+    text-align: right;
+}
+
+/* RTL Modal Title */
+[data-lang="ar"] .modal-header h1,
+[data-lang="he"] .modal-header h1 {
+    direction: rtl;
+    text-align: right;
+}
+
+/* RTL adjustments for expandable sections */
+[data-lang="ar"] .expandable-section,
+[data-lang="he"] .expandable-section {
+    direction: rtl;
+}
+
+[data-lang="ar"] .section-header,
+[data-lang="he"] .section-header {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+[data-lang="ar"] .expand-icon,
+[data-lang="he"] .expand-icon {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Tab adjustments for RTL */
+[data-lang="ar"] .modal-tabs,
+[data-lang="he"] .modal-tabs {
+    direction: rtl;
+}
+
+/* Better RTL link styling */
+[data-lang="ar"] a,
+[data-lang="he"] a {
+    direction: rtl;
+}
+
+/* Language indicator in top right for active language */
+body[data-active-lang="ar"] .modal-header::before,
+body[data-active-lang="he"] .modal-header::before {
+    content: attr(data-lang-indicator);
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+/* Enhanced language switcher with subtle animation */
+.language-switcher {
+    position: relative;
+    overflow: hidden;
+}
+
+.language-switcher::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.language-switcher:hover::before {
+    transform: translateX(100%);
+}
+
+/* Responsive language switcher */
+@media (max-width: 768px) {
+    .modal-header-controls {
+        gap: 10px;
+    }
+    
+    .language-switcher {
+        padding: 1px;
+    }
+    
+    .lang-button {
+        padding: 5px 8px;
+        font-size: 11px;
+        min-width: 32px;
+    }
+    
+    .modal-header h1 {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .modal-header-controls {
+        justify-content: space-between;
+        width: 100%;
+    }
+    
+    .modal-header h1 {
+        text-align: center;
+        font-size: 16px;
+    }
+} 
+
+/* Enhanced styling for quoted English terms in RTL languages */
+[data-lang="ar"] .step-description,
+[data-lang="he"] .step-description {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Style for quoted English UI elements in RTL languages */
+[data-lang="ar"] .step-description strong,
+[data-lang="he"] .step-description strong,
+[data-lang="ar"] .step-description em,
+[data-lang="he"] .step-description em {
+    font-weight: 600;
+    color: var(--accent-color);
+    direction: ltr;
+    display: inline;
+}
+
+/* Enhance quoted terms visibility */
+[data-lang="ar"] .step-description:lang(ar),
+[data-lang="he"] .step-description:lang(he) {
+    font-family: 'Inter', 'Arial', sans-serif;
+}
+
+/* Special styling for English quotes in RTL text */
+[data-lang="ar"] .step-description,
+[data-lang="he"] .step-description {
+    quotes: """ """ "'" "'";
+}

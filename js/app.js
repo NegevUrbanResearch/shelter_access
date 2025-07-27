@@ -13,6 +13,16 @@ class ShelterAccessApp {
         this.numNewShelters = 0;
         this.isAnalyzing = false;
         
+        // Language management
+        this.currentLanguage = 'en'; // Default to English
+        this.supportedLanguages = ['en', 'ar', 'he'];
+        
+        // Load saved language from localStorage
+        const savedLanguage = localStorage.getItem('shelter-app-language');
+        if (savedLanguage && this.supportedLanguages.includes(savedLanguage)) {
+            this.currentLanguage = savedLanguage;
+        }
+        
         // Optimized icon sizing for smooth scaling transitions
         this.ICON_ZOOM_BREAKPOINTS = {
             low: { size: 1.2, minPixels: 8, maxPixels: 40 },
@@ -197,6 +207,10 @@ class ShelterAccessApp {
         try {
             this.setupEventListeners();
             this.setupMainMenu();
+            
+            // Initialize language switcher after modal setup
+            this.setupLanguageSwitcher();
+            
             await this.spatialAnalyzer.loadData();
             
             // Load precomputed shelter coverage data for instant lookups
@@ -2384,6 +2398,118 @@ class ShelterAccessApp {
 
 
 
+
+    // Language Management Methods
+    setupLanguageSwitcher() {
+        // Set initial language state
+        this.setLanguage(this.currentLanguage);
+        
+        // Setup language button event listeners
+        const langButtons = document.querySelectorAll('.lang-button');
+        langButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const selectedLang = e.target.getAttribute('data-lang');
+                if (selectedLang && this.supportedLanguages.includes(selectedLang)) {
+                    this.setLanguage(selectedLang);
+                }
+            });
+        });
+    }
+    
+    setLanguage(language) {
+        if (!this.supportedLanguages.includes(language)) {
+            console.warn(`Unsupported language: ${language}. Falling back to English.`);
+            language = 'en';
+        }
+        
+        this.currentLanguage = language;
+        
+        // Save language preference
+        localStorage.setItem('shelter-app-language', language);
+        
+        // Update UI
+        this.updateLanguageButtons();
+        this.updateLanguageContent();
+        this.updateBodyLanguageAttribute();
+        
+        console.log(`Language switched to: ${language}`);
+    }
+    
+    updateLanguageButtons() {
+        const langButtons = document.querySelectorAll('.lang-button');
+        langButtons.forEach(button => {
+            const buttonLang = button.getAttribute('data-lang');
+            button.classList.toggle('active', buttonLang === this.currentLanguage);
+        });
+    }
+    
+    updateLanguageContent() {
+        // Hide all language content sections
+        const languageContents = document.querySelectorAll('.language-content');
+        languageContents.forEach(content => {
+            const contentLang = content.getAttribute('data-lang');
+            if (contentLang === this.currentLanguage) {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        });
+        
+        // Update modal title based on language
+        this.updateModalTitle();
+        
+        // Update tab labels based on language
+        this.updateTabLabels();
+    }
+    
+    updateModalTitle() {
+        const modalTitle = document.querySelector('.modal-header h1');
+        if (modalTitle) {
+            const titles = {
+                'en': 'The Right to Shelter',
+                'ar': 'الحق في المأوى',
+                'he': 'עיר מקלט'
+            };
+            modalTitle.textContent = titles[this.currentLanguage] || titles['en'];
+        }
+    }
+    
+    updateTabLabels() {
+        const guideTab = document.querySelector('[data-tab="guide"]');
+        const researchTab = document.querySelector('[data-tab="info"]');
+        
+        const labels = {
+            'en': {
+                guide: 'How to Use',
+                research: 'Research & Analysis'
+            },
+            'ar': {
+                guide: 'كيفية الاستخدام',
+                research: 'البحث والتحليل'
+            },
+            'he': {
+                guide: 'מדריך שימוש',
+                research: 'מחקר וניתוח'
+            }
+        };
+        
+        const currentLabels = labels[this.currentLanguage] || labels['en'];
+        
+        if (guideTab) guideTab.textContent = currentLabels.guide;
+        if (researchTab) researchTab.textContent = currentLabels.research;
+    }
+    
+    updateBodyLanguageAttribute() {
+        // Add language attribute to body for CSS styling
+        document.body.setAttribute('data-active-lang', this.currentLanguage);
+        
+        // Set document direction for RTL languages
+        if (this.currentLanguage === 'ar' || this.currentLanguage === 'he') {
+            document.documentElement.setAttribute('dir', 'rtl');
+        } else {
+            document.documentElement.setAttribute('dir', 'ltr');
+        }
+    }
 
 }
 
