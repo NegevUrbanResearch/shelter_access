@@ -235,6 +235,7 @@ class ShelterAccessApp {
                 const aboutModal = document.getElementById('aboutModal');
                 if (aboutModal) {
                     aboutModal.classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
             }, 500); // Small delay to ensure app is fully loaded
             
@@ -279,18 +280,27 @@ class ShelterAccessApp {
         
         // Open modal
         if (button) {
-            button.addEventListener('click', () => modal.classList.add('show'));
+            button.addEventListener('click', () => {
+                modal.classList.add('show');
+                document.body.classList.add('modal-open');
+            });
         }
         
         // Close modal - close button
         if (closeButton) {
-            closeButton.addEventListener('click', () => modal.classList.remove('show'));
+            closeButton.addEventListener('click', () => {
+                modal.classList.remove('show');
+                document.body.classList.remove('modal-open');
+            });
         }
         
         // Close modal - click outside
         if (modal) {
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.classList.remove('show');
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                }
             });
         }
     }
@@ -351,7 +361,10 @@ class ShelterAccessApp {
         const methodsButton = document.getElementById('methodsButton');
         const aboutModal = document.getElementById('aboutModal');
         if (methodsButton && aboutModal) {
-            methodsButton.addEventListener('click', () => aboutModal.classList.add('show'));
+            methodsButton.addEventListener('click', () => {
+                aboutModal.classList.add('show');
+                document.body.classList.add('modal-open');
+            });
         }
         
         // Setup tab functionality
@@ -365,7 +378,10 @@ class ShelterAccessApp {
             if (e.key === 'Escape') {
                 // Close any open modal
                 const openModal = document.querySelector('.modal-overlay.show');
-                if (openModal) openModal.classList.remove('show');
+                if (openModal) {
+                    openModal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                }
             }
         });
         
@@ -2401,7 +2417,13 @@ class ShelterAccessApp {
 
     // Language Management Methods
     setupLanguageSwitcher() {
-        // Set initial language state
+        // Ensure English is always the default on initial load
+        if (!localStorage.getItem('shelter-app-language') || 
+            !this.supportedLanguages.includes(this.currentLanguage)) {
+            this.currentLanguage = 'en';
+        }
+        
+        // Set initial language state (ensures English is default)
         this.setLanguage(this.currentLanguage);
         
         // Setup language button event listeners
@@ -2500,15 +2522,11 @@ class ShelterAccessApp {
     }
     
     updateBodyLanguageAttribute() {
-        // Add language attribute to body for CSS styling
+        // Add language attribute to body for CSS styling (modal only)
         document.body.setAttribute('data-active-lang', this.currentLanguage);
         
-        // Set document direction for RTL languages
-        if (this.currentLanguage === 'ar' || this.currentLanguage === 'he') {
-            document.documentElement.setAttribute('dir', 'rtl');
-        } else {
-            document.documentElement.setAttribute('dir', 'ltr');
-        }
+        // Do NOT set document direction - keep app interface LTR
+        // Only the modal content should use RTL styling via CSS selectors
     }
 
 }

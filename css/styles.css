@@ -2323,104 +2323,9 @@ input:checked + .toggle-slider:hover {
     display: none !important;
 }
 
-/* RTL Support for Arabic and Hebrew */
-[data-lang="ar"], [data-lang="he"] {
-    direction: rtl;
-    text-align: right;
-}
 
-[data-lang="ar"] .info-intro,
-[data-lang="he"] .info-intro {
-    direction: rtl;
-    text-align: right;
-}
 
-[data-lang="ar"] .section-content,
-[data-lang="he"] .section-content {
-    direction: rtl;
-    text-align: right;
-}
 
-[data-lang="ar"] .section-header,
-[data-lang="he"] .section-header {
-    direction: rtl;
-    text-align: right;
-}
-
-[data-lang="ar"] .section-header h3,
-[data-lang="he"] .section-header h3 {
-    text-align: right;
-}
-
-[data-lang="ar"] .expand-icon,
-[data-lang="he"] .expand-icon {
-    order: -1;
-    margin-left: 0;
-    margin-right: auto;
-}
-
-[data-lang="ar"] .credits-team,
-[data-lang="ar"] .credits-collaborators,
-[data-lang="he"] .credits-team,
-[data-lang="he"] .credits-collaborators {
-    direction: rtl;
-    text-align: right;
-}
-
-[data-lang="ar"] .references,
-[data-lang="he"] .references {
-    direction: rtl;
-    text-align: right;
-}
-
-/* RTL Modal Title */
-[data-lang="ar"] .modal-header h1,
-[data-lang="he"] .modal-header h1 {
-    direction: rtl;
-    text-align: right;
-}
-
-/* RTL adjustments for expandable sections */
-[data-lang="ar"] .expandable-section,
-[data-lang="he"] .expandable-section {
-    direction: rtl;
-}
-
-[data-lang="ar"] .section-header,
-[data-lang="he"] .section-header {
-    flex-direction: row-reverse;
-    justify-content: flex-start;
-}
-
-[data-lang="ar"] .expand-icon,
-[data-lang="he"] .expand-icon {
-    margin-left: auto;
-    margin-right: 0;
-}
-
-/* Tab adjustments for RTL */
-[data-lang="ar"] .modal-tabs,
-[data-lang="he"] .modal-tabs {
-    direction: rtl;
-}
-
-/* Better RTL link styling */
-[data-lang="ar"] a,
-[data-lang="he"] a {
-    direction: rtl;
-}
-
-/* Language indicator in top right for active language */
-body[data-active-lang="ar"] .modal-header::before,
-body[data-active-lang="he"] .modal-header::before {
-    content: attr(data-lang-indicator);
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 10px;
-    color: var(--text-secondary);
-    opacity: 0.6;
-}
 
 /* Enhanced language switcher with subtle animation */
 .language-switcher {
@@ -2483,32 +2388,344 @@ body[data-active-lang="he"] .modal-header::before {
     }
 } 
 
-/* Enhanced styling for quoted English terms in RTL languages */
-[data-lang="ar"] .step-description,
-[data-lang="he"] .step-description {
+
+
+/* RTL Support for Arabic and Hebrew - MODAL ONLY */
+.modal-content [data-lang="ar"], 
+.modal-content [data-lang="he"] {
     direction: rtl;
     text-align: right;
 }
 
-/* Style for quoted English UI elements in RTL languages */
-[data-lang="ar"] .step-description strong,
-[data-lang="he"] .step-description strong,
-[data-lang="ar"] .step-description em,
-[data-lang="he"] .step-description em {
+.modal-content [data-lang="ar"] .info-intro,
+.modal-content [data-lang="he"] .info-intro {
+    direction: rtl;
+    text-align: right;
+}
+
+.modal-content [data-lang="ar"] .section-content,
+.modal-content [data-lang="he"] .section-content {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Enhanced RTL section headers with proper icon positioning */
+.modal-content [data-lang="ar"] .section-header,
+.modal-content [data-lang="he"] .section-header {
+    direction: rtl;
+    text-align: right;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.modal-content [data-lang="ar"] .section-header h3,
+.modal-content [data-lang="he"] .section-header h3 {
+    text-align: right;
+    order: 2;
+    flex: 1;
+}
+
+/* RTL expand icon positioning */
+.modal-content [data-lang="ar"] .expand-icon,
+.modal-content [data-lang="he"] .expand-icon {
+    order: 1;
+    margin-left: 0;
+    margin-right: 12px;
+    transform: none;
+}
+
+/* RTL expandable sections */
+.modal-content [data-lang="ar"] .expandable-section,
+.modal-content [data-lang="he"] .expandable-section {
+    direction: rtl;
+}
+
+/* RTL credits and references */
+.modal-content [data-lang="ar"] .credits-team,
+.modal-content [data-lang="ar"] .credits-collaborators,
+.modal-content [data-lang="he"] .credits-team,
+.modal-content [data-lang="he"] .credits-collaborators {
+    direction: rtl;
+    text-align: right;
+}
+
+.modal-content [data-lang="ar"] .references,
+.modal-content [data-lang="he"] .references {
+    direction: rtl;
+    text-align: right;
+}
+
+
+
+/* RTL Tab Navigation */
+.modal-content [data-lang="ar"] .modal-tabs,
+.modal-content [data-lang="he"] .modal-tabs {
+    direction: rtl;
+    justify-content: flex-start;
+}
+
+.modal-content [data-lang="ar"] .tab-button,
+.modal-content [data-lang="he"] .tab-button {
+    direction: rtl;
+    text-align: center;
+}
+
+
+
+/* RTL Links and inline elements */
+.modal-content [data-lang="ar"] a,
+.modal-content [data-lang="he"] a {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Quoted English terms remain LTR within RTL text */
+.modal-content [data-lang="ar"] .step-description strong,
+.modal-content [data-lang="he"] .step-description strong,
+.modal-content [data-lang="ar"] .step-description em,
+.modal-content [data-lang="he"] .step-description em {
     font-weight: 600;
     color: var(--accent-color);
     direction: ltr;
     display: inline;
+    unicode-bidi: embed;
 }
 
-/* Enhance quoted terms visibility */
-[data-lang="ar"] .step-description:lang(ar),
-[data-lang="he"] .step-description:lang(he) {
-    font-family: 'Inter', 'Arial', sans-serif;
-}
-
-/* Special styling for English quotes in RTL text */
-[data-lang="ar"] .step-description,
-[data-lang="he"] .step-description {
+/* Special handling for mixed-direction content */
+.modal-content [data-lang="ar"] .step-description,
+.modal-content [data-lang="he"] .step-description {
     quotes: """ """ "'" "'";
+    unicode-bidi: plaintext;
+}
+
+/* Ensure default English layout */
+.modal-content [data-lang="en"] .section-header {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.modal-content [data-lang="en"] .expand-icon {
+    order: initial;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Smooth transitions for language switching */
+.modal-content .section-header,
+.modal-content .expand-icon,
+.modal-content .guide-step,
+.modal-content .step-content,
+.modal-content .modal-tabs,
+.guide-container .guide-step,
+.guide-container .step-content,
+.guide-container .step-number {
+    transition: all 0.3s ease;
+}
+
+/* Default modal body direction (English LTR) */
+.modal-content .modal-body {
+    direction: ltr;
+    text-align: left;
+}
+
+/* RTL Modal Body adjustments */
+.modal-content [data-lang="ar"] .modal-body,
+.modal-content [data-lang="he"] .modal-body {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Ensure language switcher stays LTR regardless of content language */
+.modal-header .language-switcher {
+    direction: ltr !important;
+}
+
+.modal-header .lang-button {
+    direction: ltr !important;
+    text-align: center;
+}
+
+
+
+/* Modal Fullscreen Fixes */
+/* Fix viewport sizing issues during fullscreen transitions */
+.modal-overlay {
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+.modal-content {
+    min-height: 0; /* Prevent flex overflow issues */
+    flex: none; /* Reset flex behavior for fullscreen */
+}
+
+.modal-body {
+    min-height: 0; /* Important for proper flex overflow */
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+/* Fix for fullscreen mode viewport changes */
+@media (orientation: landscape) and (max-height: 600px) {
+    .modal-content {
+        max-height: 100vh;
+    }
+}
+
+/* RTL Modal Header - Enhanced positioning */
+.modal-content [data-lang="ar"] .modal-header,
+.modal-content [data-lang="he"] .modal-header {
+    direction: rtl;
+    justify-content: space-between;
+    flex-direction: row-reverse;
+}
+
+.modal-content [data-lang="ar"] .modal-header h1,
+.modal-content [data-lang="he"] .modal-header h1 {
+    direction: rtl;
+    text-align: right;
+    order: 1;
+    flex: 1;
+}
+
+.modal-content [data-lang="ar"] .modal-header-controls,
+.modal-content [data-lang="he"] .modal-header-controls {
+    direction: ltr; /* Keep controls LTR for consistency */
+    order: 2;
+    flex-direction: row-reverse;
+}
+
+/* Ensure close button stays on the correct side */
+.modal-content [data-lang="ar"] .modal-close,
+.modal-content [data-lang="he"] .modal-close {
+    order: 1;
+    margin-left: 15px;
+    margin-right: 0;
+}
+
+.modal-content [data-lang="ar"] .language-switcher,
+.modal-content [data-lang="he"] .language-switcher {
+    order: 2;
+    direction: ltr !important;
+}
+
+/* English modal header (default LTR) */
+.modal-content [data-lang="en"] .modal-header {
+    direction: ltr;
+    flex-direction: row;
+}
+
+.modal-content [data-lang="en"] .modal-header h1 {
+    order: initial;
+    text-align: left;
+}
+
+.modal-content [data-lang="en"] .modal-header-controls {
+    order: initial;
+    flex-direction: row;
+}
+
+.modal-content [data-lang="en"] .modal-close {
+    order: initial;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.modal-content [data-lang="en"] .language-switcher {
+    order: initial;
+}
+
+
+
+/* Guide Section RTL Support - Enhanced with Higher Specificity */
+.guide-container [data-lang="ar"],
+.guide-container [data-lang="he"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.guide-container [data-lang="ar"] .guide-intro,
+.guide-container [data-lang="he"] .guide-intro {
+    direction: rtl;
+    text-align: right;
+}
+
+.guide-container [data-lang="ar"] .guide-intro h2,
+.guide-container [data-lang="he"] .guide-intro h2 {
+    text-align: center;
+}
+
+.guide-container [data-lang="ar"] .guide-steps,
+.guide-container [data-lang="he"] .guide-steps {
+    direction: rtl;
+}
+
+/* RTL Guide Steps - Override existing styles with higher specificity */
+.guide-container [data-lang="ar"] .guide-step,
+.guide-container [data-lang="he"] .guide-step {
+    direction: rtl !important;
+    text-align: right !important;
+    flex-direction: row !important;
+    border-left: none !important;
+    border-right: 3px solid var(--accent-blue) !important;
+    padding-left: 0 !important;
+    padding-right: var(--space-lg) !important;
+}
+
+.guide-container [data-lang="ar"] .step-number,
+.guide-container [data-lang="he"] .step-number {
+    order: 1 !important;
+    margin-left: 0 !important;
+    margin-right: 20px !important;
+    flex-shrink: 0 !important;
+}
+
+.guide-container [data-lang="ar"] .step-content,
+.guide-container [data-lang="he"] .step-content {
+    direction: rtl !important;
+    text-align: right !important;
+    order: 2 !important;
+    flex: 1 !important;
+}
+
+.guide-container [data-lang="ar"] .step-title,
+.guide-container [data-lang="he"] .step-title {
+    direction: rtl !important;
+    text-align: right !important;
+    display: block !important;
+}
+
+.guide-container [data-lang="ar"] .step-description,
+.guide-container [data-lang="he"] .step-description {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* Ensure English guide remains LTR - Reset any RTL overrides */
+.guide-container [data-lang="en"] .guide-step {
+    flex-direction: row !important;
+    direction: ltr !important;
+    text-align: left !important;
+    border-left: 3px solid var(--accent-blue) !important;
+    border-right: none !important;
+    padding-left: var(--space-lg) !important;
+    padding-right: 0 !important;
+}
+
+.guide-container [data-lang="en"] .step-number {
+    order: initial !important;
+    margin-left: 0 !important;
+    margin-right: 20px !important;
+}
+
+.guide-container [data-lang="en"] .step-content {
+    order: initial !important;
+    text-align: left !important;
+    direction: ltr !important;
 }
