@@ -29,7 +29,7 @@ Algorithm:
 
 ```
 ## Deployment 
-Deployed through Github Pages at https://negevurbanresearch.github.io/shelter_access/{https://negevurbanresearch.github.io/shelter_access/}
+Deployed through Github Pages at [https://negevurbanresearch.github.io/shelter_access/](https://negevurbanresearch.github.io/shelter_access/)
 
 ## 📁 Project Structure
 
