@@ -6,8 +6,8 @@ A real-time web-based tool for analyzing and optimizing shelter accessibility fo
 ## 📊 Data & Analysis
 
 ### **Input Data**
-- **📍 Shelters**: existing + requested locations collected by Bimkom {https://bimkom.org/eng/home-mobile/}
-- **🏘️ Buildings**: Footprint data from MS Planetary Computer {https://planetarycomputer.microsoft.com/} 
+- **📍 Shelters**: existing + requested locations collected by [Bimkom](https://bimkom.org/eng/home-mobile/)
+- **🏘️ Buildings**: Footprint data from [MS Planetary Computer](https://planetarycomputer.microsoft.com/)
 
 ## 🛠️ Technical Architecture
 
