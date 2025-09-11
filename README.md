@@ -1,6 +1,6 @@
 # 🏠 Negev Shelter Access Analysis
 
-A real-time web-based tool for analyzing and optimizing shelter accessibility for Bedouin communities in the Negev region. This application provides instant feedback on optimal shelter placement using precalculated DBSCAN clustering and greedy optimization algorithms.
+A real-time web-based tool for analyzing and optimizing shelter accessibility for Bedouin communities in the Negev region. This application provides instant feedback on optimal shelter placement using precalculated DBSCAN clustering and greedy optimization algorithms. The tool was covered in an [article](https://www.ynet.co.il/architecture/article/ry9tp9gtxe) by Yediot Ahronot.
 
 
 ## 📊 Data & Analysis
