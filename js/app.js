@@ -74,24 +74,27 @@ class ShelterAccessApp {
         // Mapbox token for terrain and other services (URL restricted)
         this.mapboxToken = 'pk.eyJ1IjoibnVybGFiMjAyNSIsImEiOiJjbWRrbW51ZnIweGxqMmxzNTJsc3pkODFkIn0.45x41GXrY4QBBqrHBlc7fw';
         
-
-        
-        // Simplified basemap configuration
+        // Basemap configuration - Mapbox primary, ESRI fallback
         this.currentBasemap = 'satellite';
         this.basemaps = {
             satellite: {
                 name: 'Satellite Streets',
                 url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
+                fallbackUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                 attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 type: 'raster'
             },
             light: {
                 name: 'Light Streets',
                 url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
+                fallbackUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
                 attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 type: 'raster'
             }
         };
+        
+        // Track if we're using fallback basemap
+        this.usingFallbackBasemap = false;
         
         // Current zoom and view state for zoom-dependent features
         this._currentZoom = 10.5;
@@ -1594,15 +1597,31 @@ class ShelterAccessApp {
 
     
     /**
-     * Create simplified tile layer with minimal configuration
+     * Create tile layer with fallback support
      */
     createStandardTileLayer(basemapConfig) {
+        const tileUrl = this.usingFallbackBasemap && basemapConfig.fallbackUrl 
+            ? basemapConfig.fallbackUrl 
+            : basemapConfig.url;
+        
         return new deck.TileLayer({
-            id: `basemap-${this.currentBasemap}`,
-            data: basemapConfig.url,
+            id: `basemap-${this.currentBasemap}${this.usingFallbackBasemap ? '-fallback' : ''}`,
+            data: tileUrl,
             minZoom: 0,
             maxZoom: 19,
             tileSize: 256,
+            
+            onTileError: (error) => {
+                // If primary fails, switch to fallback
+                if (!this.usingFallbackBasemap && basemapConfig.fallbackUrl) {
+                    console.warn('Mapbox tiles failed, switching to fallback basemap');
+                    this.usingFallbackBasemap = true;
+                    // Force layer recreation
+                    this.baseTileLayer = null;
+                    this.currentBasemapConfig = null;
+                    this.updateVisualization();
+                }
+            },
             
             renderSubLayers: props => {
                 const { tile } = props;

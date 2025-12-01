@@ -1,0 +1,20 @@
+{
+  "name": "shelter-access",
+  "version": "1.0.0",
+  "description": "Shelter Access Analysis - Interactive map for bomb shelter accessibility in the Negev",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -l 3000",
+    "dev": "npx live-server --port=3000 --open=/"
+  },
+  "keywords": [
+    "shelter",
+    "accessibility",
+    "gis",
+    "deckgl",
+    "mapping"
+  ],
+  "author": "NUR Lab",
+  "license": "MIT"
+}
+
