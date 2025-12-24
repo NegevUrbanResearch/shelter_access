@@ -320,9 +320,9 @@ def main():
     if shelters_gdf is None:
         sys.exit(1)
     
-    # Filter for existing shelters only
+    # Filter for existing shelters only (Built or Built (not_verified))
     if 'status' in shelters_gdf.columns:
-        existing_shelters = shelters_gdf[shelters_gdf['status'] == 'Built']
+        existing_shelters = shelters_gdf[shelters_gdf['status'].fillna('').str.startswith('Built')]
         print(f"✓ Found {len(existing_shelters)} existing (Built) shelters out of {len(shelters_gdf)} total")
     else:
         existing_shelters = shelters_gdf
@@ -340,9 +340,9 @@ def main():
         print("❌ Failed to calculate accessibility data")
         sys.exit(1)
     
-    # Calculate individual shelter coverage (all shelters, not just existing)
+    # Calculate individual shelter coverage (only built shelters)
     print("\n🔄 Calculating individual shelter coverage...")
-    shelter_coverage_data = calculate_individual_shelter_coverage(buildings_gdf, shelters_gdf)
+    shelter_coverage_data = calculate_individual_shelter_coverage(buildings_gdf, existing_shelters)
     
     if not shelter_coverage_data:
         print("❌ Failed to calculate shelter coverage data")

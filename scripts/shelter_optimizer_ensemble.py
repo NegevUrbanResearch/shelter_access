@@ -60,11 +60,11 @@ class EnhancedShelterOptimizer:
         """Process existing built shelters from GeoJSON"""
         existing_shelters = []
         existing_shelter_data = []
-        
+
         for shelter in shelter_features:
             status = shelter['properties'].get('status', '').strip()
-            # Only consider built shelters
-            if status == 'Built':
+            # Only consider built shelters (includes 'Built' and 'Built (not_verified)')
+            if status.startswith('Built'):
                 coords = shelter['geometry']['coordinates']
                 shelter_coord = [coords[1], coords[0]]  # lat, lon
                 
