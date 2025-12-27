@@ -150,6 +150,26 @@ def save_filtered_geojson(gdf, output_path):
     except Exception as e:
         print(f"❌ Error saving {output_path}: {e}")
 
+def save_convex_hull_geojson(geometry, output_path):
+    """Save convex hull geometry as GeoJSON"""
+    try:
+        # Create a GeoDataFrame with the convex hull
+        import geopandas as gpd
+        gdf = gpd.GeoDataFrame([{'id': 'buildings_convex_hull'}], geometry=[geometry], crs='EPSG:4326')
+        
+        # Save as GeoJSON
+        gdf.to_file(output_path, driver='GeoJSON')
+        print(f"✓ Saved convex hull to {output_path}")
+        
+        # Print area statistics
+        area_deg2 = geometry.area
+        # Approximate conversion to km² (very rough at this latitude)
+        area_km2 = area_deg2 * (111 * 111)  # 1 degree ≈ 111 km
+        print(f"  Convex hull area: ~{area_km2:.1f} km²")
+        
+    except Exception as e:
+        print(f"❌ Error saving convex hull {output_path}: {e}")
+
 def main():
     print("🗺️ Filtering geospatial data based on buildings bounds...")
     
@@ -194,6 +214,10 @@ def main():
         convex_hull = box(minx - buffer_degrees, miny - buffer_degrees, 
                          maxx + buffer_degrees, maxy + buffer_degrees)
         print(f"✓ Using fallback bounding box with 1km buffer")
+    
+    # Save the convex hull geometry as GeoJSON
+    convex_hull_path = Path("./alert-analysis/convex_hull.geojson")
+    save_convex_hull_geojson(convex_hull, convex_hull_path)
     
     # Load and filter shelters (with 2500m buffer)
     print("\n🏠 Processing shelters...")
@@ -262,4 +286,4 @@ def main():
         print(f"⚠️ Could not read summary statistics: {e}")
 
 if __name__ == "__main__":
-    main() 
+    main()

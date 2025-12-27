@@ -22,6 +22,10 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Large Geojson Files
+alert-analysis/alerts-since-oct7-2023-filtered.geojson
+alert-analysis/alerts-since-oct7-2023.geojson
+
 # IDE
 .vscode/
 .idea/
