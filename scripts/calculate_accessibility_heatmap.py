@@ -195,55 +195,56 @@ def calculate_individual_shelter_coverage(buildings_gdf, shelters_gdf, coverage_
     
     # Process each shelter
     shelter_coverage_map = {}
-    
-    for shelter_idx, shelter_row in shelters_gdf.iterrows():
+    total_shelters = len(shelters_gdf)
+
+    for i, (_, shelter_row) in enumerate(shelters_gdf.iterrows()):
         if shelter_row.geometry.geom_type != 'Point':
             continue
-            
+
         shelter_coord = [shelter_row.geometry.x, shelter_row.geometry.y]
-        
+
         # Create unique shelter key using coordinates (6 decimal precision ~1m accuracy)
         shelter_key = f"{shelter_coord[0]:.6f}_{shelter_coord[1]:.6f}"
-        
+
         # Add shelter properties for identification
         shelter_info = {
             'coordinates': shelter_coord,
             'properties': {}
         }
-        
+
         # Extract useful properties
         for prop in ['shelter_id', 'status', 'name', 'type']:
             if prop in shelter_row:
                 shelter_info['properties'][prop] = shelter_row[prop]
-        
+
         # Calculate coverage for all radii
         coverage_by_radius = {}
-        
+
         for radius_m in coverage_radii:
             radius_degrees = radius_m / 100000  # Convert to degrees
             covered_buildings = []
-            
+
             # Check each building
             for building in building_points:
                 distance = calculate_distance_degrees(shelter_coord, building['coord'])
                 if distance <= radius_degrees:
                     covered_buildings.append(building['index'])
-            
+
             coverage_by_radius[f"{radius_m}m"] = {
                 'building_indices': covered_buildings,
                 'buildings_count': len(covered_buildings),
                 'estimated_people': len(covered_buildings) * 7  # 7 people per building assumption
             }
-        
+
         shelter_coverage_map[shelter_key] = {
             'shelter_info': shelter_info,
             'coverage_by_radius': coverage_by_radius
         }
-        
+
         # Progress reporting
-        if (shelter_idx + 1) % 10 == 0:
-            progress = (shelter_idx + 1) / len(shelters_gdf) * 100
-            print(f"   Progress: {progress:.1f}% ({shelter_idx + 1}/{len(shelters_gdf)} shelters)")
+        if (i + 1) % 10 == 0:
+            progress = (i + 1) / total_shelters * 100
+            print(f"   Progress: {progress:.1f}% ({i + 1}/{total_shelters} shelters)")
     
     elapsed_time = time.time() - start_time
     print(f"✅ Pre-computed shelter coverage in {elapsed_time:.2f}s")
