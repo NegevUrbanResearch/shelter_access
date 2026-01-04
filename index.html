@@ -190,18 +190,8 @@
             </div>
           </div>
 
-          <!-- Map & Data Controls - Stacked Vertically -->
+          <!-- Map & Data Controls -->
           <div class="control-section">
-            <div class="control-group">
-              <div class="view-buttons">
-                <button class="view-button active" data-basemap="satellite">
-                  Satellite View
-                </button>
-                <button class="view-button" data-basemap="light">
-                  Map View
-                </button>
-              </div>
-            </div>
             <div class="control-group">
               <div style="display: flex; gap: 8px; align-items: stretch">
                 <button id="layersButton" class="action-button" style="flex: 1">
@@ -246,6 +236,26 @@
           </div>
           <div class="modal-body">
             <div class="layers-grid">
+              <div class="layer-item">
+                <div class="layer-icon">
+                  <img
+                    src="data/map-icon.svg"
+                    width="16"
+                    height="16"
+                    alt="Map icon"
+                  />
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="basemapToggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+                <div class="layer-info">
+                  <span class="layer-label">Switch Satellite/Map View</span>
+                  <span class="layer-description"
+                    >Toggle between satellite and map view</span
+                  >
+                </div>
+              </div>
               <div class="layer-item">
                 <div class="layer-icon building-icon">
                   <div class="building-square"></div>

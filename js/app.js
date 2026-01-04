@@ -465,18 +465,18 @@ class ShelterAccessApp {
             this.toggleNewShelterControl(this.elements.heatmapToggle.checked);
         }
         
-        // Basemap button selection
-        const basemapButtons = document.querySelectorAll('.view-button');
-        basemapButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                // Remove active class from all buttons
-                basemapButtons.forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                e.target.classList.add('active');
-                // Change basemap
-                this.changeBasemap(e.target.dataset.basemap);
+        // Basemap toggle switch
+        const basemapToggle = document.getElementById('basemapToggle');
+        if (basemapToggle) {
+            // Initialize toggle state based on current basemap
+            basemapToggle.checked = this.currentBasemap === 'satellite';
+            
+            basemapToggle.addEventListener('change', (e) => {
+                // Toggle: checked = satellite, unchecked = light
+                const basemap = e.target.checked ? 'satellite' : 'light';
+                this.changeBasemap(basemap);
             });
-        });
+        }
         
         // Layer visibility toggles - simplified using mapping
         const layerMappings = {
@@ -1988,6 +1988,12 @@ class ShelterAccessApp {
             body.classList.add('light-basemap');
         } else {
             body.classList.remove('light-basemap');
+        }
+        
+        // Update toggle switch state
+        const basemapToggle = document.getElementById('basemapToggle');
+        if (basemapToggle) {
+            basemapToggle.checked = basemap === 'satellite';
         }
         
         this.updateAttribution();
