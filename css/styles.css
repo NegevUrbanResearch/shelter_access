@@ -32,9 +32,9 @@
     /* Flexible spacing - scales with viewport */
     --space-xs: clamp(2px, 0.25vw, 4px);
     --space-sm: clamp(4px, 0.5vw, 8px);
-    --space-md: clamp(8px, 1vw, 12px);
-    --space-lg: clamp(12px, 1.25vw, 16px);
-    --space-xl: clamp(16px, 1.5vw, 20px);
+    --space-md: clamp(8px, 1.2vw, 16px);
+    --space-lg: clamp(12px, 1.6vw, 24px);
+    --space-xl: clamp(16px, 2vw, 32px);
     
     /* Border radius */
     --radius-sm: 6px;
@@ -42,8 +42,8 @@
     --radius-lg: 12px;
     
     /* Panel sizing - flexible with constraints */
-    --panel-width: clamp(240px, 20vw, 320px);
-    --legend-width: clamp(160px, 15vw, 240px);
+    --panel-width: clamp(240px, 28vw, 420px);
+    --legend-width: clamp(160px, 20vw, 280px);
     --banner-height: clamp(56px, 6vh, 72px);
 }
 
@@ -206,7 +206,7 @@ body {
 }
 
 .menu-title h2 {
-    font-size: clamp(16px, 1.5vw, 22px);
+    font-size: clamp(18px, 1.8vw, 26px);
     font-weight: 700;
     margin: 0 0 var(--space-sm) 0;
     color: var(--text-primary);
@@ -214,7 +214,7 @@ body {
 }
 
 .menu-title p {
-    font-size: clamp(11px, 1vw, 14px);
+    font-size: clamp(13px, 1.2vw, 17px);
     color: var(--text-secondary);
     margin: 0;
     font-weight: 600;
@@ -360,7 +360,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: clamp(9px, 0.8vw, 12px);
+    font-size: clamp(11px, 1vw, 15px);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -544,7 +544,7 @@ body {
 }
 
 .legend-section-title {
-    font-size: clamp(9px, 0.75vw, 11px);
+    font-size: clamp(11px, 0.95vw, 14px);
     color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
@@ -616,7 +616,7 @@ body {
 }
 
 .scale-text {
-    font-size: clamp(9px, 0.7vw, 11px);
+    font-size: clamp(11px, 0.9vw, 14px);
     color: var(--text-secondary);
     font-weight: 600;
 }
@@ -671,7 +671,7 @@ body {
 }
 
 .heatmap-legend h4 {
-    font-size: clamp(9px, 0.7vw, 11px);
+    font-size: clamp(11px, 0.9vw, 14px);
     color: var(--text-primary);
     margin: 0 0 var(--space-xs) 0;
     font-weight: 600;
@@ -689,7 +689,7 @@ body {
 .heatmap-labels {
     display: flex;
     justify-content: space-between;
-    font-size: clamp(8px, 0.65vw, 10px);
+    font-size: clamp(10px, 0.85vw, 13px);
     color: var(--text-muted);
     font-weight: 500;
 }
@@ -772,7 +772,7 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
-    max-width: 560px;
+    max-width: 720px;
     width: 100%;
     max-height: 85vh;
     overflow: hidden;
@@ -786,7 +786,7 @@ body {
 }
 
 .modal-content-wide {
-    max-width: 600px;
+    max-width: 800px;
     width: 90%;
     max-height: 85vh;
 }
@@ -803,7 +803,7 @@ body {
 .modal-header h1,
 .modal-header h2 {
     margin: 0;
-    font-size: clamp(16px, 1.4vw, 20px);
+    font-size: clamp(18px, 1.7vw, 24px);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -840,6 +840,13 @@ body {
     flex-direction: column;
 }
 
+.tab-content {
+    padding: var(--space-xl);
+    padding-bottom: calc(var(--space-xl) * 1.5);
+    overflow-y: auto;
+    flex: 1;
+}
+
 /* Tabs */
 .modal-tabs {
     display: flex;
@@ -853,7 +860,7 @@ body {
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: clamp(11px, 0.9vw, 13px);
+    font-size: clamp(13px, 1.1vw, 16px);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -885,7 +892,7 @@ body {
 
 /* Guide container specific fixes */
 .guide-container {
-    padding-bottom: var(--space-md);
+    padding-bottom: var(--space-xl);
 }
 
 .guide-container .guide-steps {
@@ -894,7 +901,7 @@ body {
 
 .guide-container .guide-step:last-child {
     margin-bottom: 0;
-    padding-bottom: var(--space-sm);
+    padding-bottom: 0;
 }
 
 /* About Sections */
@@ -904,7 +911,7 @@ body {
 
 .about-section h3 {
     margin: 0 0 var(--space-sm) 0;
-    font-size: clamp(13px, 1.1vw, 16px);
+    font-size: clamp(15px, 1.3vw, 19px);
     font-weight: 600;
     color: var(--accent-blue);
 }
@@ -925,37 +932,42 @@ body {
 
 /* Info Container */
 .info-intro {
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: var(--space-xl);
+    padding-bottom: 0;
 }
 
 .info-intro p {
-    margin-bottom: var(--space-md);
-    line-height: 1.6;
-    font-size: clamp(13px, 1vw, 15px);
+    margin-bottom: var(--space-lg);
+    line-height: 1.7;
+    font-size: clamp(16px, 1.3vw, 19px);
+    color: var(--text-secondary);
+}
+
+.info-intro p:last-child {
+    margin-bottom: 0;
 }
 
 /* Expandable Sections */
 .expandable-sections {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-lg);
 }
 
 .expandable-section {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.02);
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
 }
 
 .expandable-section:hover {
     background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .section-header {
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -994,8 +1006,7 @@ body {
 
 .section-content {
     display: none;
-    padding: 0 var(--space-lg) var(--space-lg);
-    border-top: 1px solid var(--glass-border);
+    padding: 0 var(--space-xl) var(--space-xl);
 }
 
 .expandable-section.expanded .section-content {
@@ -1003,26 +1014,36 @@ body {
 }
 
 .section-content p {
-    margin-bottom: var(--space-sm);
-    line-height: 1.6;
-    font-size: clamp(12px, 1vw, 14px);
+    margin-bottom: var(--space-lg);
+    line-height: 1.7;
+    font-size: clamp(13px, 1vw, 15px);
+    color: var(--text-secondary);
+}
+
+.section-content p:last-child {
+    margin-bottom: 0;
 }
 
 .section-content h4 {
-    margin: var(--space-md) 0 var(--space-sm) 0;
-    font-size: clamp(12px, 1vw, 14px);
+    margin: var(--space-lg) 0 var(--space-md) 0;
+    font-size: clamp(13px, 1vw, 15px);
     font-weight: 600;
+    color: var(--text-primary);
+}
+
+.section-content h4:first-child {
+    margin-top: var(--space-lg);
 }
 
 .references {
-    margin-top: var(--space-lg);
-    padding: var(--space-md);
+    margin-top: var(--space-xl);
+    padding: var(--space-lg);
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
-    font-size: clamp(11px, 0.9vw, 13px);
+    font-size: clamp(12px, 1vw, 14px);
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.7;
 }
 
 /* Credits */
@@ -1043,15 +1064,14 @@ body {
 
 /* Guide */
 .guide-intro {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-xl);
     text-align: center;
-    padding-bottom: var(--space-sm);
-    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0;
 }
 
 .guide-intro h2 {
     color: var(--text-primary);
-    font-size: clamp(16px, 1.4vw, 18px);
+    font-size: clamp(20px, 1.8vw, 24px);
     font-weight: 600;
     margin: 0;
 }
@@ -1059,20 +1079,15 @@ body {
 .guide-steps {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--space-lg);
 }
 
 .guide-step {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-md);
-    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     border-left: 3px solid var(--accent-blue);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.guide-step:last-child {
-    border-bottom: none;
 }
 
 .step-number {
@@ -1091,20 +1106,21 @@ body {
 
 .step-content {
     flex: 1;
+    padding-top: 2px;
 }
 
 .step-title {
     font-weight: 600;
-    font-size: clamp(12px, 1vw, 14px);
+    font-size: clamp(13px, 1.1vw, 15px);
     color: var(--text-primary);
-    margin-bottom: 2px;
+    margin-bottom: var(--space-sm);
     display: block;
 }
 
 .step-description {
-    font-size: clamp(11px, 0.9vw, 13px);
+    font-size: clamp(12px, 1vw, 14px);
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.6;
     margin: 0;
 }
 
@@ -1471,6 +1487,9 @@ body.modal-open {
         --panel-width: clamp(180px, 50vw, 220px);
         --legend-width: clamp(120px, 35vw, 160px);
         --banner-height: 52px;
+        --space-md: clamp(6px, 1vw, 10px);
+        --space-lg: clamp(8px, 1.2vw, 12px);
+        --space-xl: clamp(10px, 1.5vw, 16px);
     }
 
     .brand-banner .logo {
@@ -1491,7 +1510,36 @@ body.modal-open {
     }
 
     .menu-content {
+        padding: var(--space-sm);
+    }
+    
+    .tab-content {
         padding: var(--space-md);
+        padding-bottom: var(--space-lg);
+    }
+    
+    .guide-intro {
+        margin-bottom: var(--space-md);
+    }
+    
+    .guide-steps {
+        gap: var(--space-md);
+    }
+    
+    .info-intro {
+        margin-bottom: var(--space-md);
+    }
+    
+    .expandable-sections {
+        gap: var(--space-md);
+    }
+    
+    .section-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+    
+    .section-content {
+        padding: 0 var(--space-lg) var(--space-lg);
     }
 
     /* Mobile distance buttons - smaller to fit on one line */
@@ -1529,6 +1577,9 @@ body.modal-open {
         --panel-width: clamp(160px, 45vw, 180px);
         --legend-width: clamp(100px, 30vw, 120px);
         --banner-height: 48px;
+        --space-md: clamp(4px, 0.8vw, 8px);
+        --space-lg: clamp(6px, 1vw, 10px);
+        --space-xl: clamp(8px, 1.2vw, 12px);
     }
 
     .main-menu {
