@@ -1335,14 +1335,14 @@ body {
 
 .step-title {
     font-weight: 600;
-    font-size: clamp(13px, 1.1vw, 15px);
+    font-size: clamp(16px, 1.4vw, 20px);
     color: var(--text-primary);
     margin-bottom: var(--space-sm);
     display: block;
 }
 
 .step-description {
-    font-size: clamp(12px, 1vw, 14px);
+    font-size: clamp(14px, 1.2vw, 17px);
     color: var(--text-secondary);
     line-height: 1.6;
     margin: 0;
