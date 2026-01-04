@@ -711,8 +711,12 @@ body {
     overflow-y: auto;
 }
 
+.map-legend-panel .panel-content {
+    padding: 0;
+}
+
 .legend-layers-section {
-    padding: var(--space-md) var(--space-lg) var(--space-sm);
+    padding: var(--space-sm) var(--space-lg) var(--space-sm);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -760,6 +764,13 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-sm);
+}
+
+.legend-icon-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
 }
 
 .legend-label {
@@ -1680,177 +1691,597 @@ body.modal-open {
    ============================================ */
 @media (max-width: 768px) {
     :root {
-        --panel-width: clamp(180px, 50vw, 220px);
-        --legend-width: clamp(120px, 35vw, 160px);
-        --banner-height: 52px;
-        --space-md: clamp(6px, 1vw, 10px);
-        --space-lg: clamp(8px, 1.2vw, 12px);
-        --space-xl: clamp(10px, 1.5vw, 16px);
+        --panel-width: 120px;
+        --legend-width: 100px;
+        --banner-height: 36px;
+        --space-md: 2px;
+        --space-lg: 4px;
+        --space-xl: 6px;
+    }
+
+    .brand-banner {
+        padding: 2px 6px;
     }
 
     .brand-banner .logo {
-        height: 28px;
+        height: 16px;
+    }
+
+    .brand-logos {
+        gap: 4px;
+    }
+
+    .info-button-top {
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
     }
 
     .control-panels-container {
-        top: calc(var(--banner-height) + var(--space-md));
-        left: var(--space-md);
-        gap: var(--space-md);
-        max-width: calc(100vw - var(--space-md) * 2);
+        top: calc(var(--banner-height) + 4px);
+        left: 4px;
+        transform: none;
+        gap: 2px;
+        max-width: 115px;
     }
     
     .control-panel {
         width: 100%;
         min-width: 0;
+        border-radius: 6px;
+    }
+    
+    /* Mobile collapsible panels - closed by default */
+    .control-panel .panel-content {
+        display: none;
+        padding: 4px 6px 6px;
+    }
+    
+    .control-panel.expanded .panel-content {
+        display: block;
     }
     
     .panel-header {
-        padding: var(--space-md) var(--space-lg);
-        gap: var(--space-md);
+        padding: 3px 6px;
+        gap: 4px;
+        cursor: pointer;
+        position: relative;
     }
     
-    .panel-content {
-        padding: var(--space-lg);
+    .panel-header::after {
+        content: '+';
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: bold;
+        color: var(--text-secondary);
+        transition: transform 0.2s ease;
+    }
+    
+    .control-panel.expanded .panel-header::after {
+        content: '−';
+    }
+    
+    .panel-number {
+        width: 16px;
+        height: 16px;
+        font-size: 9px;
+        left: 0;
+        top: 0;
+    }
+    
+    .panel-title h3 {
+        font-size: 8px;
+        line-height: 1.1;
     }
     
     .distance-buttons {
-        gap: var(--space-sm);
+        gap: 2px;
+        flex-wrap: wrap;
     }
-    
+
     .distance-button {
-        min-width: 50px;
-        padding: var(--space-sm) var(--space-md);
+        padding: 3px 1px;
+        font-size: 8px;
+        min-width: 0;
+        flex: 1 1 28%;
+        border-radius: 3px;
+    }
+    
+    .checkbox-label {
+        font-size: 8px;
+    }
+    
+    .checkbox-checkmark {
+        font-size: 7px;
+        padding: 1px 2px;
+    }
+    
+    .coverage-stats-simple {
+        padding: 1px 0;
+    }
+    
+    .coverage-header {
+        font-size: 7px;
+        margin-bottom: 1px;
+    }
+    
+    .stats-text {
+        font-size: 7px;
+        line-height: 1.3;
+    }
+    
+    .custom-slider-container {
+        height: 18px;
+    }
+    
+    .slider-thumb {
+        width: 16px;
+        height: 16px;
+        font-size: 7px;
+    }
+    
+    .slider-track {
+        height: 3px;
+        left: 8px;
+        right: 8px;
     }
 
-    .menu-header {
-        padding: var(--space-md);
-    }
-
-    .menu-content {
-        padding: var(--space-sm);
+    /* Legend panel mobile */
+    .map-legend-panel {
+        max-height: none;
+        border-radius: 6px;
     }
     
-    .tab-content {
-        padding: var(--space-md);
-        padding-bottom: var(--space-lg);
+    .map-legend-panel .panel-content {
+        display: none;
+        padding: 2px 4px 4px;
     }
     
-    .guide-intro {
-        margin-bottom: var(--space-md);
+    .map-legend-panel.expanded .panel-content {
+        display: block;
     }
     
-    .guide-steps {
-        gap: var(--space-md);
+    .legend-layers-section {
+        padding: 2px 4px;
     }
     
-    .info-intro {
-        margin-bottom: var(--space-md);
+    .legend-section-title {
+        font-size: 8px;
+        margin-bottom: 2px;
     }
     
-    .expandable-sections {
-        gap: var(--space-md);
-    }
-    
-    .section-header {
-        padding: var(--space-md) var(--space-lg);
-    }
-    
-    .section-content {
-        padding: 0 var(--space-lg) var(--space-lg);
-    }
-
-    /* Mobile distance buttons - smaller to fit on one line */
-    .distance-buttons {
+    .legend-item {
+        font-size: 7px;
+        padding: 1px 0;
         gap: 3px;
     }
-
-    .distance-button {
-        padding: 6px 4px;
-        font-size: 9px;
+    
+    .legend-icon {
+        width: 10px;
+        height: 10px;
     }
     
+    .legend-icon img,
+    .legend-icon-img {
+        width: 100%;
+        height: 100%;
+    }
     
+    .legend-label {
+        font-size: 7px;
+    }
+    
+    .legend-scale-section {
+        padding: 1px 4px 2px;
+    }
+    
+    .scale-text {
+        font-size: 7px;
+    }
+    
+    .scale-line {
+        height: 1px;
+    }
+    
+    .legend-controls-section {
+        padding: 2px 4px 4px;
+    }
+    
+    .legend-controls {
+        gap: 2px;
+    }
+    
+    .legend-control-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+        border-radius: 4px;
+    }
+    
+    .legend-control-btn img {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .legend-distance-info {
+        font-size: 7px;
+        padding: 2px 4px;
+        margin-top: 2px;
+    }
+
+    /* Mobile modal - much smaller */
+    .modal-overlay {
+        padding: 8px;
+    }
+    
+    .modal-content,
     .modal-content-wide {
-        max-width: 95%;
-        height: 90vh;
+        max-width: 100%;
+        width: 100%;
+        max-height: 60vh;
+        border-radius: 10px;
+    }
+    
+    .modal-header {
+        padding: 8px 10px;
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .modal-header h1,
+    .modal-header h2 {
+        font-size: 12px;
+        flex: 1;
+    }
+    
+    .modal-header-controls {
+        gap: 4px;
+    }
+    
+    .language-switcher {
+        padding: 1px;
+    }
+    
+    .lang-button {
+        padding: 2px 4px;
+        font-size: 8px;
+        min-width: 20px;
+    }
+    
+    .modal-close {
+        font-size: 18px;
+        padding: 2px;
+    }
+    
+    .modal-body {
+        padding: 8px;
+        max-height: calc(60vh - 45px);
+    }
+    
+    .modal-body-tabs {
+        max-height: calc(60vh - 45px);
+    }
+    
+    .modal-tabs {
+        flex-wrap: nowrap;
     }
     
     .tab-button {
-        padding: var(--space-sm) var(--space-md);
-        font-size: 11px;
+        padding: 5px 6px;
+        font-size: 8px;
+        letter-spacing: 0;
     }
     
+    .tab-content {
+        padding: 8px;
+        padding-bottom: 10px;
+    }
+    
+    /* Guide mobile */
+    .guide-intro {
+        margin-bottom: 8px;
+    }
+    
+    .guide-intro h2 {
+        font-size: 12px;
+    }
+    
+    .guide-steps {
+        gap: 6px;
+    }
+    
+    .guide-step {
+        padding: 4px 6px;
+        gap: 6px;
+    }
+    
+    .step-number {
+        width: 14px;
+        height: 14px;
+        font-size: 8px;
+    }
+    
+    .step-title {
+        font-size: 9px;
+    }
+    
+    .step-description {
+        font-size: 8px;
+        line-height: 1.3;
+    }
+    
+    /* Info content mobile */
+    .info-intro {
+        margin-bottom: 8px;
+    }
+    
+    .info-intro p {
+        font-size: 9px;
+        line-height: 1.4;
+        margin-bottom: 6px;
+    }
+    
+    .expandable-sections {
+        gap: 4px;
+    }
+    
+    .expandable-section {
+        border-radius: 4px;
+    }
+    
+    .section-header {
+        padding: 6px 8px;
+    }
+    
+    .section-header h3 {
+        font-size: 8px;
+    }
+    
+    .expand-icon {
+        font-size: 10px;
+    }
+    
+    .section-content {
+        padding: 0 8px 8px;
+    }
+    
+    .section-content p {
+        font-size: 8px;
+        line-height: 1.4;
+        margin-bottom: 6px;
+    }
+    
+    .section-content h4 {
+        font-size: 8px;
+        margin: 6px 0 4px;
+    }
+    
+    .references {
+        padding: 6px;
+        font-size: 7px;
+        margin-top: 8px;
+    }
+    
+    .credits-team h4,
+    .credits-collaborators h4 {
+        font-size: 7px;
+        margin-bottom: 3px;
+    }
+    
+    .credits-team p,
+    .credits-collaborators p {
+        font-size: 8px;
+        line-height: 1.3;
+    }
+    
+    /* Deck widget mobile */
     .deck-widget-compass {
-        top: calc(var(--banner-height) + var(--space-md)) !important;
+        top: calc(var(--banner-height) + 4px) !important;
+        transform: translateX(-50%) scale(0.6) !important;
+    }
+    
+    /* Tooltip mobile */
+    .tooltip {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+    
+    /* Attribution mobile */
+    .map-attribution {
+        font-size: 7px;
+        padding: 1px 3px;
     }
 }
 
 @media (max-width: 480px) {
     :root {
-        --panel-width: clamp(160px, 45vw, 180px);
-        --legend-width: clamp(100px, 30vw, 120px);
-        --banner-height: 48px;
-        --space-md: clamp(4px, 0.8vw, 8px);
-        --space-lg: clamp(6px, 1vw, 10px);
-        --space-xl: clamp(8px, 1.2vw, 12px);
+        --panel-width: 100px;
+        --legend-width: 90px;
+        --banner-height: 32px;
     }
 
-    .control-panels-container {
-        left: var(--space-sm);
-        gap: var(--space-sm);
-        max-width: calc(100vw - var(--space-sm) * 2);
-    }
-    
-    .control-panel {
-        width: 100%;
-        min-width: 0;
-    }
-    
-    .panel-header {
-        padding: var(--space-sm) var(--space-md);
-        gap: var(--space-sm);
-    }
-    
-    .panel-content {
-        padding: var(--space-md);
-    }
-    
-    .distance-buttons {
-        gap: 4px;
-    }
-    
-    .distance-button {
-        min-width: 45px;
-        padding: var(--space-xs) var(--space-sm);
-        font-size: 10px;
-    }
-
-    /* Extra small screen distance buttons */
-    .distance-buttons {
-        gap: 2px;
-    }
-
-    .distance-button {
-        padding: 5px 2px;
-        font-size: 8px;
-    }
-
-    .section-label {
-        font-size: 10px;
-    }
-
-    .modal-header {
-        flex-direction: column;
-        gap: var(--space-sm);
-        align-items: stretch;
-    }
-
-    .modal-header-controls {
-        justify-content: space-between;
+    .brand-banner {
+        padding: 2px 4px;
     }
 
     .brand-banner .logo {
-        height: 24px;
+        height: 14px;
+    }
+    
+    .brand-logos {
+        gap: 3px;
+    }
+
+    .info-button-top {
+        width: 22px;
+        height: 22px;
+        font-size: 10px;
+    }
+
+    .control-panels-container {
+        top: calc(var(--banner-height) + 3px);
+        left: 3px;
+        gap: 2px;
+        max-width: 100px;
+    }
+    
+    .panel-header {
+        padding: 2px 4px;
+        gap: 3px;
+    }
+    
+    .panel-header::after {
+        right: 4px;
+        font-size: 9px;
+    }
+    
+    .panel-number {
+        width: 14px;
+        height: 14px;
+        font-size: 8px;
+    }
+    
+    .panel-title h3 {
+        font-size: 7px;
+    }
+    
+    .panel-content {
+        padding: 3px 4px 4px;
+    }
+    
+    .distance-button {
+        padding: 2px 1px;
+        font-size: 7px;
+    }
+    
+    .checkbox-label {
+        font-size: 7px;
+    }
+    
+    .stats-text {
+        font-size: 6px;
+    }
+    
+    .coverage-header {
+        font-size: 6px;
+    }
+    
+    .slider-thumb {
+        width: 14px;
+        height: 14px;
+        font-size: 6px;
+    }
+    
+    /* Modal extra small */
+    .modal-content,
+    .modal-content-wide {
+        max-height: 55vh;
+        border-radius: 8px;
+    }
+    
+    .modal-header {
+        padding: 6px 8px;
+    }
+    
+    .modal-header h1,
+    .modal-header h2 {
+        font-size: 11px;
+    }
+    
+    .lang-button {
+        padding: 2px 3px;
+        font-size: 7px;
+        min-width: 18px;
+    }
+    
+    .modal-close {
+        font-size: 16px;
+    }
+    
+    .modal-body {
+        padding: 6px;
+        max-height: calc(55vh - 40px);
+    }
+    
+    .tab-button {
+        padding: 4px 5px;
+        font-size: 7px;
+    }
+    
+    .tab-content {
+        padding: 6px;
+    }
+    
+    .guide-intro h2 {
+        font-size: 10px;
+    }
+    
+    .step-number {
+        width: 12px;
+        height: 12px;
+        font-size: 7px;
+    }
+    
+    .step-title {
+        font-size: 8px;
+    }
+    
+    .step-description {
+        font-size: 7px;
+    }
+    
+    .info-intro p {
+        font-size: 8px;
+    }
+    
+    .section-header h3 {
+        font-size: 7px;
+    }
+    
+    .section-content p {
+        font-size: 7px;
+    }
+    
+    .legend-section-title {
+        font-size: 7px;
+    }
+    
+    .legend-item {
+        font-size: 6px;
+    }
+    
+    .legend-icon {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .legend-control-btn {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
+    }
+    
+    .legend-control-btn img {
+        width: 8px;
+        height: 8px;
+    }
+}
+
+/* Desktop - ensure panels are always visible */
+@media (min-width: 769px) {
+    .control-panel .panel-content {
+        display: block !important;
+    }
+    
+    .panel-header::after {
+        display: none !important;
+    }
+    
+    .panel-header {
+        cursor: default;
     }
 }
 

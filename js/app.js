@@ -256,6 +256,43 @@ class ShelterAccessApp {
     setupMainMenu() {
         // Handle layers modal
         this.setupModal('layers');
+        
+        // Setup mobile collapsible panels
+        this.setupMobilePanels();
+    }
+    
+    /**
+     * Setup mobile collapsible panels
+     */
+    setupMobilePanels() {
+        const isMobile = () => window.innerWidth <= 768;
+        
+        // Get all control panels
+        const panels = document.querySelectorAll('.control-panel');
+        
+        // Add click handlers to panel headers for mobile collapse/expand
+        panels.forEach((panel) => {
+            const header = panel.querySelector('.panel-header');
+            if (header) {
+                header.addEventListener('click', (e) => {
+                    if (!isMobile()) return;
+                    
+                    // Prevent click from triggering other events
+                    e.stopPropagation();
+                    
+                    // Toggle expanded state
+                    panel.classList.toggle('expanded');
+                });
+            }
+        });
+        
+        // Handle resize - collapse all panels when going to mobile, expand on desktop
+        window.addEventListener('resize', () => {
+            if (!isMobile()) {
+                // On desktop, remove expanded class (CSS shows content by default)
+                panels.forEach(panel => panel.classList.remove('expanded'));
+            }
+        });
     }
     
     /**
@@ -643,9 +680,12 @@ class ShelterAccessApp {
         `;
         
         // Insert after scale section (controls go at the bottom)
+        const panelContent = legendPanel.querySelector('.panel-content');
         const scaleSection = legendPanel.querySelector('.legend-scale-section');
-        if (scaleSection) {
-            legendPanel.insertBefore(controlsSection, scaleSection.nextSibling);
+        if (panelContent && scaleSection) {
+            panelContent.appendChild(controlsSection);
+        } else if (panelContent) {
+            panelContent.appendChild(controlsSection);
         } else {
             legendPanel.appendChild(controlsSection);
         }
@@ -1234,19 +1274,14 @@ class ShelterAccessApp {
                 // Use actual SVG icons that match the map icons exactly
                 const img = document.createElement('img');
                 img.src = item.iconSrc;
-                img.width = 20;
-                img.height = 20;
-                img.style.display = 'block';
+                img.className = 'legend-icon-img';
                 iconDiv.appendChild(img);
             } else if (item.type === 'color-box') {
                 // Use color boxes for polygon layers and building footprints
                 iconDiv.style.cssText = `
-                    width: 20px;
-                    height: 20px;
                     background: ${item.color};
                     border: 1px solid rgba(255, 255, 255, 0.3);
                     border-radius: 3px;
-                    flex-shrink: 0;
                 `;
             }
             
