@@ -128,12 +128,12 @@ body {
     opacity: 1;
 }
 
-/* Info Button - Upper Right Corner */
+/* Info Button - In Brand Banner */
+.brand-banner {
+    position: relative;
+}
+
 .info-button-top {
-    position: absolute;
-    top: var(--space-lg);
-    right: var(--space-lg);
-    z-index: 1001;
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -150,6 +150,7 @@ body {
     box-shadow: var(--glass-shadow);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    margin-left: auto;
 }
 
 .info-button-top:hover {
