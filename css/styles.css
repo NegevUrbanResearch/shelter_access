@@ -247,6 +247,15 @@ body {
     line-height: 1.3;
 }
 
+/* Legend title variants - short for mobile, full for desktop */
+.legend-title-short {
+    display: inline;
+}
+
+.legend-title-full {
+    display: none;
+}
+
 .panel-content {
     padding: 0 var(--space-lg) var(--space-lg);
 }
@@ -1887,7 +1896,7 @@ body.modal-open {
     }
     
     .legend-controls-section {
-        padding: 2px 4px 4px;
+        display: none;
     }
     
     .legend-controls {
@@ -2282,6 +2291,19 @@ body.modal-open {
     
     .panel-header {
         cursor: default;
+    }
+    
+    /* Legend panel: hide number and show full title on desktop */
+    .legend-number {
+        display: none !important;
+    }
+    
+    .legend-title-short {
+        display: none;
+    }
+    
+    .legend-title-full {
+        display: inline;
     }
 }
 
