@@ -99,109 +99,114 @@
         </button>
       </div>
 
-      <!-- Unified Control Menu (left sidebar) -->
-      <div class="main-menu">
-        <!-- Menu Header with Title -->
-        <div class="menu-header">
-          <div class="menu-title">
-            <h2>Shelter Analysis</h2>
-            <p>Negev Informal Settlements</p>
+      <!-- Control Panels (split into three parts) -->
+      <div class="control-panels-container">
+        <!-- Panel 1: Set Accessibility Distance -->
+        <div class="control-panel">
+          <div class="panel-header">
+            <div class="panel-number">1</div>
+            <div class="panel-title">
+              <h3>Set Accessibility Distance</h3>
+            </div>
           </div>
-          <div class="menu-actions">
-            <button
-              class="menu-button minimize"
-              id="menuMinimize"
-              title="Minimize"
-            >
-              <span>−</span>
-            </button>
+          <div class="panel-content">
+            <div class="control-section">
+              <div class="control-group">
+                <div class="distance-buttons" id="distanceButtons">
+                  <button class="distance-button active" data-distance="100">
+                    100m
+                  </button>
+                  <button class="distance-button" data-distance="150">
+                    150m
+                  </button>
+                  <button class="distance-button" data-distance="200">
+                    200m
+                  </button>
+                  <button class="distance-button" data-distance="250">
+                    250m
+                  </button>
+                  <button class="distance-button" data-distance="300">
+                    300m
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Menu Content -->
-        <div class="menu-content">
-          <!-- Distance Controls -->
-          <div class="control-section">
-            <div class="control-group">
-              <label class="section-label">Set Accessibility Distance</label>
-              <div class="distance-buttons" id="distanceButtons">
-                <button class="distance-button active" data-distance="100">
-                  100m
-                </button>
-                <button class="distance-button" data-distance="150">
-                  150m
-                </button>
-                <button class="distance-button" data-distance="200">
-                  200m
-                </button>
-                <button class="distance-button" data-distance="250">
-                  250m
-                </button>
-                <button class="distance-button" data-distance="300">
-                  300m
-                </button>
+        <!-- Panel 2: View Current Coverage + Coverage Stats -->
+        <div class="control-panel">
+          <div class="panel-header">
+            <div class="panel-number">2</div>
+            <div class="panel-title">
+              <h3>View Current Coverage</h3>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="control-section">
+              <div class="control-group">
+                <label class="control-label-simple">
+                  <input
+                    type="checkbox"
+                    id="heatmapToggle"
+                    class="checkbox-toggle"
+                  />
+                  <span class="checkbox-label">Show Accessibility Grid</span>
+                  <span class="checkbox-checkmark">✓</span>
+                </label>
+              </div>
+            </div>
+            <div class="control-section">
+              <div class="control-group">
+                <div class="coverage-stats-simple">
+                  <div class="coverage-header">Coverage Summary</div>
+                  <p class="stats-text">
+                    Existing bomb shelters are accessible within
+                    <strong id="currentRadius">100m</strong> by
+                    <strong id="currentCoverage">--%</strong> of buildings. You
+                    have added <strong id="newSheltersCount">0</strong> bomb
+                    shelters, increasing total coverage to
+                    <strong id="newCoverage">--%</strong>.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- Accessibility Grid Toggle - Simplified -->
-          <div class="control-section">
-            <div class="control-group">
-              <label class="control-label">
-                <input
-                  type="checkbox"
-                  id="heatmapToggle"
-                  class="checkbox-toggle"
-                />
-                <span class="checkbox-label">Show Accessibility Grid</span>
-                <span class="checkbox-checkmark">✓</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Coverage Stats Section -->
-          <div class="control-section">
-            <div class="control-group">
-              <div class="coverage-stats">
-                <div class="coverage-header">Coverage Summary</div>
-                <p class="stats-text">
-                  Existing bomb shelters are accessible within
-                  <strong id="currentRadius">100m</strong> by
-                  <strong id="currentCoverage">--%</strong> of buildings. You
-                  have added <strong id="newSheltersCount">0</strong> bomb
-                  shelters, increasing total coverage to
-                  <strong id="newCoverage">--%</strong>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- New Shelters Control - Simplified -->
-          <div class="control-section">
-            <div class="control-group" id="addedSheltersSection">
-              <div class="shelter-control">
-                <input
-                  type="range"
-                  id="newShelters"
-                  class="modern-range"
-                  min="0"
-                  max="500"
-                  value="0"
-                  step="1"
-                />
-                <div class="control-value" id="newSheltersValue">0</div>
-              </div>
-              <div class="control-description">
-                Proposed number of shelters to add
-              </div>
-            </div>
-          </div>
-
         </div>
-      </div>
 
-      <!-- Combined Legend and Scale Bar (positioned on right side) -->
-      <div class="map-legend-panel" id="mapLegendPanel">
+        <!-- Panel 3: Add New Shelters -->
+        <div class="control-panel shelter-panel">
+          <div class="panel-header">
+            <div class="panel-number">3</div>
+            <div class="panel-title">
+              <h3>Add New Shelters</h3>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="control-section">
+              <div class="control-group" id="addedSheltersSection">
+                <div class="custom-slider-container">
+                  <div class="slider-track"></div>
+                  <input
+                    type="range"
+                    id="newShelters"
+                    class="custom-range-input"
+                    min="0"
+                    max="500"
+                    value="0"
+                    step="1"
+                  />
+                  <div class="slider-thumb" id="sliderThumb">
+                    <span id="shelterCountBadge">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Legend & Layer Controls -->
+        <div class="control-panel map-legend-panel" id="mapLegendPanel">
         <!-- Data Layers Legend Section -->
         <div class="legend-layers-section">
           <div class="legend-section-title">Legend & Layer Controls</div>
@@ -215,6 +220,7 @@
             <div class="scale-text" id="scaleText">100 m</div>
           </div>
         </div>
+      </div>
       </div>
 
       <!-- Data Layers Modal -->

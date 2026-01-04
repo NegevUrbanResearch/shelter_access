@@ -114,6 +114,8 @@ class ShelterAccessApp {
             distanceButtons: document.getElementById('distanceButtons'),
             newSheltersSlider: document.getElementById('newShelters'),
             newSheltersValue: document.getElementById('newSheltersValue'),
+            shelterCountBadge: document.getElementById('shelterCountBadge'),
+            sliderThumb: document.getElementById('sliderThumb'),
             heatmapToggle: document.getElementById('heatmapToggle'), // Now a checkbox
             // Statistics - simplified
             currentCoverage: document.getElementById('currentCoverage'),
@@ -252,23 +254,6 @@ class ShelterAccessApp {
      * Setup unified main menu functionality
      */
     setupMainMenu() {
-        // Handle menu minimize button
-        const menuMinimize = document.getElementById('menuMinimize');
-        const mainMenu = document.querySelector('.main-menu');
-        if (menuMinimize && mainMenu) {
-            menuMinimize.addEventListener('click', () => {
-                mainMenu.classList.toggle('minimized');
-                const icon = menuMinimize.querySelector('span');
-                if (mainMenu.classList.contains('minimized')) {
-                    icon.textContent = '+';
-                    menuMinimize.title = 'Expand';
-                } else {
-                    icon.textContent = '−';
-                    menuMinimize.title = 'Minimize';
-                }
-            });
-        }
-        
         // Handle layers modal
         this.setupModal('layers');
     }
@@ -426,8 +411,15 @@ class ShelterAccessApp {
                 if (this.elements.newSheltersValue) {
                     this.elements.newSheltersValue.textContent = this.numNewShelters;
                 }
+                if (this.elements.shelterCountBadge) {
+                    this.elements.shelterCountBadge.textContent = this.numNewShelters;
+                }
+                this.updateSliderThumbPosition();
                 await this.updateOptimalLocations();
             });
+            
+            // Initialize thumb position
+            this.updateSliderThumbPosition();
         }
         
         // Heatmap checkbox toggle - updated for new checkbox structure
@@ -448,6 +440,10 @@ class ShelterAccessApp {
                     if (this.elements.newSheltersValue) {
                         this.elements.newSheltersValue.textContent = '0';
                     }
+                    if (this.elements.shelterCountBadge) {
+                        this.elements.shelterCountBadge.textContent = '0';
+                    }
+                    this.updateSliderThumbPosition();
                     
                     // First time enabling - load precomputed accessibility data
                     if (!this.accessibilityData) {
@@ -1238,15 +1234,15 @@ class ShelterAccessApp {
                 // Use actual SVG icons that match the map icons exactly
                 const img = document.createElement('img');
                 img.src = item.iconSrc;
-                img.width = 18;
-                img.height = 18;
+                img.width = 20;
+                img.height = 20;
                 img.style.display = 'block';
                 iconDiv.appendChild(img);
             } else if (item.type === 'color-box') {
                 // Use color boxes for polygon layers and building footprints
                 iconDiv.style.cssText = `
-                    width: 18px;
-                    height: 18px;
+                    width: 20px;
+                    height: 20px;
                     background: ${item.color};
                     border: 1px solid rgba(255, 255, 255, 0.3);
                     border-radius: 3px;
@@ -1256,13 +1252,7 @@ class ShelterAccessApp {
             
             const label = document.createElement('span');
             label.textContent = item.label;
-            label.style.cssText = `
-                margin-left: 10px;
-                font-size: 13px;
-                font-weight: 500;
-                color: var(--text-primary);
-                flex: 1;
-            `;
+            label.className = 'legend-label';
             
             legendItem.appendChild(iconDiv);
             legendItem.appendChild(label);
@@ -1302,8 +1292,8 @@ class ShelterAccessApp {
             
             const colorBox = document.createElement('div');
             colorBox.style.cssText = `
-                width: 18px;
-                height: 18px;
+                width: 20px;
+                height: 20px;
                 background: ${item.color};
                 border-radius: 3px;
                 border: 1px solid rgba(255, 255, 255, 0.3);
@@ -1312,13 +1302,7 @@ class ShelterAccessApp {
             
             const label = document.createElement('span');
             label.textContent = item.label;
-            label.style.cssText = `
-                margin-left: 10px;
-                font-size: 13px;
-                font-weight: 500;
-                color: var(--text-primary);
-                flex: 1;
-            `;
+            label.className = 'legend-label';
             
             legendItem.appendChild(colorBox);
             legendItem.appendChild(label);
@@ -1327,16 +1311,7 @@ class ShelterAccessApp {
         
         // Distance info
         const distanceInfo = document.createElement('div');
-        distanceInfo.style.cssText = `
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-top: var(--space-md);
-            padding: var(--space-xs) var(--space-sm);
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius-sm);
-        `;
+        distanceInfo.className = 'legend-distance-info';
         distanceInfo.textContent = `Within ${this.coverageRadius}m radius`;
         this.elements.legendItems.appendChild(distanceInfo);
         
@@ -2412,6 +2387,30 @@ class ShelterAccessApp {
     }
     
     /**
+     * Update the custom slider thumb position based on current value
+     */
+    updateSliderThumbPosition() {
+        if (!this.elements.newSheltersSlider || !this.elements.sliderThumb) return;
+        
+        const slider = this.elements.newSheltersSlider;
+        const thumb = this.elements.sliderThumb;
+        const min = parseInt(slider.min);
+        const max = parseInt(slider.max);
+        const value = parseInt(slider.value);
+        
+        // Calculate percentage (0-100)
+        const percentage = ((value - min) / (max - min)) * 100;
+        
+        // Account for thumb width (15px on each side padding in track)
+        const thumbWidth = 30;
+        const containerWidth = slider.offsetWidth;
+        const trackWidth = containerWidth - thumbWidth;
+        const position = (percentage / 100) * trackWidth + (thumbWidth / 2);
+        
+        thumb.style.left = `${position}px`;
+    }
+    
+    /**
      * Toggle new shelter control enable/disable state based on accessibility grid
      */
     toggleNewShelterControl(isAccessibilityGridActive) {
@@ -2576,7 +2575,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app = new ShelterAccessApp();
     window.app.initializeApp();
     
-
+    // Update slider thumb on window resize
+    window.addEventListener('resize', () => {
+        if (window.app) {
+            window.app.updateSliderThumbPosition();
+        }
+    });
 });
 
 // Cleanup on page unload
