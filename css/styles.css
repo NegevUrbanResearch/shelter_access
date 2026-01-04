@@ -729,6 +729,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
 }
 
 .legend-scale-section {
@@ -751,8 +752,6 @@ body {
     flex-direction: column;
     gap: var(--space-xs);
     align-items: flex-start;
-    width: 100%;
-    padding-left: var(--space-lg);
 }
 
 .legend-item {
@@ -2290,6 +2289,12 @@ body.modal-open {
 
 /* Desktop - ensure panels are always visible */
 @media (min-width: 769px) {
+    /* Reduce control panel sizes */
+    :root {
+        --panel-width: clamp(220px, 22vw, 320px);
+        --legend-width: clamp(180px, 18vw, 260px);
+    }
+    
     .control-panel .panel-content {
         display: block !important;
     }
@@ -2300,6 +2305,132 @@ body.modal-open {
     
     .panel-header {
         cursor: default;
+        padding: calc(var(--space-md) * 0.8) calc(var(--space-lg) * 0.8);
+        gap: calc(var(--space-md) * 0.8);
+    }
+    
+    .panel-number {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+    
+    .panel-title h3 {
+        font-size: clamp(13px, 1.2vw, 16px);
+    }
+    
+    .panel-content {
+        padding: 0 calc(var(--space-lg) * 0.8) calc(var(--space-lg) * 0.8);
+    }
+    
+    .control-label {
+        padding: calc(var(--space-lg) * 0.8);
+        font-size: clamp(9px, 0.72vw, 10px);
+    }
+    
+    .checkbox-label {
+        font-size: clamp(11px, 0.96vw, 14px);
+    }
+    
+    .distance-button {
+        padding: calc(var(--space-md) * 0.8) 2px;
+        font-size: clamp(10px, 0.96vw, 14px);
+    }
+    
+    .view-button {
+        padding: calc(var(--space-md) * 0.8);
+        font-size: clamp(9px, 0.72vw, 10px);
+    }
+    
+    .action-button {
+        padding: calc(var(--space-md) * 0.8) calc(var(--space-lg) * 0.8);
+        font-size: clamp(9px, 0.72vw, 10px);
+    }
+    
+    .control-value {
+        font-size: clamp(8px, 0.68vw, 10px);
+    }
+    
+    .section-label {
+        font-size: clamp(9px, 0.72vw, 10px);
+    }
+    
+    .coverage-header {
+        font-size: clamp(10px, 0.88vw, 13px);
+    }
+    
+    .stats-text {
+        font-size: clamp(11px, 0.96vw, 14px);
+    }
+    
+    .control-description {
+        font-size: clamp(9px, 0.76vw, 11px);
+    }
+    
+    .custom-slider-container {
+        height: 24px;
+    }
+    
+    .slider-thumb {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+    
+    .slider-track {
+        height: 4px;
+        left: 12px;
+        right: 12px;
+    }
+    
+    /* Legend panel sizing */
+    .legend-section-title {
+        font-size: clamp(11px, 1.04vw, 14px);
+    }
+    
+    .legend-item {
+        font-size: clamp(10px, 0.88vw, 12px);
+        padding: calc(var(--space-xs) * 0.8) 0;
+    }
+    
+    .legend-icon {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .legend-label {
+        font-size: clamp(10px, 0.88vw, 12px);
+    }
+    
+    .legend-distance-info {
+        font-size: clamp(9px, 0.72vw, 10px);
+    }
+    
+    .legend-control-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+    }
+    
+    .legend-control-btn img {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .scale-text {
+        font-size: clamp(9px, 0.72vw, 11px);
+    }
+    
+    .heatmap-legend h4 {
+        font-size: clamp(9px, 0.72vw, 11px);
+    }
+    
+    .heatmap-color-bar {
+        height: 11px;
+    }
+    
+    .heatmap-labels {
+        font-size: clamp(8px, 0.68vw, 10px);
     }
     
     /* Legend panel: hide number and show full title on desktop */
@@ -2319,7 +2450,7 @@ body.modal-open {
 /* Large screens - ensure max widths */
 @media (min-width: 1600px) {
     :root {
-        --panel-width: 300px;
+        --panel-width: 280px;
         --legend-width: 220px;
         --banner-height: 72px;
     }
@@ -2327,7 +2458,7 @@ body.modal-open {
 
 @media (min-width: 2000px) {
     :root {
-        --panel-width: 320px;
+        --panel-width: 300px;
         --legend-width: 240px;
     }
 }
