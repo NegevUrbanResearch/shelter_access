@@ -95,33 +95,59 @@ def filter_polygons_by_intersection(gdf, filter_geometry, layer_name):
     print(f"✓ Filtered {layer_name}: {len(intersecting)} features (from {len(gdf)} total)")
     return intersecting
 
-def filter_points_by_intersection(gdf, filter_geometry, layer_name, max_distance_meters=None):
+def filter_points_by_intersection(gdf, filter_geometry, layer_name):
     """Filter point features that intersect with the filter geometry"""
     if gdf is None or len(gdf) == 0:
         print(f"⚠️ No data to filter for {layer_name}")
         return gdf
-    
+
     # Ensure same CRS
     if gdf.crs != 'EPSG:4326':
         print(f"Converting {layer_name} CRS from {gdf.crs} to EPSG:4326")
         gdf = gdf.to_crs('EPSG:4326')
-    
-    # If max_distance is specified, add additional buffer to filter geometry
-    if max_distance_meters:
-        # Convert additional buffer to degrees
-        additional_buffer_degrees = max_distance_meters / 111000  # Rough conversion
-        buffered_filter = filter_geometry.buffer(additional_buffer_degrees)
-        print(f"✓ Added {max_distance_meters}m buffer to filter geometry for {layer_name}")
-        filter_geom = buffered_filter
-    else:
-        filter_geom = filter_geometry
-    
+
     # Find points within filter geometry
-    within_filter = gdf[gdf.intersects(filter_geom)]
-    
-    distance_text = f" within {max_distance_meters}m" if max_distance_meters else ""
-    print(f"✓ Filtered {layer_name}: {len(within_filter)} features{distance_text} (from {len(gdf)} total)")
+    within_filter = gdf[gdf.intersects(filter_geometry)]
+
+    print(f"✓ Filtered {layer_name}: {len(within_filter)} features (from {len(gdf)} total)")
     return within_filter
+
+
+def filter_points_by_proximity_to_buildings(points_gdf, buildings_gdf, max_distance_meters, layer_name):
+    """Filter point features that are within max_distance_meters of any building"""
+    if points_gdf is None or len(points_gdf) == 0:
+        print(f"⚠️ No data to filter for {layer_name}")
+        return points_gdf
+
+    print(f"Filtering {layer_name} within {max_distance_meters}m of buildings...")
+
+    # Ensure same CRS
+    if points_gdf.crs != 'EPSG:4326':
+        points_gdf = points_gdf.to_crs('EPSG:4326')
+    if buildings_gdf.crs != 'EPSG:4326':
+        buildings_gdf = buildings_gdf.to_crs('EPSG:4326')
+
+    # Create a buffer around all buildings and union them
+    # Convert buffer from meters to degrees (approximate)
+    avg_lat = buildings_gdf.geometry.centroid.y.mean()
+    lat_factor = 111000  # meters per degree latitude
+    lon_factor = 111000 * abs(cos(radians(avg_lat))) if abs(avg_lat) < 85 else 111000 * 0.1
+    avg_factor = (lat_factor + lon_factor) / 2
+    buffer_degrees = max_distance_meters / avg_factor
+
+    print(f"  Creating {max_distance_meters}m buffer around {len(buildings_gdf)} buildings...")
+
+    # Buffer all buildings and union them into one geometry
+    buffered_buildings = buildings_gdf.geometry.buffer(buffer_degrees)
+    buildings_union = unary_union(buffered_buildings)
+
+    print(f"  Checking which {layer_name} are within buffer...")
+
+    # Find points that intersect with the buffered buildings
+    within_buffer = points_gdf[points_gdf.intersects(buildings_union)]
+
+    print(f"✓ Filtered {layer_name}: {len(within_buffer)} features within {max_distance_meters}m of buildings (from {len(points_gdf)} total)")
+    return within_buffer
 
 def save_filtered_geojson(gdf, output_path):
     """Save filtered GeoDataFrame as GeoJSON"""
@@ -219,15 +245,15 @@ def main():
     convex_hull_path = Path("./alert-analysis/convex_hull.geojson")
     save_convex_hull_geojson(convex_hull, convex_hull_path)
     
-    # Load and filter shelters (with 2500m buffer)
+    # Load and filter shelters (within 1km of any building)
     print("\n🏠 Processing shelters...")
     shelters_gdf = load_geojson(shelters_path)
     if shelters_gdf is not None:
-        filtered_shelters = filter_points_by_intersection(
-            shelters_gdf, 
-            convex_hull, 
-            "shelters",
-            2500
+        filtered_shelters = filter_points_by_proximity_to_buildings(
+            shelters_gdf,
+            buildings_gdf,
+            1000,  # 1km
+            "shelters"
         )
         save_filtered_geojson(filtered_shelters, shelters_filtered_path)
     
