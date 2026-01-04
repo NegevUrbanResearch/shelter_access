@@ -619,6 +619,13 @@ body {
     border-color: var(--accent-blue);
 }
 
+.legend-control-btn img {
+    display: block;
+    width: 14px;
+    height: 14px;
+    opacity: 0.9;
+}
+
 /* Heatmap Legend */
 .heatmap-legend,
 .heatmap-legend-compact {

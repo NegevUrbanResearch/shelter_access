@@ -640,6 +640,9 @@ class ShelterAccessApp {
                 <button class="legend-control-btn zoom-in-btn" title="Zoom In">+</button>
                 <button class="legend-control-btn zoom-out-btn" title="Zoom Out">−</button>
                 <button class="legend-control-btn fullscreen-btn" title="Toggle Fullscreen">⛶</button>
+                <button class="legend-control-btn layers-btn" id="layersButton" title="Data Layers">
+                    <img src="data/layer-icon.svg" width="14" height="14" alt="Layers" />
+                </button>
             </div>
         `;
         
@@ -675,6 +678,18 @@ class ShelterAccessApp {
                 console.log('Fullscreen button clicked');
                 this.toggleFullscreen();
             });
+        }
+        
+        // Setup layers button modal handler
+        const layersBtn = controlsSection.querySelector('#layersButton');
+        if (layersBtn) {
+            const layersModal = document.getElementById('layersModal');
+            if (layersModal) {
+                layersBtn.addEventListener('click', () => {
+                    layersModal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                });
+            }
         }
         
         console.log('Zoom controls added successfully');
