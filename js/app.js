@@ -1152,7 +1152,7 @@ class ShelterAccessApp {
         
         const legendItems = [];
         
-        // Building Footprints - always show when visible
+        // Always-on layers - Building Footprints and Existing Shelters
         if (this.layerVisibility.buildings) {
             legendItems.push({
                 type: 'color-box',
@@ -1163,7 +1163,6 @@ class ShelterAccessApp {
             });
         }
         
-        // Shelter layers - only when visible
         if (this.layerVisibility.existingShelters) {
             legendItems.push({
                 type: 'svg-icon',
@@ -1174,6 +1173,7 @@ class ShelterAccessApp {
             });
         }
         
+        // Optional layers - only when visible
         if (this.layerVisibility.requestedShelters) {
             legendItems.push({
                 type: 'svg-icon',
@@ -1218,13 +1218,13 @@ class ShelterAccessApp {
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
-        // Only show legend if there are visible items
+        // Show legend section even if empty (it will just show the title)
+        this.elements.legendItems.style.display = 'block';
+        
+        // Only add items if there are any
         if (legendItems.length === 0) {
-            this.elements.legendItems.style.display = 'none';
             return;
         }
-        
-        this.elements.legendItems.style.display = 'block';
         
         // Add new legend items with proper symbology
         legendItems.forEach(item => {
