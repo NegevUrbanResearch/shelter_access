@@ -1277,12 +1277,11 @@ class ShelterAccessApp {
                 img.className = 'legend-icon-img';
                 iconDiv.appendChild(img);
             } else if (item.type === 'color-box') {
-                // Use color boxes for polygon layers and building footprints
-                iconDiv.style.cssText = `
-                    background: ${item.color};
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    border-radius: 3px;
-                `;
+                // Use inner div for color boxes to match SVG icon structure
+                const colorBox = document.createElement('div');
+                colorBox.className = 'legend-color-box';
+                colorBox.style.background = item.color;
+                iconDiv.appendChild(colorBox);
             }
             
             const label = document.createElement('span');
