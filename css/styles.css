@@ -265,6 +265,15 @@ body {
     border-color: rgba(255, 255, 255, 0.15);
 }
 
+/* Plain text section label (non-interactive) */
+.section-label {
+    display: block;
+    font-size: clamp(11px, 0.9vw, 13px);
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: var(--space-md);
+}
+
 .control-value {
     font-size: clamp(10px, 0.85vw, 12px);
     color: var(--text-primary);
@@ -308,17 +317,19 @@ body {
 }
 
 .distance-button {
-    flex: 1;
-    padding: var(--space-md) var(--space-sm);
+    flex: 1 1 0;
+    min-width: 0;
+    padding: var(--space-sm) 2px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: clamp(10px, 0.85vw, 12px);
+    font-size: clamp(9px, 0.8vw, 12px);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
     text-align: center;
+    white-space: nowrap;
 }
 
 .distance-button:hover {
@@ -1418,26 +1429,36 @@ body.modal-open {
         --legend-width: clamp(120px, 35vw, 160px);
         --banner-height: 52px;
     }
-    
+
     .brand-banner .logo {
         height: 28px;
     }
-    
+
     .main-menu {
         top: calc(var(--banner-height) + var(--space-md));
         left: var(--space-sm);
     }
-    
+
     .main-menu.minimized {
         width: 140px;
     }
-    
+
     .menu-header {
         padding: var(--space-md);
     }
-    
+
     .menu-content {
         padding: var(--space-md);
+    }
+
+    /* Mobile distance buttons - smaller to fit on one line */
+    .distance-buttons {
+        gap: 3px;
+    }
+
+    .distance-button {
+        padding: 6px 4px;
+        font-size: 9px;
     }
     
     .map-legend-panel {
@@ -1466,30 +1487,44 @@ body.modal-open {
         --legend-width: clamp(100px, 30vw, 120px);
         --banner-height: 48px;
     }
-    
+
     .main-menu {
         left: 4px;
     }
-    
+
     .main-menu.minimized {
         width: 120px;
     }
-    
+
     .map-legend-panel {
         right: 4px;
         bottom: 4px;
     }
-    
+
+    /* Extra small screen distance buttons */
+    .distance-buttons {
+        gap: 2px;
+    }
+
+    .distance-button {
+        padding: 5px 2px;
+        font-size: 8px;
+    }
+
+    .section-label {
+        font-size: 10px;
+    }
+
     .modal-header {
         flex-direction: column;
         gap: var(--space-sm);
         align-items: stretch;
     }
-    
+
     .modal-header-controls {
         justify-content: space-between;
     }
-    
+
     .brand-banner .logo {
         height: 24px;
     }
