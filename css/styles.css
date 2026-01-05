@@ -193,7 +193,7 @@ body {
    ============================================ */
 .control-panels-container {
     position: absolute;
-    top: calc(var(--banner-height) + var(--space-lg));
+    top: calc(var(--banner-height) + 10vh);
     left: var(--space-lg);
     z-index: 100;
     display: flex;
