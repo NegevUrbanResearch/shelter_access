@@ -1204,7 +1204,7 @@ class ShelterAccessApp {
                 type: 'svg-icon',
                 className: 'existing-shelter', 
                 label: 'Existing Shelters',
-                iconSrc: 'data/existing.svg',
+                iconSrc: 'data/proposed.svg',
                 description: 'Current shelter locations'
             });
         }
@@ -1225,7 +1225,7 @@ class ShelterAccessApp {
                 type: 'svg-icon',
                 className: 'optimal-shelter',
                 label: 'Optimal Shelters',
-                iconSrc: 'data/proposed.svg',
+                iconSrc: 'data/existing.svg',
                 description: 'Algorithm-generated sites'
             });
         }
@@ -1478,7 +1478,7 @@ class ShelterAccessApp {
             case 'existing':
                 return {
                     ...baseConfig,
-                    url: 'data/existing.svg',
+                    url: 'data/proposed.svg',
                     id: 'existing-shelter'
                 };
             case 'requested':
@@ -1490,13 +1490,13 @@ class ShelterAccessApp {
             case 'optimal':
                 return {
                     ...baseConfig,
-                    url: 'data/proposed.svg',
+                    url: 'data/existing.svg',
                     id: 'optimal-shelter'
                 };
             default:
                 return {
                     ...baseConfig,
-                    url: 'data/existing.svg',
+                    url: 'data/proposed.svg',
                     id: 'default-shelter'
                 };
         }

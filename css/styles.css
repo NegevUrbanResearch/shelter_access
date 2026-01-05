@@ -193,14 +193,18 @@ body {
    ============================================ */
 .control-panels-container {
     position: absolute;
-    top: calc(var(--banner-height) + (100vh - var(--banner-height)) / 2);
-    transform: translateY(-50%);
+    top: calc(var(--banner-height) + var(--space-lg));
     left: var(--space-lg);
     z-index: 100;
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
     max-width: var(--panel-width);
+    pointer-events: none;
+}
+
+.control-panels-container > * {
+    pointer-events: auto;
 }
 
 .control-panel {
@@ -219,7 +223,7 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-lg) var(--space-lg) var(--space-md);
 }
 
 .panel-number {
@@ -362,7 +366,7 @@ body {
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    padding: var(--space-sm) 0;
+    padding: var(--space-xs) 0;
 }
 
 .control-label {
@@ -715,9 +719,18 @@ body {
 /* ============================================
    LEGEND PANEL - Bottom right
    ============================================ */
-.map-legend-panel {
+.control-panel.map-legend-panel {
+    position: fixed !important;
+    bottom: var(--space-lg) !important;
+    right: var(--space-lg) !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: var(--legend-width) !important;
+    min-width: auto !important;
     max-height: 60vh;
     overflow-y: auto;
+    z-index: 99;
 }
 
 .map-legend-panel .panel-content {
@@ -1848,6 +1861,13 @@ body.modal-open {
 
     /* Legend panel mobile */
     .map-legend-panel {
+        position: fixed;
+        bottom: 4px;
+        right: 4px;
+        left: auto;
+        top: auto;
+        transform: none;
+        width: 100px;
         max-height: none;
         border-radius: 6px;
     }
@@ -2289,10 +2309,10 @@ body.modal-open {
 
 /* Desktop - ensure panels are always visible */
 @media (min-width: 769px) {
-    /* Reduce control panel sizes */
+    /* Control panel sizes */
     :root {
-        --panel-width: clamp(220px, 22vw, 320px);
-        --legend-width: clamp(180px, 18vw, 260px);
+        --panel-width: clamp(260px, 26vw, 360px);
+        --legend-width: clamp(200px, 20vw, 280px);
     }
     
     .control-panel .panel-content {
@@ -2305,7 +2325,7 @@ body.modal-open {
     
     .panel-header {
         cursor: default;
-        padding: calc(var(--space-md) * 0.8) calc(var(--space-lg) * 0.8);
+        padding: var(--space-lg) calc(var(--space-lg) * 0.8) calc(var(--space-md) * 0.8);
         gap: calc(var(--space-md) * 0.8);
     }
     
@@ -2320,7 +2340,7 @@ body.modal-open {
     }
     
     .panel-content {
-        padding: 0 calc(var(--space-lg) * 0.8) calc(var(--space-lg) * 0.8);
+        padding: var(--space-md) calc(var(--space-lg) * 0.8) calc(var(--space-lg) * 0.8);
     }
     
     .control-label {
@@ -2445,20 +2465,33 @@ body.modal-open {
     .legend-title-full {
         display: inline;
     }
+    
+    /* Position legend at bottom right on desktop */
+    .control-panel.map-legend-panel {
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        left: auto !important;
+        top: auto !important;
+        transform: none !important;
+        width: var(--legend-width) !important;
+        min-width: auto !important;
+        z-index: 99 !important;
+    }
 }
 
 /* Large screens - ensure max widths */
 @media (min-width: 1600px) {
     :root {
-        --panel-width: 280px;
-        --legend-width: 220px;
+        --panel-width: 320px;
+        --legend-width: 260px;
         --banner-height: 72px;
     }
 }
 
 @media (min-width: 2000px) {
     :root {
-        --panel-width: 300px;
-        --legend-width: 240px;
+        --panel-width: 360px;
+        --legend-width: 280px;
     }
 }
