@@ -131,18 +131,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Panel 2: View Current Coverage + Coverage Stats -->
-        <div class="control-panel">
-          <div class="panel-header">
-            <div class="panel-number">2</div>
-            <div class="panel-title">
-              <h3>View Current Coverage</h3>
-            </div>
-          </div>
-          <div class="panel-content">
             <div class="control-section">
               <div class="control-group">
                 <label class="control-label-simple">
@@ -151,33 +139,18 @@
                     id="heatmapToggle"
                     class="checkbox-toggle"
                   />
-                  <span class="checkbox-label">Show Accessibility Grid</span>
+                  <span class="checkbox-label">View Current Coverage</span>
                   <span class="checkbox-checkmark">✓</span>
                 </label>
-              </div>
-            </div>
-            <div class="control-section">
-              <div class="control-group">
-                <div class="coverage-stats-simple">
-                  <div class="coverage-header">Coverage Summary</div>
-                  <p class="stats-text">
-                    Existing bomb shelters are accessible within
-                    <strong id="currentRadius">100m</strong> by
-                    <strong id="currentCoverage">--%</strong> of buildings. You
-                    have added <strong id="newSheltersCount">0</strong> bomb
-                    shelters, increasing total coverage to
-                    <strong id="newCoverage">--%</strong>.
-                  </p>
-                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Panel 3: Add New Shelters -->
-        <div class="control-panel shelter-panel">
+        <!-- Panel 2: Add New Shelters -->
+        <div class="control-panel">
           <div class="panel-header">
-            <div class="panel-number">3</div>
+            <div class="panel-number">2</div>
             <div class="panel-title">
               <h3>Add New Shelters</h3>
             </div>
@@ -199,6 +172,32 @@
                   <div class="slider-thumb" id="sliderThumb">
                     <span id="shelterCountBadge">0</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Explore Coverage Summary -->
+        <div class="control-panel shelter-panel">
+          <div class="panel-header">
+            <div class="panel-number">3</div>
+            <div class="panel-title">
+              <h3>Explore Coverage Summary</h3>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="control-section">
+              <div class="control-group">
+                <div class="coverage-stats-simple">
+                  <p class="stats-text">
+                    Existing bomb shelters are accessible within
+                    <strong id="currentRadius">100m</strong> by
+                    <strong id="currentCoverage">--%</strong> of buildings. You
+                    have added <strong id="newSheltersCount">0</strong> bomb
+                    shelters, increasing total coverage to
+                    <strong id="newCoverage">--%</strong>.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1318,7 +1317,8 @@
                       <p class="step-description">
                         Use accessibility range buttons (100m-300m) to set how
                         far residents can travel to reach a bomb shelter during
-                        an emergency.
+                        an emergency. Toggle "View Current Coverage" to see
+                        current coverage for your selected accessibility range.
                       </p>
                     </div>
                   </div>
@@ -1326,9 +1326,9 @@
                   <div class="guide-step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                      <span class="step-title">View Current Coverage</span>
+                      <span class="step-title">Add New Shelters</span>
                       <p class="step-description">
-                        See current coverage by turning on Accessibility Grid.
+                        Use slider to add strategically placed new shelters.
                       </p>
                     </div>
                   </div>
@@ -1336,9 +1336,11 @@
                   <div class="guide-step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                      <span class="step-title">Add New Shelters</span>
+                      <span class="step-title">Explore Coverage Summary</span>
                       <p class="step-description">
-                        Use slider to add strategically placed new shelters.
+                        View coverage statistics showing what percentage of
+                        buildings are accessible and how adding shelters
+                        improves coverage.
                       </p>
                     </div>
                   </div>
@@ -1363,7 +1365,8 @@
                       <p class="step-description">
                         استخدم أزرار "Accessibility Range" (100م-300م) لتحديد
                         المسافة التي يمكن للسكان قطعها للوصول إلى ملجأ الحماية
-                        خلال حالة الطوارئ.
+                        خلال حالة الطوارئ. فعّل "View Current Coverage" لرؤية
+                        التغطية الحالية لمسافة الوصول التي اخترتها.
                       </p>
                     </div>
                   </div>
@@ -1371,10 +1374,9 @@
                   <div class="guide-step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                      <span class="step-title">عرض التغطية الحالية</span>
+                      <span class="step-title">إضافة ملاجئ جديدة</span>
                       <p class="step-description">
-                        اطلع على التغطية الحالية من خلال تفعيل "Show
-                        Accessibility Grid".
+                        استخدم المؤشر لإضافة ملاجئ جديدة موضوعة استراتيجياً.
                       </p>
                     </div>
                   </div>
@@ -1382,10 +1384,11 @@
                   <div class="guide-step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                      <span class="step-title">إضافة ملاجئ جديدة</span>
+                      <span class="step-title">استكشاف ملخص التغطية</span>
                       <p class="step-description">
-                        استخدم مؤشر "Proposed number of shelters to add" لإضافة
-                        ملاجئ جديدة موضوعة استراتيجياً.
+                        اعرض إحصائيات التغطية التي تُظهر النسبة المئوية
+                        للمباني القابلة للوصول وكيفية تحسين التغطية بإضافة
+                        الملاجئ.
                       </p>
                     </div>
                   </div>
@@ -1410,7 +1413,8 @@
                       <p class="step-description">
                         השתמש בכפתורי "Accessibility Range" (100-300 מטר) כדי
                         לקבוע כמה רחוק תושבים יכולים לנסוע כדי להגיע למקלט בזמן
-                        חירום.
+                        חירום. הפעל "View Current Coverage" כדי לראות את הכיסוי
+                        הנוכחי עבור מרחק הנגישות שבחרת.
                       </p>
                     </div>
                   </div>
@@ -1418,10 +1422,10 @@
                   <div class="guide-step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                      <span class="step-title">צפייה בכיסוי הנוכחי</span>
+                      <span class="step-title">הוספת מיגוניות חדשות</span>
                       <p class="step-description">
-                        ראה את הכיסוי הנוכחי על ידי הפעלת "Show Accessibility
-                        Grid".
+                        השתמש במחוון כדי להוסיף מיגוניות חדשות הממוקמות באופן
+                        אסטרטגי.
                       </p>
                     </div>
                   </div>
@@ -1429,10 +1433,10 @@
                   <div class="guide-step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                      <span class="step-title">הוספת מקלטים חדשים</span>
+                      <span class="step-title">חקירת סיכום הכיסוי</span>
                       <p class="step-description">
-                        השתמש במחוון "Proposed number of shelters to add" כדי
-                        להוסיף מקלטים חדשים הממוקמים באופן אסטרטגי.
+                        צפה בסטטיסטיקות הכיסוי המציגות את אחוז המבנים הנגישים
+                        וכיצד הוספת מיגוניות משפרת את הכיסוי.
                       </p>
                     </div>
                   </div>

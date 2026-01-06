@@ -552,7 +552,9 @@ body {
 
 /* Coverage Stats */
 .coverage-stats-simple {
-    padding: var(--space-sm) 0;
+    padding: 0;
+    padding-left: calc(38px + var(--space-md));
+    margin-top: calc(var(--space-sm) * 0.2);
 }
 
 .coverage-stats {
@@ -602,11 +604,11 @@ body {
 
 /* Shelter Panel - Compact styling */
 .shelter-panel .panel-header {
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-md) var(--space-lg) 0;
 }
 
 .shelter-panel .panel-content {
-    padding: var(--space-sm) var(--space-lg) var(--space-md);
+    padding: 0 var(--space-lg) var(--space-md);
 }
 
 /* Custom Slider with Count in Thumb */
@@ -1830,7 +1832,9 @@ body.modal-open {
     }
     
     .coverage-stats-simple {
-        padding: 1px 0;
+        padding: 0;
+        padding-left: calc(16px + 4px);
+        margin-top: 1px;
     }
     
     .coverage-header {
@@ -2202,6 +2206,10 @@ body.modal-open {
         font-size: 6px;
     }
     
+    .coverage-stats-simple {
+        padding-left: calc(14px + 3px);
+    }
+    
     .coverage-header {
         font-size: 6px;
     }
@@ -2381,6 +2389,10 @@ body.modal-open {
     
     .stats-text {
         font-size: clamp(11px, 0.96vw, 14px);
+    }
+    
+    .coverage-stats-simple {
+        padding-left: calc(30px + calc(var(--space-md) * 0.8));
     }
     
     .control-description {
