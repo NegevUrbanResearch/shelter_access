@@ -452,6 +452,15 @@ class ShelterAccessApp {
                     this.elements.shelterCountBadge.textContent = this.numNewShelters;
                 }
                 this.updateSliderThumbPosition();
+                
+                // If accessibility heatmap is active, turn it off when using the add new shelters tool
+                if (this.layerVisibility.accessibilityHeatmap) {
+                    this.layerVisibility.accessibilityHeatmap = false;
+                    if (this.elements.heatmapToggle) {
+                        this.elements.heatmapToggle.checked = false;
+                    }
+                }
+                
                 await this.updateOptimalLocations();
             });
             
@@ -464,9 +473,6 @@ class ShelterAccessApp {
             this.elements.heatmapToggle.addEventListener('change', async (e) => {
                 const isActive = e.target.checked;
                 this.layerVisibility.accessibilityHeatmap = isActive;
-                
-                // Toggle new shelter control state
-                this.toggleNewShelterControl(isActive);
                 
                 if (isActive) {
                     // Reset shelters when enabling heatmap
@@ -493,9 +499,6 @@ class ShelterAccessApp {
                 
                 this.updateVisualization();
             });
-            
-            // Set initial state based on checkbox
-            this.toggleNewShelterControl(this.elements.heatmapToggle.checked);
         }
         
         // Basemap toggle switch
@@ -2442,21 +2445,6 @@ class ShelterAccessApp {
         const position = (percentage / 100) * trackWidth + (thumbWidth / 2);
         
         thumb.style.left = `${position}px`;
-    }
-    
-    /**
-     * Toggle new shelter control enable/disable state based on accessibility grid
-     */
-    toggleNewShelterControl(isAccessibilityGridActive) {
-        const shelterSection = document.getElementById('addedSheltersSection');
-        
-        if (isAccessibilityGridActive) {
-            // Disable new shelter control when accessibility grid is active
-            shelterSection.classList.add('disabled');
-        } else {
-            // Enable new shelter control when accessibility grid is inactive
-            shelterSection.classList.remove('disabled');
-        }
     }
     
     /**
