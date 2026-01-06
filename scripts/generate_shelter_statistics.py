@@ -615,6 +615,591 @@ def create_buildings_per_shelter_comparison(theme, radii, existing_avg, optimal_
     plt.close()
 
 
+def calculate_polygon_area_sqkm(coordinates):
+    """Calculate polygon area in square kilometers using shoelace formula"""
+    if not coordinates or len(coordinates) < 3:
+        return 0
+    
+    # Handle MultiPolygon
+    if isinstance(coordinates[0][0][0], list):
+        total_area = 0
+        for poly in coordinates:
+            if len(poly) > 0 and len(poly[0]) > 0:
+                total_area += calculate_polygon_area_sqkm(poly)
+        return total_area
+    
+    # Handle Polygon (first ring is exterior)
+    if isinstance(coordinates[0][0], list):
+        coords = coordinates[0]
+    else:
+        coords = coordinates
+    
+    # Shoelace formula for area
+    area_deg2 = 0
+    n = len(coords)
+    for i in range(n):
+        j = (i + 1) % n
+        area_deg2 += coords[i][0] * coords[j][1]
+        area_deg2 -= coords[j][0] * coords[i][1]
+    area_deg2 = abs(area_deg2) / 2.0
+    
+    # Convert degrees^2 to km^2 (approximate, varies by latitude)
+    # At ~31°N latitude: 1° lat ≈ 111 km, 1° lon ≈ 95 km
+    # Using average: 1 deg^2 ≈ 10550 km^2
+    area_sqkm = area_deg2 * 10550
+    
+    return area_sqkm
+
+
+def extract_coordinate(coord):
+    """Extract lon, lat from coordinate which may be nested or have extra values"""
+    # Handle different coordinate structures
+    if isinstance(coord, (list, tuple)) and len(coord) > 0:
+        first = coord[0]
+        # If first element is also a list, it's nested like [[lon, lat]]
+        if isinstance(first, (list, tuple)) and len(first) >= 2:
+            return float(first[0]), float(first[1])
+        # Otherwise it's flat like [lon, lat]
+        elif len(coord) >= 2:
+            return float(coord[0]), float(coord[1])
+    return None, None
+
+
+def point_in_polygon(point, polygon_coords):
+    """Check if a point is inside a polygon using ray casting algorithm"""
+    x, y = float(point[0]), float(point[1])
+    
+    # Ensure polygon_coords is a list of coordinate pairs
+    if not polygon_coords or len(polygon_coords) < 3:
+        return False
+    
+    # Extract first coordinate to check structure
+    p1x, p1y = extract_coordinate(polygon_coords[0])
+    if p1x is None:
+        return False
+    
+    inside = False
+    n = len(polygon_coords)
+    
+    for i in range(1, n + 1):
+        p2x, p2y = extract_coordinate(polygon_coords[i % n])
+        if p2x is None:
+            continue
+        
+        if y > min(p1y, p2y):
+            if y <= max(p1y, p2y):
+                if x <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        if p1x == p2x or x <= xinters:
+                            inside = not inside
+                    # Skip horizontal edges (p1y == p2y) as they don't intersect horizontal ray
+        p1x, p1y = p2x, p2y
+    
+    return inside
+
+
+def load_density_per_sqkm_data():
+    """Calculate buildings and shelters per sq km using a grid-based approach"""
+    print("Loading density per sq km data (grid-based)...")
+    
+    # Load buildings
+    try:
+        with open('data/buildings.geojson', 'r') as f:
+            buildings_data = json.load(f)
+    except FileNotFoundError:
+        print("  Buildings data not found")
+        return None
+    
+    # Load existing shelters
+    try:
+        with open('data/shelters.geojson', 'r', encoding='utf-8') as f:
+            shelters_data = json.load(f)
+            existing_shelters = []
+            for feature in shelters_data['features']:
+                props = feature['properties']
+                status = props.get('status', '').strip()
+                if status.startswith('Built'):
+                    coords = feature['geometry']['coordinates']
+                    existing_shelters.append([coords[0], coords[1]])
+    except FileNotFoundError:
+        existing_shelters = []
+    
+    # Extract building coordinates
+    building_coords = []
+    for feature in buildings_data['features']:
+        geom = feature['geometry']
+        if geom['type'] == 'Point':
+            building_coords.append(geom['coordinates'])
+        elif geom['type'] in ['Polygon', 'MultiPolygon']:
+            if geom['type'] == 'Polygon':
+                coords = geom['coordinates'][0]
+            else:
+                coords = geom['coordinates'][0][0]
+            cx = sum(c[0] for c in coords) / len(coords)
+            cy = sum(c[1] for c in coords) / len(coords)
+            building_coords.append([cx, cy])
+    
+    if not building_coords:
+        print("  No building coordinates found")
+        return None
+    
+    # Calculate bounds from building data
+    lons = [b[0] for b in building_coords]
+    lats = [b[1] for b in building_coords]
+    min_lon, max_lon = min(lons), max(lons)
+    min_lat, max_lat = min(lats), max(lats)
+    
+    # Grid cell size in degrees (approximately 1km x 1km)
+    # At ~31°N latitude: 1° lat ≈ 111 km, 1° lon ≈ 95 km
+    # So 1km ≈ 0.009° lat and ≈ 0.0105° lon
+    grid_size_deg_lat = 0.009  # ~1km
+    grid_size_deg_lon = 0.0105  # ~1km
+    
+    # Create grid
+    grid_cells = {}
+    
+    def get_grid_cell(lon, lat):
+        """Get grid cell indices for a coordinate"""
+        i = int((lat - min_lat) / grid_size_deg_lat)
+        j = int((lon - min_lon) / grid_size_deg_lon)
+        return (i, j)
+    
+    # Count buildings in each grid cell
+    for building in building_coords:
+        cell = get_grid_cell(building[0], building[1])
+        if cell not in grid_cells:
+            grid_cells[cell] = {'buildings': 0, 'shelters': 0}
+        grid_cells[cell]['buildings'] += 1
+    
+    # Count shelters in each grid cell
+    for shelter in existing_shelters:
+        cell = get_grid_cell(shelter[0], shelter[1])
+        if cell not in grid_cells:
+            grid_cells[cell] = {'buildings': 0, 'shelters': 0}
+        grid_cells[cell]['shelters'] += 1
+    
+    # Calculate density for each grid cell
+    # Area of each cell in sq km (approximately 1 km²)
+    cell_area_sqkm = grid_size_deg_lat * 111 * grid_size_deg_lon * 95  # ~1 km²
+    
+    density_data = []
+    for (i, j), counts in grid_cells.items():
+        # Only include cells with buildings
+        if counts['buildings'] > 0:
+            buildings_per_sqkm = counts['buildings'] / cell_area_sqkm
+            shelters_per_sqkm = counts['shelters'] / cell_area_sqkm
+            
+            # Calculate cell center for reference
+            cell_center_lat = min_lat + (i + 0.5) * grid_size_deg_lat
+            cell_center_lon = min_lon + (j + 0.5) * grid_size_deg_lon
+            
+            density_data.append({
+                'buildings_per_sqkm': buildings_per_sqkm,
+                'shelters_per_sqkm': shelters_per_sqkm,
+                'buildings': counts['buildings'],
+                'shelters': counts['shelters'],
+                'area_sqkm': cell_area_sqkm,
+                'cell_i': i,
+                'cell_j': j,
+                'center_lat': cell_center_lat,
+                'center_lon': cell_center_lon
+            })
+    
+    print(f"  Created {len(grid_cells)} grid cells ({len(density_data)} with buildings)")
+    if density_data:
+        avg_buildings = np.mean([d['buildings_per_sqkm'] for d in density_data])
+        avg_shelters = np.mean([d['shelters_per_sqkm'] for d in density_data])
+        print(f"  Average buildings per km²: {avg_buildings:.1f}")
+        print(f"  Average shelters per km²: {avg_shelters:.2f}")
+    return density_data
+
+
+def create_density_scatter(theme, density_data):
+    """Create scatter plot of shelters per sq km vs buildings per sq km"""
+    if not density_data:
+        return
+    
+    _, ax = plt.subplots(figsize=(10, 6))
+    
+    buildings_density = np.array([d['buildings_per_sqkm'] for d in density_data])
+    shelters_density = np.array([d['shelters_per_sqkm'] for d in density_data])
+    
+    # Add small jitter to zero values to prevent overlap (keep above zero)
+    jittered_shelters = shelters_density.copy()
+    zero_mask_y = shelters_density == 0
+    if np.any(zero_mask_y):
+        jittered_shelters[zero_mask_y] = np.random.uniform(0.05, 0.25, size=np.sum(zero_mask_y))
+    
+    # Add small jitter to zero values on x-axis
+    jittered_buildings = buildings_density.copy()
+    zero_mask_x = buildings_density == 0
+    if np.any(zero_mask_x):
+        jittered_buildings[zero_mask_x] = np.random.uniform(0.5, 2.5, size=np.sum(zero_mask_x))
+    
+    # Create scatter plot with light blending (low alpha for additive blending effect)
+    ax.scatter(jittered_buildings, jittered_shelters, 
+              color=theme['bar_color'], alpha=0.3, s=15, edgecolors='none')
+    
+    ax.set_xlabel('Buildings per km²')
+    ax.set_ylabel('Shelters per km²')
+    ax.set_title('Shelter Density vs Building Density', pad=15)
+    ax.set_xlim(-3, None)  # Add padding below zero on x-axis
+    ax.set_ylim(0, 10)
+    ax.set_yticks(range(0, 11, 2))
+    ax.set_yticklabels([f'{y}' for y in range(0, 11, 2)])
+    
+    setup_tufte_axis(ax)
+    ax.grid(True, linewidth=0.5, alpha=0.3)
+    ax.set_axisbelow(True)
+    
+    plt.tight_layout()
+    plt.savefig(f'output/07_density_scatter{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+                facecolor=theme['background'], format='jpeg')
+    plt.close()
+
+
+def calculate_local_building_density(building_coords, radius_m=300):
+    """Calculate local density: number of buildings within radius_m of each building"""
+    print(f"Calculating local building density (buildings within {radius_m}m)...")
+    
+    if not building_coords or len(building_coords) < 2:
+        return None
+    
+    building_coords = np.array(building_coords)
+    n = len(building_coords)
+    radius_deg = radius_m / 100000  # Convert meters to degrees (approximate)
+    radius_sq = radius_deg ** 2
+    
+    local_densities = np.zeros(n, dtype=int)
+    
+    # Process in batches to show progress and manage memory
+    batch_size = 500
+    total_batches = (n + batch_size - 1) // batch_size
+    
+    for batch_idx in range(total_batches):
+        if batch_idx % 5 == 0 or batch_idx == total_batches - 1:
+            print(f"  Processing batch {batch_idx + 1}/{total_batches} ({batch_idx * batch_size:,} buildings)...")
+        
+        i = batch_idx * batch_size
+        batch_end = min(i + batch_size, n)
+        batch_coords = building_coords[i:batch_end]
+        batch_size_actual = batch_end - i
+        
+        # Vectorized: calculate distances from all batch buildings to all buildings
+        # Shape: (batch_size, n)
+        lon_diff = building_coords[:, 0][np.newaxis, :] - batch_coords[:, 0][:, np.newaxis]
+        lat_diff = building_coords[:, 1][np.newaxis, :] - batch_coords[:, 1][:, np.newaxis]
+        distances_squared = lon_diff**2 + lat_diff**2
+        
+        # Count buildings within radius for each building in batch
+        within_radius = np.sum(distances_squared <= radius_sq, axis=1)
+        local_densities[i:batch_end] = within_radius - 1  # Subtract 1 to exclude self
+    
+    print(f"  Calculated local density for {n:,} buildings")
+    return local_densities.tolist()
+
+
+def calculate_shelters_within_radius(building_coords, shelter_coords, radius_m=300):
+    """Calculate number of shelters within radius_m of each building"""
+    print(f"Calculating shelters within {radius_m}m of each building...")
+    
+    if not building_coords or not shelter_coords:
+        return None
+    
+    building_coords = np.array(building_coords)
+    shelter_coords = np.array(shelter_coords)
+    n = len(building_coords)
+    radius_deg = radius_m / 100000
+    radius_sq = radius_deg ** 2
+    
+    shelter_counts = np.zeros(n, dtype=int)
+    
+    # Process in batches
+    batch_size = 1000
+    total_batches = (n + batch_size - 1) // batch_size
+    
+    for batch_idx in range(total_batches):
+        if batch_idx % 10 == 0 or batch_idx == total_batches - 1:
+            print(f"  Processing batch {batch_idx + 1}/{total_batches} ({batch_idx * batch_size:,} buildings)...")
+        
+        i = batch_idx * batch_size
+        batch_end = min(i + batch_size, n)
+        batch_coords = building_coords[i:batch_end]
+        
+        # Vectorized: calculate distances from batch buildings to all shelters
+        lon_diff = shelter_coords[:, 0][np.newaxis, :] - batch_coords[:, 0][:, np.newaxis]
+        lat_diff = shelter_coords[:, 1][np.newaxis, :] - batch_coords[:, 1][:, np.newaxis]
+        distances_squared = lon_diff**2 + lat_diff**2
+        
+        # Count shelters within radius for each building
+        within_radius = np.sum(distances_squared <= radius_sq, axis=1)
+        shelter_counts[i:batch_end] = within_radius
+    
+    print(f"  Calculated shelter counts for {n:,} buildings")
+    return shelter_counts.tolist()
+
+
+def load_local_density_data():
+    """Load building data and calculate local density metrics"""
+    print("Loading building data for local density calculation...")
+    
+    try:
+        with open('data/buildings.geojson', 'r') as f:
+            buildings_data = json.load(f)
+    except FileNotFoundError:
+        print("  Buildings data not found")
+        return None
+    
+    # Load existing shelters
+    try:
+        with open('data/shelters.geojson', 'r', encoding='utf-8') as f:
+            shelters_data = json.load(f)
+            existing_shelters = []
+            for feature in shelters_data['features']:
+                props = feature['properties']
+                status = props.get('status', '').strip()
+                if status.startswith('Built'):
+                    coords = feature['geometry']['coordinates']
+                    existing_shelters.append([coords[0], coords[1]])
+    except FileNotFoundError:
+        existing_shelters = []
+    
+    # Extract building coordinates
+    building_coords = []
+    for feature in buildings_data['features']:
+        geom = feature['geometry']
+        if geom['type'] == 'Point':
+            building_coords.append(geom['coordinates'])
+        elif geom['type'] in ['Polygon', 'MultiPolygon']:
+            if geom['type'] == 'Polygon':
+                coords = geom['coordinates'][0]
+            else:
+                coords = geom['coordinates'][0][0]
+            cx = sum(c[0] for c in coords) / len(coords)
+            cy = sum(c[1] for c in coords) / len(coords)
+            building_coords.append([cx, cy])
+    
+    if not building_coords:
+        return None
+    
+    # Calculate local density
+    local_densities = calculate_local_building_density(building_coords, radius_m=300)
+    
+    # Calculate shelters within 300m
+    shelter_counts = calculate_shelters_within_radius(building_coords, existing_shelters, radius_m=300)
+    
+    return {
+        'building_coords': building_coords,
+        'local_densities': local_densities,
+        'shelter_counts': shelter_counts
+    }
+
+
+def calculate_closest_shelter_distance(building_coords, shelter_coords, max_radius_m=300):
+    """Calculate closest shelter distance for each building within max_radius_m"""
+    if not building_coords or not shelter_coords:
+        return None
+    
+    building_coords = np.array(building_coords)
+    shelter_coords = np.array(shelter_coords)
+    n = len(building_coords)
+    max_radius_deg = max_radius_m / 100000
+    
+    closest_distances = np.full(n, np.inf)
+    
+    # Process in batches
+    batch_size = 1000
+    total_batches = (n + batch_size - 1) // batch_size
+    
+    for batch_idx in range(total_batches):
+        if batch_idx % 10 == 0 or batch_idx == total_batches - 1:
+            print(f"  Processing batch {batch_idx + 1}/{total_batches}...")
+        
+        i = batch_idx * batch_size
+        batch_end = min(i + batch_size, n)
+        batch_coords = building_coords[i:batch_end]
+        
+        # Calculate distances from batch buildings to all shelters
+        lon_diff = shelter_coords[:, 0][np.newaxis, :] - batch_coords[:, 0][:, np.newaxis]
+        lat_diff = shelter_coords[:, 1][np.newaxis, :] - batch_coords[:, 1][:, np.newaxis]
+        distances_sq = lon_diff**2 + lat_diff**2
+        
+        # Find minimum distance for each building
+        min_distances_sq = np.min(distances_sq, axis=1)
+        closest_distances[i:batch_end] = np.sqrt(min_distances_sq)
+    
+    return closest_distances
+
+
+def create_local_density_distribution(theme, local_density_data, theme_name='tufte'):
+    """Create stacked histogram showing distribution by closest shelter distance"""
+    if not local_density_data or not local_density_data['local_densities'] or not local_density_data['building_coords']:
+        return
+    
+    local_densities = np.array(local_density_data['local_densities'])
+    building_coords = local_density_data['building_coords']
+    
+    # Load existing shelters
+    try:
+        with open('data/shelters.geojson', 'r', encoding='utf-8') as f:
+            shelters_data = json.load(f)
+            existing_shelters = []
+            for feature in shelters_data['features']:
+                props = feature['properties']
+                status = props.get('status', '').strip()
+                if status.startswith('Built'):
+                    coords = feature['geometry']['coordinates']
+                    existing_shelters.append([coords[0], coords[1]])
+    except FileNotFoundError:
+        existing_shelters = []
+    
+    if not existing_shelters:
+        return
+    
+    # Calculate closest shelter distance for each building
+    print("  Calculating closest shelter distances...")
+    closest_distances_deg = calculate_closest_shelter_distance(building_coords, existing_shelters, max_radius_m=300)
+    if closest_distances_deg is None:
+        return
+    
+    # Convert to meters and categorize by distance thresholds
+    distance_thresholds = [100, 150, 200, 250, 300]
+    distance_thresholds_deg = [d / 100000 for d in distance_thresholds]
+    
+    # Categorize buildings by closest shelter distance
+    categories = []
+    for i, dist_deg in enumerate(closest_distances_deg):
+        if dist_deg > distance_thresholds_deg[-1]:
+            categories.append('no_shelter')
+        else:
+            # Find which threshold it falls into (closest one)
+            for j, threshold in enumerate(distance_thresholds_deg):
+                if dist_deg <= threshold:
+                    categories.append(f'{distance_thresholds[j]}m')
+                    break
+    
+    categories = np.array(categories)
+    
+    # Separate densities by category
+    density_by_category = {}
+    for threshold in distance_thresholds:
+        density_by_category[f'{threshold}m'] = local_densities[categories == f'{threshold}m']
+    density_by_category['no_shelter'] = local_densities[categories == 'no_shelter']
+    
+    _, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create bins
+    max_density = int(np.max(local_densities))
+    bins = np.arange(0, max_density + 5, 5)
+    
+    # Version 1: All distance layers with intuitive color gradient
+    # Gradient from red (no shelter) to green (closest shelter)
+    if theme_name == 'tufte':
+        colors_all = [
+            '#c45c4a',  # no_shelter (red)
+            '#d4885a',  # 300m (orange-red)
+            '#e0a86a',  # 250m (orange)
+            '#ecc87a',  # 200m (yellow-orange)
+            '#a8c87a',  # 150m (yellow-green)
+            '#4a8c6a',  # 100m (green)
+        ]
+    else:  # dark theme
+        colors_all = [
+            '#e07a5f',  # no_shelter (red)
+            '#e8966f',  # 300m (orange-red)
+            '#f0b27f',  # 250m (orange)
+            '#f8ce8f',  # 200m (yellow-orange)
+            '#b8d89f',  # 150m (yellow-green)
+            '#81b29a',  # 100m (green)
+        ]
+    
+    data_layers_all = [
+        density_by_category['no_shelter'],
+        density_by_category['300m'],
+        density_by_category['250m'],
+        density_by_category['200m'],
+        density_by_category['150m'],
+        density_by_category['100m'],
+    ]
+    
+    labels_all = ['No shelter', '300m', '250m', '200m', '150m', '100m']
+    
+    ax.hist(data_layers_all, bins=bins, 
+            color=colors_all, alpha=0.8, edgecolor='none', stacked=True, label=labels_all)
+    
+    ax.set_xlabel('Buildings within 300m')
+    ax.set_ylabel('Number of Buildings')
+    ax.set_title('Buildings within 300m of Each Building', pad=15)
+    
+    # Add legend
+    ax.legend(loc='upper right', fontsize=8, frameon=False)
+    
+    setup_tufte_axis(ax)
+    ax.grid(True, axis='y', linewidth=0.5)
+    ax.set_axisbelow(True)
+    
+    plt.tight_layout()
+    plt.savefig(f'output/09_local_density_distribution{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+                facecolor=theme['background'], format='jpeg')
+    plt.close()
+    
+    # Version 2: Only 300m and no shelter
+    _, ax2 = plt.subplots(figsize=(10, 6))
+    
+    # Combine all shelter categories into one "has shelter" category
+    has_shelter_densities = np.concatenate([
+        density_by_category['100m'],
+        density_by_category['150m'],
+        density_by_category['200m'],
+        density_by_category['250m'],
+        density_by_category['300m']
+    ])
+    
+    colors_simple = [
+        theme['existing_color'],  # no_shelter (red)
+        theme['progression_colors'][300],  # has shelter (green)
+    ]
+    
+    data_layers_simple = [
+        density_by_category['no_shelter'],
+        has_shelter_densities,
+    ]
+    
+    labels_simple = ['No shelter', 'Has shelter (≤300m)']
+    
+    ax2.hist(data_layers_simple, bins=bins, 
+            color=colors_simple, alpha=0.8, edgecolor='none', stacked=True, label=labels_simple)
+    
+    ax2.set_xlabel('Buildings within 300m')
+    ax2.set_ylabel('Number of Buildings')
+    ax2.set_title('Buildings within 300m of Each Building', pad=15)
+    
+    # Add legend
+    ax2.legend(loc='upper right', fontsize=8, frameon=False)
+    
+    setup_tufte_axis(ax2)
+    ax2.grid(True, axis='y', linewidth=0.5)
+    ax2.set_axisbelow(True)
+    
+    plt.tight_layout()
+    plt.savefig(f'output/09b_local_density_distribution_simple{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+                facecolor=theme['background'], format='jpeg')
+    plt.close()
+    
+    # Print statistics
+    print(f"  Local density statistics (buildings within 300m):")
+    print(f"    Mean: {np.mean(local_densities):.1f}")
+    print(f"    Median: {np.median(local_densities):.1f}")
+    print(f"    Max: {np.max(local_densities):.0f}")
+    total = len(categories)
+    for threshold in [100, 150, 200, 250, 300]:
+        count = np.sum(categories == f'{threshold}m')
+        print(f"    {threshold}m: {count:,} ({count/total*100:.1f}%)")
+    no_shelter_count = np.sum(categories == 'no_shelter')
+    print(f"    No shelter: {no_shelter_count:,} ({no_shelter_count/total*100:.1f}%)")
+
+
 def main():
     """Main function to generate all visualizations in both themes"""
     print("=== SHELTER STATISTICS GENERATOR ===")
@@ -639,6 +1224,10 @@ def main():
     radius_data, coverage_radii = load_accessibility_data()
     print("Loading buildings per shelter data...")
     bps_radii, bps_existing, bps_optimal = load_buildings_per_shelter_data()
+    print("Loading density per sq km data...")
+    density_data = load_density_per_sqkm_data()
+    print("Loading local building density data...")
+    local_density_data = load_local_density_data()
 
     # Generate charts for each theme
     for theme_name in ['tufte', 'dark']:
@@ -650,12 +1239,15 @@ def main():
         create_coverage_analysis(theme)
         create_buildings_per_shelter_comparison(theme, bps_radii, bps_existing, bps_optimal)
         create_accessibility_coverage_progression(theme, radius_data, coverage_radii)
+        create_density_scatter(theme, density_data)
+        create_local_density_distribution(theme, local_density_data, theme_name)
 
     print("\n=== GENERATION COMPLETE ===")
     print("Generated chart files in output/ directory:")
     for chart in ['01_shelter_types', '02_data_sources', '03_coverage_analysis',
                   '04_buildings_covered', '05_buildings_per_shelter',
-                  '06_accessibility_coverage_progression']:
+                  '06_accessibility_coverage_progression', '07_density_scatter',
+                  '09_local_density_distribution', '09b_local_density_distribution_simple']:
         print(f"  - {chart}_tufte.jpg")
         print(f"  - {chart}_dark.jpg")
 
