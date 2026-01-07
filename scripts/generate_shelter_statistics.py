@@ -1063,28 +1063,35 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     if closest_distances_deg is None:
         return
     
-    # Convert to meters and categorize by distance thresholds
+    # Convert to meters and categorize by distance ranges
     distance_thresholds = [100, 150, 200, 250, 300]
     distance_thresholds_deg = [d / 100000 for d in distance_thresholds]
     
-    # Categorize buildings by closest shelter distance
+    # Categorize buildings by closest shelter distance into ranges
     categories = []
     for i, dist_deg in enumerate(closest_distances_deg):
         if dist_deg > distance_thresholds_deg[-1]:
             categories.append('no_shelter')
-        else:
-            # Find which threshold it falls into (closest one)
-            for j, threshold in enumerate(distance_thresholds_deg):
-                if dist_deg <= threshold:
-                    categories.append(f'{distance_thresholds[j]}m')
-                    break
+        elif dist_deg <= distance_thresholds_deg[0]:
+            categories.append('<100m')
+        elif dist_deg <= distance_thresholds_deg[1]:
+            categories.append('100-150m')
+        elif dist_deg <= distance_thresholds_deg[2]:
+            categories.append('150-200m')
+        elif dist_deg <= distance_thresholds_deg[3]:
+            categories.append('200-250m')
+        else:  # dist_deg <= distance_thresholds_deg[4] (300m)
+            categories.append('250-300m')
     
     categories = np.array(categories)
     
     # Separate densities by category
     density_by_category = {}
-    for threshold in distance_thresholds:
-        density_by_category[f'{threshold}m'] = local_densities[categories == f'{threshold}m']
+    density_by_category['<100m'] = local_densities[categories == '<100m']
+    density_by_category['100-150m'] = local_densities[categories == '100-150m']
+    density_by_category['150-200m'] = local_densities[categories == '150-200m']
+    density_by_category['200-250m'] = local_densities[categories == '200-250m']
+    density_by_category['250-300m'] = local_densities[categories == '250-300m']
     density_by_category['no_shelter'] = local_densities[categories == 'no_shelter']
     
     _, ax = plt.subplots(figsize=(10, 6))
@@ -1116,14 +1123,14 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     
     data_layers_all = [
         density_by_category['no_shelter'],
-        density_by_category['300m'],
-        density_by_category['250m'],
-        density_by_category['200m'],
-        density_by_category['150m'],
-        density_by_category['100m'],
+        density_by_category['250-300m'],
+        density_by_category['200-250m'],
+        density_by_category['150-200m'],
+        density_by_category['100-150m'],
+        density_by_category['<100m'],
     ]
     
-    labels_all = ['No shelter', '300m', '250m', '200m', '150m', '100m']
+    labels_all = ['No shelter', '250-300m', '200-250m', '150-200m', '100-150m', '<100m']
     
     ax.hist(data_layers_all, bins=bins, 
             color=colors_all, alpha=0.8, edgecolor='none', stacked=True, label=labels_all)
@@ -1149,11 +1156,11 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     
     # Combine all shelter categories into one "has shelter" category
     has_shelter_densities = np.concatenate([
-        density_by_category['100m'],
-        density_by_category['150m'],
-        density_by_category['200m'],
-        density_by_category['250m'],
-        density_by_category['300m']
+        density_by_category['<100m'],
+        density_by_category['100-150m'],
+        density_by_category['150-200m'],
+        density_by_category['200-250m'],
+        density_by_category['250-300m']
     ])
     
     colors_simple = [
@@ -1193,11 +1200,169 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     print(f"    Median: {np.median(local_densities):.1f}")
     print(f"    Max: {np.max(local_densities):.0f}")
     total = len(categories)
-    for threshold in [100, 150, 200, 250, 300]:
-        count = np.sum(categories == f'{threshold}m')
-        print(f"    {threshold}m: {count:,} ({count/total*100:.1f}%)")
-    no_shelter_count = np.sum(categories == 'no_shelter')
-    print(f"    No shelter: {no_shelter_count:,} ({no_shelter_count/total*100:.1f}%)")
+    for label in ['<100m', '100-150m', '150-200m', '200-250m', '250-300m', 'no_shelter']:
+        count = np.sum(categories == label)
+        display_label = 'No shelter' if label == 'no_shelter' else label
+        print(f"    {display_label}: {count:,} ({count/total*100:.1f}%)")
+
+
+def create_distance_to_shelter_line(theme, local_density_data):
+    """Create line graph showing number of buildings vs distance to nearest shelter"""
+    if not local_density_data or not local_density_data['building_coords']:
+        return
+    
+    building_coords = local_density_data['building_coords']
+    
+    # Load existing shelters
+    try:
+        with open('data/shelters.geojson', 'r', encoding='utf-8') as f:
+            shelters_data = json.load(f)
+            existing_shelters = []
+            for feature in shelters_data['features']:
+                props = feature['properties']
+                status = props.get('status', '').strip()
+                if status.startswith('Built'):
+                    coords = feature['geometry']['coordinates']
+                    existing_shelters.append([coords[0], coords[1]])
+    except FileNotFoundError:
+        existing_shelters = []
+    
+    if not existing_shelters:
+        return
+    
+    # Calculate closest shelter distance for each building
+    print("  Calculating closest shelter distances for line graph...")
+    closest_distances_deg = calculate_closest_shelter_distance(building_coords, existing_shelters, max_radius_m=500)
+    if closest_distances_deg is None:
+        return
+    
+    # Convert to meters
+    closest_distances_m = np.array(closest_distances_deg) * 100000
+    
+    # Filter to buildings with shelter within 500m
+    has_shelter_mask = closest_distances_m <= 500
+    distances_with_shelter = closest_distances_m[has_shelter_mask]
+    
+    # Create bins for distance ranges
+    bins = np.arange(0, 501, 10)  # 10m bins up to 500m
+    
+    # Count buildings in each bin
+    counts, bin_edges = np.histogram(distances_with_shelter, bins=bins)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    
+    _, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create line graph
+    ax.plot(bin_centers, counts, color=theme['bar_color'], linewidth=2, marker='o', markersize=3)
+    
+    ax.set_xlabel('Distance to Nearest Shelter (m)')
+    ax.set_ylabel('Number of Buildings')
+    ax.set_title('Buildings by Distance to Nearest Shelter', pad=15)
+    ax.set_xlim(0, 500)
+    
+    setup_tufte_axis(ax)
+    ax.grid(True, axis='y', linewidth=0.5)
+    ax.set_axisbelow(True)
+    
+    plt.tight_layout()
+    plt.savefig(f'output/10_distance_to_shelter_line{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+                facecolor=theme['background'], format='jpeg')
+    plt.close()
+    
+    # Print statistics
+    print(f"  Distance to shelter statistics:")
+    print(f"    Buildings with shelter ≤500m: {len(distances_with_shelter):,}")
+    print(f"    Mean distance: {np.mean(distances_with_shelter):.1f}m")
+    print(f"    Median distance: {np.median(distances_with_shelter):.1f}m")
+
+
+def create_local_density_200m(theme, local_density_data, theme_name='tufte'):
+    """Create stacked histogram for 200m distance (buildings and shelters within 200m)"""
+    if not local_density_data or not local_density_data['building_coords']:
+        return
+    
+    building_coords = local_density_data['building_coords']
+    
+    # Load existing shelters
+    try:
+        with open('data/shelters.geojson', 'r', encoding='utf-8') as f:
+            shelters_data = json.load(f)
+            existing_shelters = []
+            for feature in shelters_data['features']:
+                props = feature['properties']
+                status = props.get('status', '').strip()
+                if status.startswith('Built'):
+                    coords = feature['geometry']['coordinates']
+                    existing_shelters.append([coords[0], coords[1]])
+    except FileNotFoundError:
+        existing_shelters = []
+    
+    if not existing_shelters:
+        return
+    
+    # Calculate buildings within 200m
+    print("  Calculating buildings within 200m...")
+    local_densities_200m = calculate_local_building_density(building_coords, radius_m=200)
+    if local_densities_200m is None:
+        return
+    
+    local_densities_200m = np.array(local_densities_200m)
+    
+    # Calculate closest shelter distance within 200m
+    print("  Calculating closest shelter distances within 200m...")
+    closest_distances_deg = calculate_closest_shelter_distance(building_coords, existing_shelters, max_radius_m=200)
+    if closest_distances_deg is None:
+        return
+    
+    # Categorize buildings
+    has_shelter = closest_distances_deg <= (200 / 100000)
+    densities_with_shelter = local_densities_200m[has_shelter]
+    densities_without_shelter = local_densities_200m[~has_shelter]
+    
+    _, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create bins
+    max_density = int(np.max(local_densities_200m))
+    bins = np.arange(0, max_density + 5, 5)
+    
+    # Create stacked histogram
+    colors_simple = [
+        theme['existing_color'],  # no_shelter (red)
+        theme['optimal_color'],  # has shelter (green)
+    ]
+    
+    data_layers = [
+        densities_without_shelter,
+        densities_with_shelter,
+    ]
+    
+    labels = ['No shelter', 'Has shelter (≤200m)']
+    
+    ax.hist(data_layers, bins=bins, 
+            color=colors_simple, alpha=0.8, edgecolor='none', stacked=True, label=labels)
+    
+    ax.set_xlabel('Buildings within 200m')
+    ax.set_ylabel('Number of Buildings')
+    ax.set_title('Buildings within 200m of Each Building', pad=15)
+    
+    # Add legend
+    ax.legend(loc='upper right', fontsize=8, frameon=False)
+    
+    setup_tufte_axis(ax)
+    ax.grid(True, axis='y', linewidth=0.5)
+    ax.set_axisbelow(True)
+    
+    plt.tight_layout()
+    plt.savefig(f'output/09c_local_density_200m{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+                facecolor=theme['background'], format='jpeg')
+    plt.close()
+    
+    # Print statistics
+    total = len(has_shelter)
+    print(f"  Local density statistics (buildings within 200m):")
+    print(f"    Mean: {np.mean(local_densities_200m):.1f}")
+    print(f"    Buildings with shelter ≤200m: {np.sum(has_shelter):,} ({np.sum(has_shelter)/total*100:.1f}%)")
+    print(f"    Buildings without shelter: {np.sum(~has_shelter):,} ({np.sum(~has_shelter)/total*100:.1f}%)")
 
 
 def main():
@@ -1241,13 +1406,16 @@ def main():
         create_accessibility_coverage_progression(theme, radius_data, coverage_radii)
         create_density_scatter(theme, density_data)
         create_local_density_distribution(theme, local_density_data, theme_name)
+        create_distance_to_shelter_line(theme, local_density_data)
+        create_local_density_200m(theme, local_density_data, theme_name)
 
     print("\n=== GENERATION COMPLETE ===")
     print("Generated chart files in output/ directory:")
     for chart in ['01_shelter_types', '02_data_sources', '03_coverage_analysis',
                   '04_buildings_covered', '05_buildings_per_shelter',
                   '06_accessibility_coverage_progression', '07_density_scatter',
-                  '09_local_density_distribution', '09b_local_density_distribution_simple']:
+                  '09_local_density_distribution', '09b_local_density_distribution_simple',
+                  '09c_local_density_200m', '10_distance_to_shelter_line']:
         print(f"  - {chart}_tufte.jpg")
         print(f"  - {chart}_dark.jpg")
 
