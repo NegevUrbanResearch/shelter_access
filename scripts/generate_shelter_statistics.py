@@ -15,23 +15,24 @@ THEMES = {
     'tufte': {
         'name': 'Tufte',
         'suffix': '_tufte',
-        'background': '#f5f5f0',
+        'background': '#ffffff',
         'text': '#333333',
         'label': '#555555',
         'grid': '#d0d0d0',
         'grid_alpha': 0.7,
-        'bar_color': '#4a7c9b',
-        'existing_color': '#c45c4a',
-        'optimal_color': '#4a8c6a',
+        'bar_color': '#9694FF',
+        'existing_color': '#D0D0D0',
+        'existing_line_color': '#2171B5',
+        'optimal_color': '#3D3BF3',
         'value_label': '#666666',
         'pie_text': '#ffffff',
-        'pie_colors': ['#4a7c9b', '#7a9f7a', '#9b8aa0', '#c9a66b', '#d4c878'],
+        'pie_colors': ['#D0D0D0', '#9694FF', '#7A78FF', '#4292C6', '#2171B5', '#3D3BF3'],
         'progression_colors': {
-            100: '#c45c4a',
-            150: '#c98a3c',
-            200: '#a89050',
-            250: '#4a8c6a',
-            300: '#3a6a7c'
+            100: '#9694FF',
+            150: '#7A78FF',
+            200: '#4292C6',
+            250: '#2171B5',
+            300: '#08306B'
         }
     },
     'dark': {
@@ -184,7 +185,7 @@ def create_shelter_types_chart(type_counts, theme):
     ax.set_axisbelow(True)
 
     plt.tight_layout()
-    plt.savefig(f'output/01_shelter_types{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/01_shelter_types{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
 
@@ -217,7 +218,7 @@ def create_source_files_chart(source_counts, theme):
     ax.set_title('Built Shelters by Data Source', pad=15)
 
     plt.tight_layout()
-    plt.savefig(f'output/02_data_sources{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/02_data_sources{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
 
@@ -245,20 +246,23 @@ def create_coverage_analysis(theme):
                            for stats in coverage_stats.values()]
         total_coverage = [stats['coverage_percentage'] for stats in coverage_stats.values()]
 
-        ax.plot(radii, existing_coverage, 'o-', linewidth=2, markersize=6, color=theme['existing_color'])
-        ax.plot(radii, total_coverage, 'o-', linewidth=2, markersize=6, color=theme['optimal_color'])
+        existing_line_color = theme.get('existing_line_color', theme['existing_color'])
+        ax.plot(radii, existing_coverage, 'o-', linewidth=3, markersize=6, color=existing_line_color)
+        ax.plot(radii, total_coverage, 'o-', linewidth=3, markersize=6, color=theme['optimal_color'])
 
         ax.text(radii[-1] + 8, existing_coverage[-1], 'Existing',
-                va='center', fontsize=9, color=theme['existing_color'])
+                va='center', fontsize=12, color=existing_line_color)
         ax.text(radii[-1] + 8, total_coverage[-1], '+500 Optimal',
-                va='center', fontsize=9, color=theme['optimal_color'])
+                va='center', fontsize=12, color=theme['optimal_color'])
 
-        ax.set_xlabel('Coverage Radius (m)')
-        ax.set_ylabel('Building Coverage')
-        ax.set_title('Shelter Coverage Analysis by Radius', pad=15)
+        ax.set_xlabel('Coverage Radius (m)', fontsize=14)
+        ax.set_ylabel('Building Coverage', fontsize=14)
+        ax.set_title('Shelter Coverage Analysis by Radius', pad=15, fontsize=16)
         ax.set_xticks(radii)
+        ax.set_xticklabels([f'{r}m' for r in radii], fontsize=12)
         ax.set_yticks(range(0, 101, 10))
-        ax.set_yticklabels([f'{y}%' for y in range(0, 101, 10)])
+        ax.set_yticklabels([f'{y}%' for y in range(0, 101, 10)], fontsize=12)
+        ax.tick_params(axis='both', labelsize=12)
         ax.set_ylim(0, 100)
         ax.set_xlim(90, 340)
 
@@ -267,7 +271,7 @@ def create_coverage_analysis(theme):
         ax.set_axisbelow(True)
 
         plt.tight_layout()
-        plt.savefig(f'output/03_coverage_analysis{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+        plt.savefig(f'output/03_coverage_analysis{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                     facecolor=theme['background'], format='jpeg')
         plt.close()
 
@@ -284,28 +288,29 @@ def create_coverage_analysis(theme):
         bars1 = ax.bar(x - width/2, buildings_existing, width, color=theme['existing_color'], alpha=0.9)
         bars2 = ax.bar(x + width/2, buildings_total, width, color=theme['optimal_color'], alpha=0.9)
 
-        ax.set_xlabel('Coverage Radius (meters)')
-        ax.set_ylabel('Buildings Covered')
-        ax.set_title('Number of Buildings Covered by Radius', pad=15)
+        ax.set_xlabel('Coverage Radius (meters)', fontsize=14)
+        ax.set_ylabel('Buildings Covered', fontsize=14)
+        ax.set_title('Number of Buildings Covered by Radius', pad=15, fontsize=16)
         ax.set_xticks(x)
-        ax.set_xticklabels([f'{r}m' for r in radii])
+        ax.set_xticklabels([f'{r}m' for r in radii], fontsize=12)
+        ax.tick_params(axis='y', labelsize=12)
 
-        ax.text(x[0] - width/2, buildings_existing[0] + 200, 'Existing',
-                ha='center', fontsize=8, color=theme['existing_color'])
-        ax.text(x[0] + width/2, buildings_total[0] + 200, '+500 Optimal',
-                ha='center', fontsize=8, color=theme['optimal_color'])
+        ax.text(x[0] - width/2, buildings_existing[0] + 300, 'Existing',
+                ha='center', fontsize=10, color='#000000')
+        ax.text(x[0] + width/2, buildings_total[0] + 300, '+500 Optimal',
+                ha='center', fontsize=10, color='#000000')
 
         ax.text(bars1[-1].get_x() + bars1[-1].get_width()/2., bars1[-1].get_height() + 100,
-                f'{int(bars1[-1].get_height()):,}', ha='center', va='bottom', fontsize=8, color=theme['value_label'])
+                f'{int(bars1[-1].get_height()):,}', ha='center', va='bottom', fontsize=10, color='#000000')
         ax.text(bars2[-1].get_x() + bars2[-1].get_width()/2., bars2[-1].get_height() + 100,
-                f'{int(bars2[-1].get_height()):,}', ha='center', va='bottom', fontsize=8, color=theme['value_label'])
+                f'{int(bars2[-1].get_height()):,}', ha='center', va='bottom', fontsize=10, color='#000000')
 
         setup_tufte_axis(ax)
         ax.grid(True, axis='y', linewidth=0.5)
         ax.set_axisbelow(True)
 
         plt.tight_layout()
-        plt.savefig(f'output/04_buildings_covered{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+        plt.savefig(f'output/04_buildings_covered{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                     facecolor=theme['background'], format='jpeg')
         plt.close()
 
@@ -383,13 +388,14 @@ def create_accessibility_coverage_progression(theme, radius_data, coverage_radii
         num_shelters = len(coverage) - 1
         x_values = list(range(num_shelters + 1))
 
-        ax.plot(x_values, coverage, '-', linewidth=1.8, color=colors[radius], alpha=0.85)
+        ax.plot(x_values, coverage, '-', linewidth=3, color=colors[radius], alpha=0.85)
         ax.text(x_values[-1] + 5, coverage[-1], f'{radius}m',
-                va='center', fontsize=8, color=colors[radius])
+                va='center', fontsize=12, color=colors[radius])
 
-    ax.set_xlabel('Number of Shelters Added')
-    ax.set_ylabel('Coverage')
-    ax.set_title('Coverage Progression by Accessibility Level', pad=15)
+    ax.set_xlabel('Number of Shelters Added', fontsize=14)
+    ax.set_ylabel('Coverage', fontsize=14)
+    ax.set_title('Coverage Progression by Accessibility Level', pad=15, fontsize=16)
+    ax.tick_params(axis='both', labelsize=12)
     ax.set_ylim([0, 100])
     ax.set_yticks(range(0, 101, 10))
     ax.set_yticklabels([f'{y}%' for y in range(0, 101, 10)])
@@ -399,7 +405,7 @@ def create_accessibility_coverage_progression(theme, radius_data, coverage_radii
     ax.set_axisbelow(True)
 
     plt.tight_layout()
-    plt.savefig(f'output/06_accessibility_coverage_progression{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/06_accessibility_coverage_progression{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
 
@@ -610,7 +616,7 @@ def create_buildings_per_shelter_comparison(theme, radii, existing_avg, optimal_
     ax.set_axisbelow(True)
 
     plt.tight_layout()
-    plt.savefig(f'output/05_buildings_per_shelter{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/05_buildings_per_shelter{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
 
@@ -854,7 +860,7 @@ def create_density_scatter(theme, density_data):
     ax.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(f'output/07_density_scatter{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/07_density_scatter{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
 
@@ -1101,15 +1107,15 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     bins = np.arange(0, max_density + 5, 5)
     
     # Version 1: All distance layers with intuitive color gradient
-    # Gradient from red (no shelter) to green (closest shelter)
+    # Gradient from grey (no shelter) to dark purple (closest shelter)
     if theme_name == 'tufte':
         colors_all = [
-            '#c45c4a',  # no_shelter (red)
-            '#d4885a',  # 300m (orange-red)
-            '#e0a86a',  # 250m (orange)
-            '#ecc87a',  # 200m (yellow-orange)
-            '#a8c87a',  # 150m (yellow-green)
-            '#4a8c6a',  # 100m (green)
+            '#D0D0D0',  # no_shelter (light grey)
+            '#EBEAFF',  # 300m (light purple/pink)
+            '#D5D4FF',  # 250m (light-medium purple)
+            '#B8B6FF',  # 200m (medium-light purple)
+            '#9694FF',  # 150m (medium purple)
+            '#3D3BF3',  # 100m (dark purple)
         ]
     else:  # dark theme
         colors_all = [
@@ -1135,19 +1141,20 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     ax.hist(data_layers_all, bins=bins, 
             color=colors_all, alpha=0.8, edgecolor='none', stacked=True, label=labels_all)
     
-    ax.set_xlabel('Buildings within 300m')
-    ax.set_ylabel('Number of Buildings')
-    ax.set_title('Buildings within 300m of Each Building', pad=15)
+    ax.set_xlabel('Buildings within 300m', fontsize=14)
+    ax.set_ylabel('Number of Buildings', fontsize=14)
+    ax.set_title('Buildings within 300m of Each Building', pad=15, fontsize=16)
+    ax.tick_params(axis='both', labelsize=12)
     
     # Add legend
-    ax.legend(loc='upper right', fontsize=8, frameon=False)
+    ax.legend(loc='upper right', fontsize=11, frameon=False)
     
     setup_tufte_axis(ax)
     ax.grid(True, axis='y', linewidth=0.5)
     ax.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(f'output/09_local_density_distribution{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/09_local_density_distribution{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
     
@@ -1164,8 +1171,8 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     ])
     
     colors_simple = [
-        theme['existing_color'],  # no_shelter (red)
-        theme['progression_colors'][300],  # has shelter (green)
+        theme['existing_color'],  # no_shelter (grey)
+        theme['progression_colors'][300],  # has shelter (dark purple)
     ]
     
     data_layers_simple = [
@@ -1178,19 +1185,20 @@ def create_local_density_distribution(theme, local_density_data, theme_name='tuf
     ax2.hist(data_layers_simple, bins=bins, 
             color=colors_simple, alpha=0.8, edgecolor='none', stacked=True, label=labels_simple)
     
-    ax2.set_xlabel('Buildings within 300m')
-    ax2.set_ylabel('Number of Buildings')
-    ax2.set_title('Buildings within 300m of Each Building', pad=15)
+    ax2.set_xlabel('Buildings within 300m', fontsize=14)
+    ax2.set_ylabel('Number of Buildings', fontsize=14)
+    ax2.set_title('Buildings within 300m of Each Building', pad=15, fontsize=16)
+    ax2.tick_params(axis='both', labelsize=12)
     
     # Add legend
-    ax2.legend(loc='upper right', fontsize=8, frameon=False)
+    ax2.legend(loc='upper right', fontsize=11, frameon=False)
     
     setup_tufte_axis(ax2)
     ax2.grid(True, axis='y', linewidth=0.5)
     ax2.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(f'output/09b_local_density_distribution_simple{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/09b_local_density_distribution_simple{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
     
@@ -1253,11 +1261,12 @@ def create_distance_to_shelter_line(theme, local_density_data):
     _, ax = plt.subplots(figsize=(10, 6))
     
     # Create line graph
-    ax.plot(bin_centers, counts, color=theme['bar_color'], linewidth=2, marker='o', markersize=3)
+    ax.plot(bin_centers, counts, color=theme['bar_color'], linewidth=3, marker='o', markersize=3)
     
-    ax.set_xlabel('Distance to Nearest Shelter (m)')
-    ax.set_ylabel('Number of Buildings')
-    ax.set_title('Buildings by Distance to Nearest Shelter', pad=15)
+    ax.set_xlabel('Distance to Nearest Shelter (m)', fontsize=14)
+    ax.set_ylabel('Number of Buildings', fontsize=14)
+    ax.set_title('Buildings by Distance to Nearest Shelter', pad=15, fontsize=16)
+    ax.tick_params(axis='both', labelsize=12)
     ax.set_xlim(0, 500)
     
     setup_tufte_axis(ax)
@@ -1265,7 +1274,7 @@ def create_distance_to_shelter_line(theme, local_density_data):
     ax.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(f'output/10_distance_to_shelter_line{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/10_distance_to_shelter_line{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
     
@@ -1327,8 +1336,8 @@ def create_local_density_200m(theme, local_density_data, theme_name='tufte'):
     
     # Create stacked histogram
     colors_simple = [
-        theme['existing_color'],  # no_shelter (red)
-        theme['optimal_color'],  # has shelter (green)
+        theme['existing_color'],  # no_shelter (grey)
+        theme['optimal_color'],  # has shelter (dark purple)
     ]
     
     data_layers = [
@@ -1341,19 +1350,20 @@ def create_local_density_200m(theme, local_density_data, theme_name='tufte'):
     ax.hist(data_layers, bins=bins, 
             color=colors_simple, alpha=0.8, edgecolor='none', stacked=True, label=labels)
     
-    ax.set_xlabel('Buildings within 200m')
-    ax.set_ylabel('Number of Buildings')
-    ax.set_title('Buildings within 200m of Each Building', pad=15)
+    ax.set_xlabel('Buildings within 200m', fontsize=14)
+    ax.set_ylabel('Number of Buildings', fontsize=14)
+    ax.set_title('Buildings within 200m of Each Building', pad=15, fontsize=16)
+    ax.tick_params(axis='both', labelsize=12)
     
     # Add legend
-    ax.legend(loc='upper right', fontsize=8, frameon=False)
+    ax.legend(loc='upper right', fontsize=11, frameon=False)
     
     setup_tufte_axis(ax)
     ax.grid(True, axis='y', linewidth=0.5)
     ax.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(f'output/09c_local_density_200m{theme["suffix"]}.jpg', dpi=300, bbox_inches='tight',
+    plt.savefig(f'output/09c_local_density_200m{theme["suffix"]}.jpg', dpi=600, bbox_inches='tight',
                 facecolor=theme['background'], format='jpeg')
     plt.close()
     
