@@ -53,8 +53,12 @@ class ShelterAccessApp {
             optimalShelters: true,
             statisticalAreas: false, 
             habitationClusters: false, 
-            accessibilityHeatmap: false 
+            accessibilityHeatmap: false,
+            highlightSchools: false
         };
+        
+        // Cached set of building indices covered by school shelters
+        this.schoolCoveredBuildings = new Set();
         
         // Precomputed shelter coverage data
         this.shelterCoverageData = null;
@@ -71,8 +75,8 @@ class ShelterAccessApp {
         
 
         
-        // Mapbox token for terrain and other services (URL restricted)
-        this.mapboxToken = 'pk.eyJ1IjoibnVybGFiMjAyNSIsImEiOiJjbWRrbW51ZnIweGxqMmxzNTJsc3pkODFkIn0.45x41GXrY4QBBqrHBlc7fw';
+        // Loaded from js/config.js (gitignored)
+        this.mapboxToken = window.MAPBOX_TOKEN || '';
         
         // Basemap configuration - Mapbox primary, ESRI fallback
         this.currentBasemap = 'satellite';
@@ -130,7 +134,8 @@ class ShelterAccessApp {
             requestedSheltersLayer: document.getElementById('requestedSheltersLayer'),
             optimalSheltersLayer: document.getElementById('optimalSheltersLayer'),
             statisticalAreasLayer: document.getElementById('statisticalAreasLayer'),
-            habitationClustersLayer: document.getElementById('habitationClustersLayer')
+            habitationClustersLayer: document.getElementById('habitationClustersLayer'),
+            highlightSchoolsLayer: document.getElementById('highlightSchoolsLayer')
         };
     }
     
@@ -203,6 +208,27 @@ class ShelterAccessApp {
         
         // Fallback to calculation for optimal shelters or missing data
         return this.calculateShelterCoverage(shelter);
+    }
+    
+    /**
+     * Compute the union of all building indices covered by school-type shelters
+     */
+    computeSchoolCoverage() {
+        const currentData = this.spatialAnalyzer.getCurrentData();
+        if (!currentData.shelters) return;
+        
+        const schoolShelters = currentData.shelters.features.filter(s =>
+            s.properties && s.properties.type === 'School' && s.properties.status === 'Built'
+        );
+        
+        const covered = new Set();
+        for (const shelter of schoolShelters) {
+            const indices = this.getShelterCoverage(shelter);
+            for (const idx of indices) {
+                covered.add(idx);
+            }
+        }
+        this.schoolCoveredBuildings = covered;
     }
     
     /**
@@ -533,6 +559,18 @@ class ShelterAccessApp {
                 });
             }
         });
+        
+        if (this.elements.highlightSchoolsLayer) {
+            this.elements.highlightSchoolsLayer.addEventListener('change', (e) => {
+                this.layerVisibility.highlightSchools = e.target.checked;
+                if (e.target.checked) {
+                    this.computeSchoolCoverage();
+                } else {
+                    this.schoolCoveredBuildings = new Set();
+                }
+                this.updateVisualization();
+            });
+        }
         
 
     }
@@ -902,12 +940,12 @@ class ShelterAccessApp {
         
         // === BUILDINGS LAYER (Simplified GeoJSON) ===
         const shouldShowBuildings = this.layerVisibility.buildings || 
-                                  (this.hoveredShelter && this.hoveredBuildings.length > 0);
+                                  (this.hoveredShelter && this.hoveredBuildings.length > 0) ||
+                                  this.layerVisibility.highlightSchools;
         
         if (shouldShowBuildings && currentData.buildings && currentData.buildings.features.length > 0) {
             let buildingsToShow;
-            if (this.layerVisibility.buildings) {
-                // Show all buildings when layer is enabled
+            if (this.layerVisibility.buildings || this.layerVisibility.highlightSchools) {
                 buildingsToShow = currentData.buildings.features;
             } else {
                 // Only show covered buildings when layer is disabled (highlighting mode)
@@ -924,7 +962,7 @@ class ShelterAccessApp {
                     id: 'buildings-geojson',
                     data: buildingsToShow.map((feature, index) => ({
                         ...feature,
-                        _index: index // Add array index for identification
+                        _index: index
                     })),
                     pickable: false,
                     stroked: true,
@@ -935,35 +973,49 @@ class ShelterAccessApp {
                         const buildingIndex = d._index || 0;
                         
                         if (this.layerVisibility.buildings) {
-                            // Check if this building is covered by hovered shelter (turn green)
                             if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 150]; // Bright green for hover coverage
+                                return [0, 255, 0, 150];
                             }
-                            return [59, 130, 246, 180]; // Blue for all other buildings when layer is enabled (matches menu buttons)
+                            if (this.layerVisibility.highlightSchools && this.schoolCoveredBuildings.has(buildingIndex)) {
+                                return [34, 197, 94, 170]; // Green for school-covered buildings
+                            }
+                            return [59, 130, 246, 180];
+                        } else if (this.layerVisibility.highlightSchools) {
+                            if (this.schoolCoveredBuildings.has(buildingIndex)) {
+                                return [34, 197, 94, 170];
+                            }
+                            return [59, 130, 246, 60]; // Faded blue for non-covered
                         } else {
-                            // Buildings layer is disabled - only show covered buildings in green
-                            return [0, 255, 0, 200]; // Bright green for covered buildings
+                            return [0, 255, 0, 200];
                         }
                     },
                     getLineColor: d => {
                         const buildingIndex = d._index || 0;
                         
                         if (this.layerVisibility.buildings) {
-                            // Check if this building is covered by hovered shelter (turn green)
                             if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
-                                return [0, 255, 0, 255]; // Bright green outline for hover
+                                return [0, 255, 0, 255];
                             }
-                            return [59, 130, 246, 220]; // Blue outline for all other buildings (matches menu buttons)
+                            if (this.layerVisibility.highlightSchools && this.schoolCoveredBuildings.has(buildingIndex)) {
+                                return [34, 197, 94, 255];
+                            }
+                            return [59, 130, 246, 220];
+                        } else if (this.layerVisibility.highlightSchools) {
+                            if (this.schoolCoveredBuildings.has(buildingIndex)) {
+                                return [34, 197, 94, 255];
+                            }
+                            return [59, 130, 246, 80];
                         } else {
-                            // Buildings layer is disabled - only show covered building outlines in green
-                            return [0, 255, 0, 255]; // Bright green outline for covered buildings
+                            return [0, 255, 0, 255];
                         }
                     },
                     getLineWidth: d => {
                         const buildingIndex = d._index || 0;
                         
-                        // Thicker outline for highlighted buildings
                         if (this.hoveredShelter && this.hoveredBuildings.includes(buildingIndex)) {
+                            return 2;
+                        }
+                        if (this.layerVisibility.highlightSchools && this.schoolCoveredBuildings.has(buildingIndex)) {
                             return 2;
                         }
                         return 1;
@@ -1110,19 +1162,57 @@ class ShelterAccessApp {
             );
             
             if (existingShelters.length > 0) {
-                layers.push(new deck.IconLayer({
-                    id: 'existing-shelters',
-                    data: existingShelters,
-                    pickable: true,
-                    getIcon: () => this.getShelterIcon('existing'),
-                    getPosition: d => d.geometry.coordinates,
-                    onHover: (info) => this.handleHover(info),
-                    onClick: (info) => this.handleClick(info),
-                    loadOptions: this.getSVGLoadOptions(),
-                    textureParameters: this.getTextureParameters(),
-                    alphaCutoff: 0.05, // Clean edges for better visual quality
-                    ...this.getIconSizeConfig('existing')
-                }));
+                if (this.layerVisibility.highlightSchools) {
+                    const nonSchoolShelters = existingShelters.filter(s => s.properties.type !== 'School');
+                    const schoolShelters = existingShelters.filter(s => s.properties.type === 'School');
+                    
+                    if (nonSchoolShelters.length > 0) {
+                        layers.push(new deck.IconLayer({
+                            id: 'existing-shelters',
+                            data: nonSchoolShelters,
+                            pickable: true,
+                            getIcon: () => this.getShelterIcon('existing'),
+                            getPosition: d => d.geometry.coordinates,
+                            onHover: (info) => this.handleHover(info),
+                            onClick: (info) => this.handleClick(info),
+                            loadOptions: this.getSVGLoadOptions(),
+                            textureParameters: this.getTextureParameters(),
+                            alphaCutoff: 0.05,
+                            ...this.getIconSizeConfig('existing')
+                        }));
+                    }
+                    if (schoolShelters.length > 0) {
+                        layers.push(new deck.ScatterplotLayer({
+                            id: 'school-shelters',
+                            data: schoolShelters,
+                            pickable: true,
+                            getPosition: d => d.geometry.coordinates,
+                            getRadius: 40,
+                            radiusMinPixels: 6,
+                            radiusMaxPixels: 14,
+                            getFillColor: [34, 197, 94, 220],
+                            getLineColor: [255, 255, 255, 255],
+                            lineWidthMinPixels: 2,
+                            stroked: true,
+                            onHover: (info) => this.handleHover(info),
+                            onClick: (info) => this.handleClick(info)
+                        }));
+                    }
+                } else {
+                    layers.push(new deck.IconLayer({
+                        id: 'existing-shelters',
+                        data: existingShelters,
+                        pickable: true,
+                        getIcon: () => this.getShelterIcon('existing'),
+                        getPosition: d => d.geometry.coordinates,
+                        onHover: (info) => this.handleHover(info),
+                        onClick: (info) => this.handleClick(info),
+                        loadOptions: this.getSVGLoadOptions(),
+                        textureParameters: this.getTextureParameters(),
+                        alphaCutoff: 0.05,
+                        ...this.getIconSizeConfig('existing')
+                    }));
+                }
             }
         }
         
@@ -1254,6 +1344,15 @@ class ShelterAccessApp {
             });
         }
         
+        if (this.layerVisibility.highlightSchools) {
+            legendItems.push({
+                type: 'color-dot',
+                className: 'school-shelter',
+                label: 'Schools',
+                color: 'rgb(34, 197, 94)'
+            });
+        }
+        
         // Clear existing legend items
         this.elements.legendItems.innerHTML = '';
         
@@ -1274,17 +1373,19 @@ class ShelterAccessApp {
             iconDiv.className = `legend-icon ${item.className}`;
             
             if (item.type === 'svg-icon') {
-                // Use actual SVG icons that match the map icons exactly
                 const img = document.createElement('img');
                 img.src = item.iconSrc;
                 img.className = 'legend-icon-img';
                 iconDiv.appendChild(img);
             } else if (item.type === 'color-box') {
-                // Use inner div for color boxes to match SVG icon structure
                 const colorBox = document.createElement('div');
                 colorBox.className = 'legend-color-box';
                 colorBox.style.background = item.color;
                 iconDiv.appendChild(colorBox);
+            } else if (item.type === 'color-dot') {
+                const dot = document.createElement('div');
+                dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${item.color};border:2px solid #fff;box-shadow:0 0 2px rgba(0,0,0,0.3);`;
+                iconDiv.appendChild(dot);
             }
             
             const label = document.createElement('span');
