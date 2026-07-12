@@ -44,7 +44,6 @@ npm-debug.log*
 # Local development
 .env
 .env.local
-js/config.js
 
 # Backup files
 *.bak

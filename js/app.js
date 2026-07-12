@@ -75,30 +75,22 @@ class ShelterAccessApp {
         
 
         
-        // Loaded from js/config.js (gitignored)
-        this.mapboxToken = window.MAPBOX_TOKEN || '';
-        
-        // Basemap configuration - Mapbox primary, ESRI fallback
+        // Basemaps — no API tokens needed
         this.currentBasemap = 'satellite';
         this.basemaps = {
             satellite: {
-                name: 'Satellite Streets',
-                url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
-                fallbackUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                name: 'Satellite',
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                attribution: '© <a href="https://www.esri.com/">Esri</a>',
                 type: 'raster'
             },
             light: {
-                name: 'Light Streets',
-                url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${this.mapboxToken}`,
-                fallbackUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-                attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                name: 'Carto Voyager',
+                url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+                attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 type: 'raster'
             }
         };
-        
-        // Track if we're using fallback basemap
-        this.usingFallbackBasemap = false;
         
         // Current zoom and view state for zoom-dependent features
         this._currentZoom = 10.5;
@@ -615,7 +607,6 @@ class ShelterAccessApp {
         // Create and set up deck.gl
         this.deckgl = new deck.DeckGL({
             container: 'map',
-            mapboxApiAccessToken: this.mapboxToken,
             initialViewState: {
                 longitude: centerLng,
                 latitude: centerLat,
@@ -1725,31 +1716,15 @@ class ShelterAccessApp {
 
     
     /**
-     * Create tile layer with fallback support
+     * Create basemap tile layer
      */
     createStandardTileLayer(basemapConfig) {
-        const tileUrl = this.usingFallbackBasemap && basemapConfig.fallbackUrl 
-            ? basemapConfig.fallbackUrl 
-            : basemapConfig.url;
-        
         return new deck.TileLayer({
-            id: `basemap-${this.currentBasemap}${this.usingFallbackBasemap ? '-fallback' : ''}`,
-            data: tileUrl,
+            id: `basemap-${this.currentBasemap}`,
+            data: basemapConfig.url,
             minZoom: 0,
             maxZoom: 19,
             tileSize: 256,
-            
-            onTileError: (error) => {
-                // If primary fails, switch to fallback
-                if (!this.usingFallbackBasemap && basemapConfig.fallbackUrl) {
-                    console.warn('Mapbox tiles failed, switching to fallback basemap');
-                    this.usingFallbackBasemap = true;
-                    // Force layer recreation
-                    this.baseTileLayer = null;
-                    this.currentBasemapConfig = null;
-                    this.updateVisualization();
-                }
-            },
             
             renderSubLayers: props => {
                 const { tile } = props;
