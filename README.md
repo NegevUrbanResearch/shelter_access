@@ -4,22 +4,6 @@ Interactive map for analyzing bomb shelter accessibility for Bedouin communities
 
 **Live demo:** [negevurbanresearch.github.io/shelter_access](https://negevurbanresearch.github.io/shelter_access/)
 
-## How to cite
-
-If you use this software or its methods, please cite it. GitHub also exposes citation metadata via the **Cite this repository** button (from [`CITATION.cff`](./CITATION.cff)).
-
-After the first Zenodo-archived release, replace the placeholder below with the minted DOI.
-
-```bibtex
-@software{gal_negev_shelter_access_2026,
-  author       = {Gal, Noam J. and Nikitin, Artem and Drogochinsky, Michael and Cohen, Yonatan and Battat, Merav and Kaufmann, Talia and Noyman, Ariel},
-  title        = {Negev Shelter Access Analysis},
-  year         = {2026},
-  version      = {1.0.0},
-  url          = {https://github.com/NegevUrbanResearch/shelter_access},
-  note         = {DOI to be added after Zenodo archive}
-}
-```
 
 ## License
 
@@ -35,7 +19,7 @@ This project is released under the [MIT License](./LICENSE).
 6. **Talia Kaufmann** — The Center for Urban Innovation, The Hebrew University of Jerusalem
 7. **Ariel Noyman** — Media Lab, Massachusetts Institute of Technology
 
-Project partners also include [Bimkom](https://bimkom.org/eng/home-mobile/) and East Negev / Civix.
+Project partners also included local partners at [Bimkom](https://bimkom.org/eng/home-mobile/) and [East Negev / Civix](https://www.linkedin.com/company/civixil/), as well as consultation and data provided by Arch. **Lobna Alsana**.
 
 ## Data & analysis
 
