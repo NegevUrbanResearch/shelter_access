@@ -1,0 +1,105 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "Negev Shelter Access Analysis"
+version: 1.0.0
+date-released: 2026-07-17
+abstract: >-
+  A real-time, browser-based interactive map for analyzing bomb shelter
+  accessibility for Bedouin communities in the Eastern Negev. The tool
+  identifies underserved areas and proposes optimal new shelter locations
+  using precomputed DBSCAN and K-means spatial clustering, with a static
+  web frontend (deck.gl) and offline Python analysis scripts.
+authors:
+  - family-names: Gal
+    given-names: "Noam J."
+    affiliation: "Department of Geography, The Hebrew University of Jerusalem, Jerusalem, 919051, Israel"
+    email: noamjgal@gmail.com
+  - family-names: Nikitin
+    given-names: Artem
+    affiliation: "The Center for Urban Innovation, The Hebrew University of Jerusalem, Jerusalem, 919051, Israel"
+  - family-names: Drogochinsky
+    given-names: Michael
+    affiliation: "The Center for Urban Innovation, The Hebrew University of Jerusalem, Jerusalem, 919051, Israel"
+    email: michael.drogochinsky@mail.huji.ac.il
+  - family-names: Cohen
+    given-names: Yonatan
+    affiliation: "Negev Urban Research Lab, Ben Gurion University, Be'er Sheba, 8452566, Israel"
+  - family-names: Battat
+    given-names: Merav
+    affiliation: "Negev Urban Research Lab, Ben Gurion University, Be'er Sheba, 8452566, Israel"
+  - family-names: Kaufmann
+    given-names: Talia
+    affiliation: "The Center for Urban Innovation, The Hebrew University of Jerusalem, Jerusalem, 919051, Israel"
+  - family-names: Noyman
+    given-names: Ariel
+    affiliation: "Media Lab, Massachusetts Institute of Technology, Cambridge, MA 02139, USA"
+keywords:
+  - shelter accessibility
+  - spatial analysis
+  - DBSCAN
+  - K-means
+  - facility location
+  - Bedouin
+  - Negev
+  - GIS
+  - deck.gl
+  - humanitarian mapping
+license: MIT
+repository-code: "https://github.com/NegevUrbanResearch/shelter_access"
+url: "https://negevurbanresearch.github.io/shelter_access/"
+contact:
+  - family-names: Gal
+    given-names: "Noam J."
+    email: noamjgal@gmail.com
+    affiliation: "Department of Geography, The Hebrew University of Jerusalem, Jerusalem, 919051, Israel"
+references:
+  - type: article
+    authors:
+      - family-names: Ester
+        given-names: Martin
+      - family-names: Kriegel
+        given-names: "Hans-Peter"
+      - family-names: Sander
+        given-names: Jörg
+      - family-names: Xu
+        given-names: Xiaowei
+    title: "A density-based algorithm for discovering clusters in large spatial databases with noise"
+    year: 1996
+    collection-title: "Proceedings of the Second International Conference on Knowledge Discovery and Data Mining (KDD '96)"
+    start: 226
+    end: 231
+  - type: article
+    authors:
+      - family-names: Li
+        given-names: Jing
+      - family-names: Zheng
+        given-names: An
+      - family-names: Guo
+        given-names: Wei
+      - family-names: Bandyopadhyay
+        given-names: Nivedita
+      - family-names: Zhang
+        given-names: Yi
+      - family-names: Wang
+        given-names: Qing
+    title: "Urban flood risk assessment based on DBSCAN and K-means clustering algorithm"
+    year: 2023
+    journal: "Geomatics, Natural Hazards and Risk"
+    volume: "14"
+    issue: "1"
+    doi: "10.1080/19475705.2023.2250527"
+  - type: article
+    authors:
+      - family-names: Liao
+        given-names: Ke
+      - family-names: Guo
+        given-names: Diansheng
+    title: "A Clustering-Based Approach to the Capacitated Facility Location Problem"
+    year: 2008
+    journal: "Transactions in GIS"
+    volume: "12"
+    issue: "3"
+    start: 323
+    end: 339
+    doi: "10.1111/j.1467-9671.2008.01105.x"

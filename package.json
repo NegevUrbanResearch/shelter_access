@@ -14,8 +14,13 @@
     "deckgl",
     "mapping"
   ],
-  "author": "NUR Lab",
+  "author": "Negev Urban Research (NUR Lab) and contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NegevUrbanResearch/shelter_access.git"
+  },
+  "homepage": "https://negevurbanresearch.github.io/shelter_access/",
   "dependencies": {
     "axios": "^1.13.2"
   }

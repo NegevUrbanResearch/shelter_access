@@ -1,55 +1,131 @@
-# 🏠 Negev Shelter Access Analysis
+# Negev Shelter Access Analysis
 
-A real-time web-based tool for analyzing and optimizing shelter accessibility for Bedouin communities in the Negev region. This application provides instant feedback on optimal shelter placement using precalculated DBSCAN clustering and greedy optimization algorithms. The tool was covered in an [article](https://www.ynet.co.il/architecture/article/ry9tp9gtxe) by Yediot Ahronot.
+Interactive map for analyzing bomb shelter accessibility for Bedouin communities in the Eastern Negev. The app identifies underserved areas and proposes optimal new shelter locations using precomputed DBSCAN + K-means clustering. Covered in [Yediot Ahronot / Ynet](https://www.ynet.co.il/architecture/article/ry9tp9gtxe).
 
+**Live demo:** [negevurbanresearch.github.io/shelter_access](https://negevurbanresearch.github.io/shelter_access/)
 
-## 📊 Data & Analysis
+## How to cite
 
-### **Input Data**
-- **📍 Shelters**: 
-    - Distributed mobile shelter locations and permanent shelters in educational institutes supplied by [Eshkol Negev Mizrach](https://eastnegev.org/)
-    - Other formal and informal shelter locations collected by [Bimkom](https://bimkom.org/eng/home-mobile/) field workers and through community submissions, including requests for shelters by community members
-- **🏘️ Buildings**: Footprint data from [MS Planetary Computer](https://planetarycomputer.microsoft.com/)
+If you use this software or its methods, please cite it. GitHub also exposes citation metadata via the **Cite this repository** button (from [`CITATION.cff`](./CITATION.cff)).
 
-## 🛠️ Technical Architecture
+After the first Zenodo-archived release, replace the placeholder below with the minted DOI.
 
-### **Frontend Stack (JS)**
-- **deck.gl**: High-performance WebGL visualization
-- **Turf.js**: Spatial operations (buffering, distance calculations)
-- **Vanilla JavaScript**: No framework dependencies
-- **Real-time data loading**: JSON files with precalculated results for quick updates
-
-### **Site Optimization Algorithm (Python)**
-```python
-DBSCAN + Kmeans Ensemble in shelter_optimizer.py
-
-Algorithm:
-1. DBSCAN Clustering: Find natural building clusters using 10 eps values (0.1-1.0)
-2. K-means Clustering: Find systematic centroids using k=750,1500 with 2 seeds each
-3. Combined Analysis: Calculate centroids and coverage for each cluster
-4. Optimal Selection: Choose clusters with most that maximize coverage while ensuring clusters don't overlap
-
+```bibtex
+@software{gal_negev_shelter_access_2026,
+  author       = {Gal, Noam J. and Nikitin, Artem and Drogochinsky, Michael and Cohen, Yonatan and Battat, Merav and Kaufmann, Talia and Noyman, Ariel},
+  title        = {Negev Shelter Access Analysis},
+  year         = {2026},
+  version      = {1.0.0},
+  url          = {https://github.com/NegevUrbanResearch/shelter_access},
+  note         = {DOI to be added after Zenodo archive}
+}
 ```
-## Deployment 
-Deployed through Github Pages at [https://negevurbanresearch.github.io/shelter_access/](https://negevurbanresearch.github.io/shelter_access/)
 
-## 📁 Project Structure
+## License
+
+This project is released under the [MIT License](./LICENSE).
+
+## Authors
+
+1. **Noam J. Gal** (corresponding) — Department of Geography, The Hebrew University of Jerusalem
+2. **Artem Nikitin** — The Center for Urban Innovation, The Hebrew University of Jerusalem
+3. **Michael Drogochinsky** — The Center for Urban Innovation, The Hebrew University of Jerusalem
+4. **Yonatan Cohen** — Negev Urban Research Lab, Ben Gurion University
+5. **Merav Battat** — Negev Urban Research Lab, Ben Gurion University
+6. **Talia Kaufmann** — The Center for Urban Innovation, The Hebrew University of Jerusalem
+7. **Ariel Noyman** — Media Lab, Massachusetts Institute of Technology
+
+Project partners also include [Bimkom](https://bimkom.org/eng/home-mobile/) and East Negev / Civix.
+
+## Data & analysis
+
+### Input data
+
+- **Shelters**
+  - Distributed mobile shelters and permanent shelters in educational institutes from [Eshkol Negev Mizrach](https://eastnegev.org/)
+  - Formal and informal shelter locations collected by [Bimkom](https://bimkom.org/eng/home-mobile/) field workers and community submissions
+- **Buildings**: footprints from [MS Planetary Computer](https://planetarycomputer.microsoft.com/)
+
+Precomputed optimizer outputs ship under `data/optimal_locations/`. Building and administrative GeoJSON used by the map are included in `data/`.
+
+### Site optimization algorithm (Python)
+
+`scripts/shelter_optimizer_ensemble.py` runs an offline DBSCAN + K-means ensemble:
+
+1. **DBSCAN**: natural building clusters across 10 `eps` multipliers (0.1–1.0) relative to coverage radius
+2. **K-means**: systematic centroids at `k=750` and `k=1500` (2 seeds each)
+3. **Selection**: choose non-overlapping candidates that maximize coverage, accounting for existing shelters
+
+Assumptions encoded in the optimizer include ~7 people per building footprint and a 500-shelter planning target (see constants at the top of the script).
+
+## Quick start (web app)
+
+```bash
+npm install
+npm start
+```
+
+Then open [http://localhost:3000](http://localhost:3000). For a live-reload server: `npm run dev`.
+
+The site is static (HTML/CSS/JS + GeoJSON). No backend is required at runtime.
+
+## Reproducing the analysis (Python)
+
+Scripts under `scripts/` are one-off preprocessing jobs; outputs are already stored in `data/`. Re-run only when updating source assets.
+
+```bash
+python -m pip install -r requirements.txt
+python scripts/shelter_optimizer_ensemble.py
+```
+
+Other utilities:
+
+| Script | Role |
+|---|---|
+| `shelter_optimizer_ensemble.py` | DBSCAN + K-means shelter siting |
+| `create_lightweight_data.py` | Lightweight buildings GeoJSON for the map |
+| `calculate_accessibility_heatmap.py` | Accessibility heatmap JSON |
+| `generate_shelter_statistics.py` | Summary charts (writes to `output/`) |
+| `filter_geospatial_data.py` | Spatial filters for study area |
+| `simplify_statistical_areas.py` | Simplify statistical-area polygons |
+
+### Alert analysis submodule
+
+`alert-analysis/` scrapes and filters historical rocket-alert places. Large alert GeoJSON files are gitignored; regenerate with the Node export/filter scripts documented in [`alert-analysis/README.md`](./alert-analysis/README.md).
+
+## Technical architecture
+
+| Layer | Stack |
+|---|---|
+| Visualization | deck.gl (WebGL), Turf.js, vanilla JS |
+| Analysis | Python (`numpy`, `scikit-learn`, `geopandas`, `shapely`) |
+| Deploy | GitHub Pages (static site) |
+
+## Project structure
 
 ```
 shelter_access/
-├── index.html                          # Main application
-├── css/styles.css                      # Styling with new color scheme
+├── index.html                 # Main application
+├── css/styles.css
 ├── js/
-│   ├── spatial-analysis-simple.js     # Data loading & analysis logic
-│   └── app.js                          # Real-time UI controller
-├── data/
-│   ├── buildings_light.geojson        # Building footprints (lightweight)
-│   ├── shelters.geojson               # Existing + requested shelter 
-│   └── optimal_locations/             # Precalculated optimization results
-├── scripts/ # all scripts should be run only once and outputs are already stored in data folder, only use if needed to update data assets
-│   ├── shelter_optimizer.py           # DBSCAN + KMeans Ensemble
-│   ├── convert_to_geojson.py         # Shapefile conversion 
-│   └── create_lightweight_data.py     # Data preprocessing
-└── README.md
+│   ├── app.js                 # UI / map controller
+│   └── spatial-analysis-simple.js
+├── data/                      # GeoJSON + precomputed optimizer outputs
+├── scripts/                   # Offline Python analysis (run once to refresh data)
+├── alert-analysis/            # Optional alert scrape / filter tooling
+├── CITATION.cff               # Citation metadata (GitHub + Zenodo)
+├── LICENSE                    # MIT
+├── requirements.txt           # Python deps for scripts/
+└── package.json
 ```
 
+## Zenodo archive
+
+To mint a DOI via GitHub ↔ Zenodo:
+
+1. Merge this citation-ready metadata to `main`.
+2. On [Zenodo](https://zenodo.org/), enable GitHub integration for `NegevUrbanResearch/shelter_access`.
+3. Create a GitHub Release (e.g. tag `v1.0.0`). Zenodo will archive the release and mint a DOI, using fields from `CITATION.cff`.
+4. Add the DOI under `identifiers` in `CITATION.cff` and update the BibTeX block above (and optionally a DOI badge in this README).
+
+Do **not** add a competing `.zenodo.json` unless you need Zenodo-only fields; if both exist, Zenodo prefers `.zenodo.json` and ignores `CITATION.cff` for deposit metadata.
