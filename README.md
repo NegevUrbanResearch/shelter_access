@@ -9,17 +9,6 @@ Interactive map for analyzing bomb shelter accessibility for Bedouin communities
 
 This project is released under the [MIT License](./LICENSE).
 
-## Authors
-
-1. **Noam J. Gal** (corresponding) — Department of Geography, The Hebrew University of Jerusalem
-2. **Artem Nikitin** — The Center for Urban Innovation, The Hebrew University of Jerusalem
-3. **Michael Drogochinsky** — The Center for Urban Innovation, The Hebrew University of Jerusalem
-4. **Yonatan Cohen** — Negev Urban Research Lab, Ben Gurion University
-5. **Merav Battat** — Negev Urban Research Lab, Ben Gurion University
-6. **Talia Kaufmann** — The Center for Urban Innovation, The Hebrew University of Jerusalem
-7. **Ariel Noyman** — Media Lab, Massachusetts Institute of Technology
-
-Project partners also included local partners at [Bimkom](https://bimkom.org/eng/home-mobile/) and [East Negev / Civix](https://www.linkedin.com/company/civixil/), as well as consultation and data provided by Arch. **Lobna Alsana**.
 
 ## Data & analysis
 
@@ -103,9 +92,24 @@ shelter_access/
 └── package.json
 ```
 
+## Authors
+
+1. **Noam J. Gal** (corresponding) — Department of Spatial Sciences, The Hebrew University of Jerusalem
+2. **Artem Nikitin** — The Center for Urban Innovation, The Hebrew University of Jerusalem
+3. **Michael Drogochinsky** — The Center for Urban Innovation, The Hebrew University of Jerusalem
+4. **Yonatan Cohen** — Negev Urban Research Lab, Ben Gurion University
+5. **Merav Battat** — Negev Urban Research Lab, Ben Gurion University
+6. **Talia Kaufmann** — The Center for Urban Innovation, The Hebrew University of Jerusalem
+7. **Ariel Noyman** — Media Lab, Massachusetts Institute of Technology
+
+Project partners also included local partners at [Bimkom](https://bimkom.org/eng/home-mobile/) and [East Negev / Civix](https://www.linkedin.com/company/civixil/), as well as consultation and data provided by Arch. **Lobna Alsana**.
+
+## How to Cite
+ To add with details by paper publication
+
 ## Zenodo archive
 
-To mint a DOI via GitHub ↔ Zenodo:
+Instructions for adding before publication:
 
 1. Merge this citation-ready metadata to `main`.
 2. On [Zenodo](https://zenodo.org/), enable GitHub integration for `NegevUrbanResearch/shelter_access`.
