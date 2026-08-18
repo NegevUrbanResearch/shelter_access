@@ -286,8 +286,12 @@ class EnhancedShelterOptimizer:
         
         return all_candidates, all_candidate_sources
     
-    def generate_kmeans_candidates(self, building_coords, coverage_radius_m, run_id=0, progress_callback=None):
-        """Generate candidates using K-means clustering"""
+    def generate_kmeans_candidates(self, building_coords, coverage_radius_m, run_id=0, progress_callback=None, k_values=None):
+        """Generate candidates using K-means clustering.
+
+        k_values: optional override (default: self.KMEANS_K_VALUES). Used by ablation
+        to test k matching the planning ceiling (k=500) vs oversampling.
+        """
         candidates = []
         candidate_sources = {}
         coverage_radius_deg, _ = self.meters_to_degrees(coverage_radius_m)
@@ -295,8 +299,7 @@ class EnhancedShelterOptimizer:
         if progress_callback:
             progress_callback("Starting K-means...")
         
-        # Use fixed k values with multiple seeds
-        k_values = self.KMEANS_K_VALUES
+        k_values = self.KMEANS_K_VALUES if k_values is None else k_values
         
         total_k_configs = len(k_values) * self.N_KMEANS_SEEDS
         completed_configs = 0
