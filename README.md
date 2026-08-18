@@ -1,6 +1,6 @@
 # Negev Shelter Access Analysis
 
-Interactive map for analyzing bomb shelter accessibility for Bedouin communities in the Eastern Negev. The app identifies underserved areas and proposes optimal new shelter locations using precomputed DBSCAN + K-means clustering. Covered in [Yediot Ahronot / Ynet](https://www.ynet.co.il/architecture/article/ry9tp9gtxe).
+Interactive map for analyzing bomb shelter accessibility for Bedouin communities in the Eastern Negev. The app identifies underserved areas and proposes model-suggested new shelter locations using precomputed DBSCAN + K-means clustering. Covered in [Yediot Ahronot / Ynet](https://www.ynet.co.il/architecture/article/ry9tp9gtxe).
 
 **Live demo:** [negevurbanresearch.github.io/shelter_access](https://negevurbanresearch.github.io/shelter_access/)
 

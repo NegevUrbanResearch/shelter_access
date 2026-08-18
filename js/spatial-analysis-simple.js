@@ -1,5 +1,5 @@
 /**
- * Simple Spatial Analysis Module - Loads Precomputed Optimal Shelter Locations
+ * Simple Spatial Analysis Module - Loads Precomputed Model-Suggested Shelter Locations
  * Uses precalculated data from shelter_optimizer.py DBSCAN + Greedy algorithm
  */
 
@@ -41,7 +41,7 @@ class SimpleSpatialAnalyzer {
       // Load pre-filtered polygon layers
       await this.loadPolygonLayers();
 
-      // Load default optimal data
+      // Load default model-suggested data
       await this.loadOptimalData(this.coverageRadius);
 
       return true;
@@ -180,16 +180,16 @@ class SimpleSpatialAnalyzer {
   }
 
   /**
-   * Load precomputed optimal shelter data
+   * Load precomputed model-suggested shelter data
    */
   async loadOptimalData(radius) {
-    // Only support 'optimal_shelters' scenario
+    // Only support the model-suggested shelter scenario
     const cacheKey = `optimal_shelters_${radius}m`;
     if (this.optimalData.has(cacheKey)) {
       return this.optimalData.get(cacheKey);
     }
     try {
-      console.log(`Loading optimal data: ${cacheKey}...`);
+      console.log(`Loading model-suggested data: ${cacheKey}...`);
       const response = await fetch(`data/optimal_locations/${cacheKey}.json`);
       if (!response.ok) {
         throw new Error(`Failed to load: ${response.status}`);
@@ -197,7 +197,7 @@ class SimpleSpatialAnalyzer {
       const data = await response.json();
       this.optimalData.set(cacheKey, data);
       console.log(
-        `✓ Loaded ${data.optimal_locations.length} optimal locations for ${cacheKey}`
+        `✓ Loaded ${data.optimal_locations.length} model-suggested locations for ${cacheKey}`
       );
       return data;
     } catch (error) {
@@ -226,7 +226,7 @@ class SimpleSpatialAnalyzer {
   }
 
   /**
-   * Get top N optimal shelter locations
+   * Get top N model-suggested shelter locations
    */
   async getOptimalLocations(numShelters) {
     const data = await this.loadOptimalData(this.coverageRadius);
@@ -239,7 +239,7 @@ class SimpleSpatialAnalyzer {
   }
 
   /**
-   * Get requested shelter evaluation with specific pairing to optimal locations
+   * Get requested shelter evaluation with specific pairing to model-suggested locations
    */
   getRequestedShelterEvaluation(numNewShelters = 0) {
     const cacheKey = `optimal_shelters_${this.coverageRadius}m`;
@@ -271,10 +271,10 @@ class SimpleSpatialAnalyzer {
       (a, b) => (a.buildings_covered || 0) * 7 - (b.buildings_covered || 0) * 7
     );
 
-    // Get the top N optimal locations we're actually building
+    // Get the top N model-suggested locations we're actually building
     const optimalLocations = data.optimal_locations.slice(0, numNewShelters);
 
-    // Pair worst requested with best optimal, but only up to the number we're building
+    // Pair worst requested with best model suggestion, up to the number being built
     const pairedShelters = [];
     for (let i = 0; i < maxReplacements; i++) {
       const requested = sortedRequested[i];
@@ -292,7 +292,7 @@ class SimpleSpatialAnalyzer {
           requestedCoverage: requestedCoverage,
           optimalCoverage: optimalCoverage,
           requestedRank: i + 1, // Rank among worst requested (1 = worst)
-          optimalRank: i + 1, // Rank among selected optimal (1 = best)
+          optimalRank: i + 1, // Rank among selected model suggestions (1 = best)
         });
       }
     }
@@ -344,7 +344,7 @@ class SimpleSpatialAnalyzer {
       0
     );
 
-    // Existing coverage (total - new from all optimal locations)
+    // Existing coverage (total - new from all model-suggested locations)
     const existingCoverage =
       (stats.total_people_covered || 0) - (stats.new_people_covered || 0);
     const totalCoverage = existingCoverage + newPeopleCovered;

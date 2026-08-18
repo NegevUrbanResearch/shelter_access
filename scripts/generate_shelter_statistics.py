@@ -252,7 +252,7 @@ def create_coverage_analysis(theme):
 
         ax.text(radii[-1] + 8, existing_coverage[-1], 'Existing',
                 va='center', fontsize=12, color=existing_line_color)
-        ax.text(radii[-1] + 8, total_coverage[-1], '+500 Optimal',
+        ax.text(radii[-1] + 8, total_coverage[-1], '+500 Model-Suggested',
                 va='center', fontsize=12, color=theme['optimal_color'])
 
         ax.set_xlabel('Coverage Radius (m)', fontsize=14)
@@ -297,7 +297,7 @@ def create_coverage_analysis(theme):
 
         ax.text(x[0] - width/2, buildings_existing[0] + 300, 'Existing',
                 ha='center', fontsize=10, color='#000000')
-        ax.text(x[0] + width/2, buildings_total[0] + 300, '+500 Optimal',
+        ax.text(x[0] + width/2, buildings_total[0] + 300, '+500 Model-Suggested',
                 ha='center', fontsize=10, color='#000000')
 
         ax.text(bars1[-1].get_x() + bars1[-1].get_width()/2., bars1[-1].get_height() + 100,
@@ -354,7 +354,7 @@ def calculate_incremental_coverage(building_coords, existing_shelters, optimal_s
     initial_coverage = np.sum(covered_mask) / total_buildings * 100
     coverage_percentages = [initial_coverage]
     
-    # Add optimal shelters one by one
+    # Add model-suggested shelters one by one
     for shelter in optimal_shelters:
         # Vectorized distance calculation for uncovered buildings only
         uncovered_indices = np.where(~covered_mask)[0]
@@ -477,10 +477,10 @@ def load_accessibility_data():
                     'num_shelters': len(optimal_shelters)
                 }
 
-                print(f"  {radius}m: {len(optimal_shelters)} optimal shelters, "
+                print(f"  {radius}m: {len(optimal_shelters)} model-suggested shelters, "
                       f"final coverage: {coverage_progression[-1]:.1f}%")
         except FileNotFoundError:
-            print(f"Optimal locations data for {radius}m not found")
+            print(f"Model-suggested locations data for {radius}m not found")
             continue
 
     return radius_data, coverage_radii
@@ -491,7 +491,7 @@ def print_coverage_statistics():
     coverage_radii = [100, 150, 200, 250, 300]
 
     print("\n=== SHELTER COVERAGE STATISTICS ===\n")
-    print(f"{'Radius':<10} {'Existing Coverage':<20} {'With +500 Optimal':<20} {'Improvement':<15}")
+    print(f"{'Radius':<10} {'Existing Coverage':<20} {'With +500 Model-Suggested':<26} {'Improvement':<15}")
     print("-" * 65)
 
     total_buildings = None
@@ -532,7 +532,7 @@ def load_buildings_per_shelter_data():
         print("Shelter coverage precomputed data not found, skipping comparison chart")
         return None, None, None
 
-    # Load building coordinates for recalculating optimal coverage
+    # Load building coordinates for recalculating model-suggested coverage
     try:
         with open('data/buildings.geojson', 'r') as f:
             buildings_data = json.load(f)
@@ -573,11 +573,11 @@ def load_buildings_per_shelter_data():
                 optimal_avg.append(avg_coverage)
                 radii.append(radius)
         except FileNotFoundError:
-            print(f"Optimal locations data for {radius}m not found")
+            print(f"Model-suggested locations data for {radius}m not found")
             continue
 
     if not radii:
-        print("No optimal location data found, skipping comparison chart")
+        print("No model-suggested location data found, skipping comparison chart")
         return None, None, None
 
     existing_avg = [existing_stats[f'{r}m']['average_buildings_per_shelter'] for r in radii]
@@ -586,7 +586,7 @@ def load_buildings_per_shelter_data():
 
 
 def create_buildings_per_shelter_comparison(theme, radii, existing_avg, optimal_avg):
-    """Compare buildings per shelter: existing vs optimal locations"""
+    """Compare buildings per shelter: existing vs model-suggested locations"""
     if radii is None:
         return
 
@@ -601,14 +601,14 @@ def create_buildings_per_shelter_comparison(theme, radii, existing_avg, optimal_
 
     ax.set_xlabel('Coverage Radius (meters)')
     ax.set_ylabel('Average Buildings per Shelter')
-    ax.set_title('Shelter Efficiency: Existing vs Optimal Locations', pad=15)
+    ax.set_title('Shelter Efficiency: Existing vs Model-Suggested Locations', pad=15)
     ax.set_xticks(x)
     ax.set_xticklabels([f'{r}m' for r in radii])
 
     # Direct labeling on first bar group
     ax.text(x[0] - width/2, existing_avg[0] + 0.8, 'Existing',
             ha='center', fontsize=8, color=theme['existing_color'])
-    ax.text(x[0] + width/2, optimal_avg[0] + 0.8, '+500 Optimal',
+    ax.text(x[0] + width/2, optimal_avg[0] + 0.8, '+500 Model-Suggested',
             ha='center', fontsize=8, color=theme['optimal_color'])
 
     setup_tufte_axis(ax)

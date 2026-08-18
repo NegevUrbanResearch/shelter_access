@@ -198,7 +198,7 @@ class ShelterAccessApp {
             return precomputedCoverage;
         }
         
-        // Fallback to calculation for optimal shelters or missing data
+        // Fallback to calculation for model-suggested shelters or missing data
         return this.calculateShelterCoverage(shelter);
     }
     
@@ -242,7 +242,7 @@ class ShelterAccessApp {
             await this.initializeMap();
             this.updateAttribution();
             
-            // Initial load of optimal locations and coverage analysis
+            // Initial load of model-suggested locations and coverage analysis
             await this.updateOptimalLocations();
             
 
@@ -452,7 +452,7 @@ class ShelterAccessApp {
                         // Update visualization to refresh the heatmap
                         this.updateVisualization();
                     } else {
-                        // Otherwise just update optimal locations
+                        // Otherwise just update model-suggested locations
                         await this.updateOptimalLocations();
                     }
                 }
@@ -511,7 +511,7 @@ class ShelterAccessApp {
                         await this.loadAccessibilityData();
                     }
                 } else {
-                    // Update optimal locations when disabling heatmap
+                    // Update model-suggested locations when disabling heatmap
                     await this.updateOptimalLocations();
                 }
                 
@@ -1232,7 +1232,7 @@ class ShelterAccessApp {
             }
         }
         
-        // === OPTIMAL ADDED SHELTERS (Green Squares) ===
+        // === MODEL-SUGGESTED ADDED SHELTERS (Green Squares) ===
         if (this.layerVisibility.optimalShelters && this.proposedShelters.length > 0 && !this.layerVisibility.accessibilityHeatmap) {
             // Added shelter squares with quality-based coloring
             layers.push(new deck.IconLayer({
@@ -1308,7 +1308,7 @@ class ShelterAccessApp {
             legendItems.push({
                 type: 'svg-icon',
                 className: 'optimal-shelter',
-                label: 'Optimal Shelters',
+                label: 'Model-Suggested Shelters',
                 iconSrc: 'data/proposed.svg',
                 description: 'Algorithm-generated sites'
             });
@@ -1751,7 +1751,7 @@ class ShelterAccessApp {
     }
     
     /**
-     * Update optimal locations in real-time
+     * Update model-suggested locations in real-time
      */
     async updateOptimalLocations() {
         if (this.isAnalyzing) return;
@@ -1759,7 +1759,7 @@ class ShelterAccessApp {
         try {
             this.isAnalyzing = true;
             
-            // Load optimal locations from precomputed data
+            // Load model-suggested locations from precomputed data
             const optimalLocations = await this.spatialAnalyzer.getOptimalLocations(this.numNewShelters);
             
             // Store directly - they're already in the right format
@@ -1772,7 +1772,7 @@ class ShelterAccessApp {
             this.updateCoverageAnalysis();
             
         } catch (error) {
-            console.error('Loading optimal locations failed:', error);
+            console.error('Loading model-suggested locations failed:', error);
         } finally {
             this.isAnalyzing = false;
         }
@@ -1792,7 +1792,7 @@ class ShelterAccessApp {
         const stats = data.statistics;
         const newSheltersSelected = this.proposedShelters.length;
         
-        // Calculate coverage from selected optimal shelters
+        // Calculate coverage from selected model-suggested shelters
         let newBuildingsCovered = 0;
         if (newSheltersSelected > 0) {
             newBuildingsCovered = this.proposedShelters.reduce((sum, shelter) => sum + (shelter.buildings_covered || 0), 0);

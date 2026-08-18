@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Enhanced DBSCAN + K-means Shelter Optimizer
-Finds optimal shelter locations using two complementary methods:
+Finds model-optimized shelter locations using two complementary methods:
 1. DBSCAN variants (24 configurations) to find density-based clusters  
 2. K-means clustering (k=750, 1500) for systematic space coverage
 Then uses advanced selection strategies.
@@ -26,7 +26,7 @@ class EnhancedShelterOptimizer:
         self.N_RUNS_PER_RADIUS = 1  # Single run since DBSCAN is deterministic
         self.N_KMEANS_SEEDS = 2  # Multiple K-means random seeds
         
-        # DBSCAN parameters to test (eps should be <= coverage radius for optimal results)
+        # DBSCAN parameters to test (eps should be <= coverage radius for model-optimized results)
         self.DBSCAN_EPS_MULTIPLIERS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]  # 10 multipliers from 0.1 to 1.0
         self.DBSCAN_MIN_SAMPLES = [10]  # Single min_samples parameter
         
@@ -927,7 +927,7 @@ class EnhancedShelterOptimizer:
         print(f"Target: {self.TARGET_SHELTERS} shelters per radius")
         print(f"Radii: {self.RADII_TO_TEST} meters")
         print(f"Methods: Original DBSCAN + Enhanced DBSCAN (24 configs) + K-means (k=750,1500 × {self.N_KMEANS_SEEDS} seeds)")
-        print(f"Strategy: Generate diverse candidates, then optimal non-overlapping selection")
+        print(f"Strategy: Generate diverse candidates, then model-optimized non-overlapping selection")
         print(f"Multithreading: {'Enabled' if self.USE_MULTITHREADING else 'Disabled'} ({self.MAX_WORKERS} workers)" if self.USE_MULTITHREADING else "Multithreading: Disabled")
         print("=" * 70)
         print("📁 Loading data...")

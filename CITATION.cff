@@ -7,7 +7,7 @@ date-released: 2026-07-17
 abstract: >-
   A real-time, browser-based interactive map for analyzing bomb shelter
   accessibility for Bedouin communities in the Eastern Negev. The tool
-  identifies underserved areas and proposes optimal new shelter locations
+  identifies underserved areas and proposes model-suggested new shelter locations
   using precomputed DBSCAN and K-means spatial clustering, with a static
   web frontend (deck.gl) and offline Python analysis scripts.
 authors:
