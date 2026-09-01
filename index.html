@@ -541,8 +541,47 @@
                         overlapping existing shelter coverage.
                       </p>
 
+                      <h4>Model Parameters</h4>
+                      <p>
+                        Candidates come from DBSCAN run with ten epsilon values,
+                        from 0.1 to 1.0 times the selected accessibility
+                        distance, requiring a minimum of ten buildings per
+                        cluster, plus K-means run at k = 750 and k = 1,500. For
+                        each DBSCAN cluster we evaluate the centroid, the
+                        medoid, and the point of maximum local coverage. A
+                        greedy maximal covering rule (Church & ReVelle, 1974)
+                        then ranks up to 500 sites, requiring at least twice the
+                        accessibility distance between any two selected sites so
+                        that their coverage does not overlap. The cap of 500 is
+                        a high-end estimate of what might realistically be
+                        distributed, and the sites are ranked, so selecting
+                        n shelters shows the n highest-value picks.
+                      </p>
+
+                      <h4>Accessibility Distances</h4>
+                      <p>
+                        The 100–300 m range assumes open, flat terrain and a
+                        warning of up to ten minutes. It reflects walking speeds
+                        of roughly 0.5–1 m/s for household groups that may
+                        include children, elderly residents, or people with
+                        limited mobility, after a delay to leave the home
+                        (Gates et al., 2006; Butters & Dawson, 2025). The lower
+                        end is conservative; the
+                        upper end assumes minimal delay, faster movement, or
+                        preemptive sheltering. Choosing a distance is a policy
+                        decision, which is why the tool lets you vary it.
+                      </p>
+
                       <div class="references">
                         <strong>References:</strong><br />
+                        Butters, O., & Dawson, R. J. (2025). Flood Evacuation in
+                        Informal Settlements: Application of an Agent-Based
+                        Model to Kibera Using Open Data.
+                        <em>Urban Science</em>, 9(1), 12.<br /><br />
+                        Church, R., & ReVelle, C. (1974). The Maximal Covering
+                        Location Problem.
+                        <em>Papers of the Regional Science Association</em>,
+                        32(1), 101–118.<br /><br />
                         Ester, M., Kriegel, H.-P., Sander, J., & Xu, X. (1996).
                         A density-based algorithm for discovering clusters in
                         large spatial databases with noise.
@@ -550,6 +589,12 @@
                           >Proceedings of the Second International Conference on
                           Knowledge Discovery and Data Mining</em
                         >, 226–231.<br /><br />
+                        Gates, T. J., Noyce, D. A., Bill, A. R., & Van Ee, N.
+                        (2006). Recommended Walking Speeds for Timing of
+                        Pedestrian Clearance Intervals Based on Characteristics
+                        of the Pedestrian Population.
+                        <em>Transportation Research Record</em>, 1982(1),
+                        38–47.<br /><br />
                         Li, J., Zheng, A., Guo, W., Bandyopadhyay, N., Zhang,
                         Y., & Wang, Q. (2023). Urban flood risk assessment based
                         on DBSCAN and K-means clustering algorithm.
@@ -624,6 +669,64 @@
                         authoritative resource for emergency situations. Always
                         refer to official channels and local authorities for
                         real-time information and guidance during an emergency.
+                      </p>
+
+                      <h4>Limitations</h4>
+                      <ul>
+                        <li>
+                          <strong>Dense areas are favored.</strong> The maximal
+                          covering objective ranks sites by how many buildings
+                          each one newly covers. It is not equity-weighted, so
+                          small and remote villages rank lower than large ones.
+                        </li>
+                        <li>
+                          <strong>Coverage means proximity, not
+                          protection.</strong> A building counts as covered once
+                          any shelter falls within the selected distance,
+                          regardless of that shelter's capacity, type,
+                          condition, or whether it is open and usable when an
+                          alert sounds.
+                        </li>
+                        <li>
+                          <strong>Buildings stand in for people.</strong> No
+                          reliable demographic data exists for the unrecognized
+                          villages. Footprint size only separates residences
+                          from ancillary structures such as storage or animal
+                          stalls; it does not indicate how many people live
+                          there. Households here often span several structures,
+                          or enlarge a single structure as the family grows, so
+                          counting building sites under- or overweights
+                          different types of compounds.
+                        </li>
+                        <li>
+                          <strong>Distance is measured in a straight
+                          line.</strong> Unrecognized villages have no mapped
+                          road network and residents use informal footpaths, so
+                          network routing is neither possible nor appropriate.
+                          Real travel times vary with terrain, weather, time of
+                          day, and who is walking.
+                        </li>
+                        <li>
+                          <strong>Shelter data is incomplete.</strong> Reported
+                          counts of temporary shelters distributed to the
+                          unrecognized villages conflict across sources, ranging
+                          from 135 to 600, and no central body maintains this
+                          record. 
+                        </li>
+                      </ul>
+                      <p>
+                        These are therefore model-optimized candidate sites
+                        under simplifying geometric and data assumptions, not
+                        optimal placements in the full social, legal, and
+                        logistical sense. Final decisions on the number,
+                        quality, and exact location of shelters must be made
+                        together with residents and community organizations. Our
+                        code and processed data are open source and available on
+                        <a
+                          href="https://github.com/NegevUrbanResearch/shelter_access"
+                          target="_blank"
+                          >GitHub</a
+                        >.
                       </p>
                     </div>
                   </div>
@@ -848,8 +951,44 @@
                         المنازل، دون حدوث تداخل مع تغطية الملاجئ القائمة.
                       </p>
 
+                      <h4>معلمات النموذج</h4>
+                      <p>
+                        تُستمد المواقع المرشحة من خوارزمية DBSCAN التي تُشغَّل
+                        بعشر قيم لمعامل إبسيلون، من 0.1 إلى 1.0 من مسافة الوصول
+                        المختارة، مع اشتراط عشرة مبانٍ كحد أدنى لكل تجمع، إضافة
+                        إلى خوارزمية K-means بقيمتَي k = 750 و k = 1500. ولكل
+                        تجمع ناتج عن DBSCAN نُقيّم مركز الثقل، والنقطة الوسيطة،
+                        ونقطة أقصى تغطية محلية. بعدها تُرتّب قاعدة التغطية
+                        القصوى الجشعة (Church & ReVelle, 1974) حتى 500 موقع، مع
+                        اشتراط مسافة لا تقل عن ضعف مسافة الوصول بين أي موقعين
+                        مختارين لتفادي تداخل التغطية. وحد الـ500 هو تقدير مرتفع
+                        لما يمكن توزيعه واقعيًا، والمواقع مرتّبة، بحيث يعرض
+                        اختيار n ملجأً أفضل n مواقع.
+                      </p>
+
+                      <h4>مسافات الوصول</h4>
+                      <p>
+                        يفترض نطاق 100–300 متر أرضًا مفتوحة ومستوية وإنذارًا
+                        مسبقًا يصل إلى عشر دقائق، ويعكس سرعات مشي تتراوح بين 0.5
+                        و1 متر في الثانية لمجموعات عائلية قد تضم أطفالًا أو
+                        مسنين أو أشخاصًا ذوي قدرة حركية محدودة، بعد تأخير للخروج
+                        من المنزل (Gates et al., 2006; Butters & Dawson, 2025).
+                        الحد الأدنى تقدير
+                        متحفظ، أما الحد الأعلى فيفترض تأخيرًا ضئيلًا أو حركة
+                        أسرع أو لجوءًا استباقيًا. اختيار المسافة قرار سياساتي،
+                        ولذلك تتيح الأداة تغييره.
+                      </p>
+
                       <div class="references">
                         <strong>المراجع:</strong><br />
+                        Butters, O., & Dawson, R. J. (2025). Flood Evacuation in
+                        Informal Settlements: Application of an Agent-Based
+                        Model to Kibera Using Open Data.
+                        <em>Urban Science</em>, 9(1), 12.<br /><br />
+                        Church, R., & ReVelle, C. (1974). The Maximal Covering
+                        Location Problem.
+                        <em>Papers of the Regional Science Association</em>,
+                        32(1), 101–118.<br /><br />
                         Ester, M., Kriegel, H.-P., Sander, J., & Xu, X. (1996).
                         A density-based algorithm for discovering clusters in
                         large spatial databases with noise.
@@ -862,6 +1001,12 @@
                         on DBSCAN and K-means clustering algorithm.
                         <em>Geomatics, Natural Hazards and Risk</em>, 14(1),
                         2250527.<br /><br />
+                        Gates, T. J., Noyce, D. A., Bill, A. R., & Van Ee, N.
+                        (2006). Recommended Walking Speeds for Timing of
+                        Pedestrian Clearance Intervals Based on Characteristics
+                        of the Pedestrian Population.
+                        <em>Transportation Research Record</em>, 1982(1),
+                        38–47.<br /><br />
                         Liao, K., & Guo, D. (2008). A Clustering-Based Approach
                         to the Capacitated Facility Location Problem.
                         <em>Transactions in GIS</em>, 12(3), 323–339.
@@ -881,14 +1026,15 @@
                       <h4>بيانات المباني</h4>
                       <p>
                         استخدمنا بيانات بصمات المباني من مايكروسوفت بلانيتاري
-                        كومبيوتر. وللتركيز على المبانי السكنية في التجمعات غير
+                        كومبيوتر. وللتركيز على المباني السكنية في التجمعات غير
                         المعترف بها، استخدمنا عدة فلاتر. شملت هذه الفلاتر طبقة
                         نظام المعلومات الجغرافية للتجمعات غير المعترف بها التي
                         وفرتها سلطة تطوير واستيطان البدو في النقب (הרשות לפיתוח
                         והתיישבות הבדואים בנגב)، ومناطق التعداد السكاني من
                         الجهاز المركزي للإحصاء (למ"ס) التي لا توجد فيها تجمعات
                         سكنية معترف بها قانونيًا، بالإضافة إلى الفلترة حسب مساحة
-                        بصمة المبنى.
+                        بصمة المبنى بحيث تزيد على 40 مترًا مربعًا للتركيز على
+                        المساكن.
                       </p>
 
                       <h4>بيانات الملاجئ</h4>
@@ -902,9 +1048,17 @@
                             target="_blank"
                             >بمكوم</a
                           ></strong
-                        >، وكذلك من خلال توجهات وطلبات مقدَّمة من السكان. للحصول
-                        على معلومات مفصلة أكثر حول مواقع الملاجئ، يُرجى التواصل
-                        مع منظمة "بمكوم".
+                        >، وكذلك من خلال توجهات وطلبات مقدَّمة من السكان. وقد
+                        زوّدنا
+                        <strong
+                          ><a href="https://eastnegev.org/" target="_blank"
+                            >عنقود النقب الشرقي</a
+                          ></strong
+                        >
+                        بمجموعات بيانات إضافية عن مواقع الملاجئ. البيانات
+                        محدَّثة حتى تموز/يوليو 2025 ولم يتم التحقق منها ميدانيًا.
+                        للحصول على معلومات مفصلة أكثر حول مواقع الملاجئ، يُرجى
+                        التواصل مع منظمة "بمكوم".
                       </p>
                     </div>
                   </div>
@@ -925,6 +1079,61 @@
                         حالات الطوارئ. يجب دائمًا الرجوع إلى القنوات الرسمية
                         والسلطات المحلية للحصول على معلومات وإرشادات فورية خلال
                         حالات الطوارئ.
+                      </p>
+
+                      <h4>محدوديات</h4>
+                      <ul>
+                        <li>
+                          <strong>أفضلية للمناطق الكثيفة.</strong> يرتّب هدف
+                          التغطية القصوى المواقع بحسب عدد المباني التي يغطيها كل
+                          موقع جديد، وهو غير موزون بمعيار الإنصاف، لذا تحصل
+                          القرى الصغيرة والنائية على ترتيب أدنى من القرى
+                          الكبيرة.
+                        </li>
+                        <li>
+                          <strong>التغطية تعني القرب لا الحماية.</strong>
+                          يُحتسب المبنى مغطى بمجرد وجود أي ملجأ ضمن المسافة
+                          المختارة، بغض النظر عن سعة ذلك الملجأ أو نوعه أو حالته
+                          أو ما إذا كان مفتوحًا وصالحًا للاستخدام عند إطلاق
+                          الإنذار.
+                        </li>
+                        <li>
+                          <strong>المباني بديل عن السكان.</strong> لا تتوفر
+                          بيانات ديموغرافية موثوقة عن القرى غير المعترف بها.
+                          مساحة بصمة المبنى تفصل المساكن عن المنشآت الملحقة
+                          كالمخازن وحظائر الحيوانات فحسب، ولا تدل على عدد
+                          القاطنين. وكثيرًا ما تمتد الأسرة هنا على عدة مبانٍ، أو
+                          توسّع مبنى واحدًا مع نمو العائلة، لذا فإن احتساب مواقع
+                          المباني يقلل أو يبالغ في تقدير أنواع مختلفة من
+                          المجمعات السكنية.
+                        </li>
+                        <li>
+                          <strong>المسافة تُقاس بخط مستقيم.</strong> لا توجد
+                          شبكة طرق مخططة في القرى غير المعترف بها، ويستخدم
+                          السكان مسارات غير رسمية، لذا فإن حساب المسار الشبكي
+                          غير ممكن ولا مناسب. وتتباين أزمنة التنقل الفعلية بحسب
+                          التضاريس والطقس والوقت من اليوم وهوية السائر.
+                        </li>
+                        <li>
+                          <strong>بيانات الملاجئ ناقصة.</strong> تتضارب الأعداد
+                          المبلّغ عنها للملاجئ المؤقتة الموزعة على القرى غير
+                          المعترف بها بين المصادر، وتتراوح بين 135 و600، ولا
+                          توجد جهة مركزية تحفظ هذا السجل. ولم يتم التحقق من
+                          بياناتنا ميدانيًا.
+                        </li>
+                      </ul>
+                      <p>
+                        لذلك فإن هذه مواقع مرشحة محسّنة نموذجيًا وفق افتراضات
+                        هندسية وبيانات مبسّطة، وليست مواقع مثلى بالمعنى
+                        الاجتماعي والقانوني واللوجستي الكامل. ويجب أن تُتخذ
+                        القرارات النهائية بشأن عدد الملاجئ وجودتها وموقعها
+                        الدقيق بالتشارك مع السكان والمنظمات المجتمعية. الشيفرة
+                        المصدرية والبيانات المعالجة مفتوحة المصدر ومتاحة على
+                        <a
+                          href="https://github.com/NegevUrbanResearch/shelter_access"
+                          target="_blank"
+                          >GitHub</a
+                        >.
                       </p>
                     </div>
                   </div>
@@ -1153,8 +1362,44 @@
                         הקפדה על מניעת חפיפה עם כיסוי קיים של מקלטים אחרים.
                       </p>
 
+                      <h4>פרמטרים של המודל</h4>
+                      <p>
+                        המועמדים נוצרים באמצעות DBSCAN עם עשרה ערכי אפסילון,
+                        מ-0.1 עד 1.0 ממרחק הנגישות שנבחר, בדרישת מינימום של
+                        עשרה מבנים לאשכול, יחד עם K-means בערכי k = 750 ו-k =
+                        1,500. עבור כל אשכול DBSCAN נבחנים מרכז הכובד, המדואיד
+                        והנקודה בעלת הכיסוי המקומי המרבי. לאחר מכן כלל כיסוי
+                        מרבי חמדני (Church & ReVelle, 1974) מדרג עד 500 אתרים,
+                        בדרישה למרחק של לפחות פי שניים ממרחק הנגישות בין כל שני
+                        אתרים נבחרים, כך שהכיסוי שלהם אינו חופף. תקרת 500 היא
+                        הערכה גבוהה של מה שניתן להקצות באופן ריאלי, והאתרים
+                        מדורגים, כך שבחירת n מקלטים מציגה את n האתרים בעלי הערך
+                        הגבוה ביותר.
+                      </p>
+
+                      <h4>מרחקי נגישות</h4>
+                      <p>
+                        טווח 100–300 מטר מניח שטח פתוח ומישורי והתרעה של עד עשר
+                        דקות, ומשקף מהירויות הליכה של כ-0.5 עד 1 מטר לשנייה עבור
+                        קבוצות משק בית שעשויות לכלול ילדים, קשישים או אנשים עם
+                        מוגבלות בניידות, לאחר השהיית היציאה מהבית (Gates et al.,
+                        2006; Butters & Dawson, 2025). הקצה הנמוך הוא הערכה
+                        שמרנית, והקצה הגבוה מניח
+                        השהיה מזערית, תנועה מהירה יותר או כניסה מקדימה למקלט.
+                        בחירת המרחק היא החלטת מדיניות, ולכן הכלי מאפשר לשנות
+                        אותה.
+                      </p>
+
                       <div class="references">
                         <strong>מקורות:</strong><br />
+                        Butters, O., & Dawson, R. J. (2025). Flood Evacuation in
+                        Informal Settlements: Application of an Agent-Based
+                        Model to Kibera Using Open Data.
+                        <em>Urban Science</em>, 9(1), 12.<br /><br />
+                        Church, R., & ReVelle, C. (1974). The Maximal Covering
+                        Location Problem.
+                        <em>Papers of the Regional Science Association</em>,
+                        32(1), 101–118.<br /><br />
                         Ester, M., Kriegel, H.-P., Sander, J., & Xu, X. (1996).
                         A density-based algorithm for discovering clusters in
                         large spatial databases with noise.
@@ -1167,6 +1412,12 @@
                         on DBSCAN and K-means clustering algorithm.
                         <em>Geomatics, Natural Hazards and Risk</em>, 14(1),
                         2250527.<br /><br />
+                        Gates, T. J., Noyce, D. A., Bill, A. R., & Van Ee, N.
+                        (2006). Recommended Walking Speeds for Timing of
+                        Pedestrian Clearance Intervals Based on Characteristics
+                        of the Pedestrian Population.
+                        <em>Transportation Research Record</em>, 1982(1),
+                        38–47.<br /><br />
                         Liao, K., & Guo, D. (2008). A Clustering-Based Approach
                         to the Capacitated Facility Location Problem.
                         <em>Transactions in GIS</em>, 12(3), 323–339.
@@ -1191,7 +1442,8 @@
                         GIS של יישובים בלתי פורמליים שסופקה על ידי הרשות לפיתוח
                         והתיישבות הבדואים בנגב (2) אזורים סטטיסטיים מהלשכה
                         המרכזית לסטטיסטיקה (למ"ס) שבהם לא מתקיימים יישובים
-                        מוכרים, (3) סינון המבנים ע״פ וגודלם
+                        מוכרים, (3) סינון המבנים לפי גודל טביעת הרגל, מעל 40
+                        מ"ר, כדי להתמקד במבני מגורים.
                       </p>
 
                       <h4>נתוני מקלטים</h4>
@@ -1205,8 +1457,14 @@
                             >"במקום"</a
                           ></strong
                         >
-                        ודרך פניות מהקהילה. למידע מפורט יותר על מיקומי מקלטים,
-                        אנא צרו קשר עם "במקום".
+                        ודרך פניות מהקהילה. נתונים נוספים על מיקומי מקלטים
+                        סופקו על ידי
+                        <strong
+                          ><a href="https://eastnegev.org/" target="_blank"
+                            >אשכול נגב מזרחי</a
+                          ></strong
+                        >. הנתונים מעודכנים ליולי 2025 ולא אומתו בשטח. למידע
+                        מפורט יותר על מיקומי מקלטים, אנא צרו קשר עם "במקום".
                       </p>
                     </div>
                   </div>
@@ -1228,6 +1486,56 @@
                         אין להתייחס אליהם כאל מפה רשמית למצבי חירום. במצבי
                         חירום, יש להתייעץ תמיד עם הערוצים הרשמיים והרשויות
                         המקומיות לקבלת מידע והנחיות בזמן אמת.
+                      </p>
+
+                      <h4>מגבלות</h4>
+                      <ul>
+                        <li>
+                          <strong>העדפה לאזורים צפופים.</strong> יעד הכיסוי
+                          המרבי מדרג אתרים לפי מספר המבנים שכל אתר מכסה לראשונה.
+                          הוא אינו משוקלל לפי שוויוניות, ולכן יישובים קטנים
+                          ומרוחקים מדורגים נמוך מיישובים גדולים.
+                        </li>
+                        <li>
+                          <strong>כיסוי משמעו קרבה, לא הגנה.</strong> מבנה נחשב
+                          מכוסה ברגע שקיים מקלט כלשהו בתוך המרחק שנבחר, ללא תלות
+                          בקיבולת המקלט, בסוגו, במצבו, או בשאלה אם הוא פתוח
+                          וניתן לשימוש בזמן אזעקה.
+                        </li>
+                        <li>
+                          <strong>מבנים משמשים תחליף לנתוני אוכלוסייה.</strong>
+                          אין נתונים דמוגרפיים אמינים על היישובים הלא מוכרים.
+                          גודל טביעת הרגל מבחין רק בין מבני מגורים למבני עזר
+                          כגון מחסנים ודירים, ואינו מעיד על מספר הדיירים. משקי
+                          בית רבים כאן מתפרסים על פני כמה מבנים, או מרחיבים מבנה
+                          יחיד עם גדילת המשפחה, ולכן ספירת אתרי מבנים מייחסת
+                          משקל נמוך או גבוה מדי לסוגי מתחמים שונים.
+                        </li>
+                        <li>
+                          <strong>המרחק נמדד בקו אווירי.</strong> ביישובים הלא
+                          מוכרים אין רשת דרכים ממופה והתושבים משתמשים בשבילים לא
+                          פורמליים, ולכן חישוב מסלול רשתי אינו אפשרי ואף אינו
+                          מתאים. זמני ההגעה בפועל משתנים לפי תוואי השטח, מזג
+                          האוויר, שעת היום וזהות ההולך.
+                        </li>
+                        <li>
+                          <strong>נתוני המקלטים חלקיים.</strong> הדיווחים על
+                          מספר המקלטים הזמניים שחולקו ליישובים הלא מוכרים סותרים
+                          זה את זה ונעים בין 135 ל-600, ואין גוף מרכזי המנהל
+                          רישום זה. הנתונים שברשותנו לא אומתו בשטח.
+                        </li>
+                      </ul>
+                      <p>
+                        לפיכך מדובר באתרים מועמדים שעברו אופטימיזציה במודל תחת
+                        הנחות גיאומטריות ונתוניות מפשטות, ולא במיקומים
+                        אופטימליים במובן החברתי, המשפטי והלוגיסטי המלא. ההחלטות
+                        הסופיות על מספר המקלטים, איכותם ומיקומם המדויק חייבות
+                        להתקבל יחד עם התושבים והארגונים הקהילתיים. הקוד והנתונים
+                        המעובדים שלנו הם בקוד פתוח וזמינים ב<a
+                          href="https://github.com/NegevUrbanResearch/shelter_access"
+                          target="_blank"
+                          >GitHub</a
+                        >.
                       </p>
                     </div>
                   </div>

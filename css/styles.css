@@ -1270,6 +1270,18 @@ body {
     color: var(--text-primary);
 }
 
+.section-content ul {
+    margin: 0 0 var(--space-lg) 0;
+    padding-inline-start: 1.2em;
+}
+
+.section-content li {
+    margin-bottom: var(--space-sm);
+    line-height: 1.7;
+    font-size: clamp(13px, 1vw, 15px);
+    color: var(--text-secondary);
+}
+
 .section-content h4:first-child {
     margin-top: var(--space-lg);
 }
@@ -2098,6 +2110,12 @@ body.modal-open {
     .section-content h4 {
         font-size: 8px;
         margin: 6px 0 4px;
+    }
+    
+    .section-content li {
+        font-size: 8px;
+        line-height: 1.4;
+        margin-bottom: 4px;
     }
     
     .references {
