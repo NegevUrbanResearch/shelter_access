@@ -151,6 +151,11 @@ body {
     opacity: 1;
 }
 
+.brand-banner .logo.bgu-logo {
+    filter: none;
+    opacity: 0.95;
+}
+
 /* Info Button - In Brand Banner */
 .brand-banner {
     position: relative;
